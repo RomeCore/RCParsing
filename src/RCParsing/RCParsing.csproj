@@ -6,6 +6,19 @@
 		<Nullable>annotations</Nullable>
 	</PropertyGroup>
 
+	<PropertyGroup>
+		<PackageId>RCParsing</PackageId>
+		<Version>1.0.1</Version>
+		<Authors>Roman K.</Authors>
+		<Company>RomeCore</Company>
+		<Product>RCParsing</Product>
+		<Description>A very flexible and readable .NET parser building library.</Description>
+		<PackageTags>parser</PackageTags>
+		<RepositoryUrl>https://github.com/RomeCore/RCParsing</RepositoryUrl>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<GenerateDocumentationFile>True</GenerateDocumentationFile>
+	</PropertyGroup>
+
 	<ItemGroup>
 		<PackageReference Include="System.Collections.Immutable" Version="8.0.0" />
 	</ItemGroup>
