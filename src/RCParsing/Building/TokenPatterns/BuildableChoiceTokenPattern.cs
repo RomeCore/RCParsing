@@ -1,0 +1,40 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using RCParsing.TokenPatterns;
+using RCParsing.Utils;
+
+namespace RCParsing.Building.TokenPatterns
+{
+	/// <summary>
+	/// Represents a token pattern that can be built into a choice of multiple patterns.
+	/// </summary>
+	public class BuildableChoiceTokenPattern : BuildableTokenPattern
+	{
+		/// <summary>
+		/// The choices of this token pattern.
+		/// </summary>
+		public List<Or<string, BuildableTokenPattern>> Choices { get; } = new List<Or<string, BuildableTokenPattern>>();
+		public override IEnumerable<Or<string, BuildableTokenPattern>>? TokenChildren => Choices;
+
+		protected override TokenPattern BuildToken(List<int>? tokenChildren)
+		{
+			return new ChoiceTokenPattern(tokenChildren);
+		}
+
+		public override bool Equals(object? obj)
+		{
+			return base.Equals(obj) &&
+				   obj is BuildableChoiceTokenPattern other &&
+				   Choices.SequenceEqual(other.Choices);
+		}
+
+		public override int GetHashCode()
+		{
+			int hashCode = base.GetHashCode();
+			hashCode ^= Choices.GetSequenceHashCode() * 23;
+			return hashCode;
+		}
+	}
+}

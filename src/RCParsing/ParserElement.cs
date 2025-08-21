@@ -1,0 +1,234 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Text;
+using RCParsing.Utils;
+
+namespace RCParsing
+{
+	/// <summary>
+	/// Represents a parser element. This is an abstract base class for both token patterns and rules.
+	/// </summary>
+	public abstract class ParserElement
+	{
+		/// <summary>
+		/// Gets the unique identifier for this parser element.
+		/// </summary>
+		public int Id { get; internal set; } = -1;
+
+		/// <summary>
+		/// Gets the aliases for this parser element.
+		/// </summary>
+		public ImmutableList<string> Aliases { get; internal set; } = ImmutableList<string>.Empty;
+
+		/// <summary>
+		/// Gets the parser that contains this parser element.
+		/// </summary>
+		public Parser Parser { get; internal set; } = null!;
+
+
+
+		/// <summary>
+		/// Gets the core implementation of <see cref="FirstChars"/>, which
+		/// returns a set of characters that are allowed as the first character of this parser element.
+		/// </summary>
+		protected virtual HashSet<char>? FirstCharsCore => null;
+
+		/// <summary>
+		/// Gets a value indicating whether the first character of this parser element is deterministic.
+		/// </summary>
+		/// <remarks>
+		/// Deterministic means that the character at the current position can be used to strongly
+		/// determine which rule or token will be matched next. <br/>
+		/// </remarks>
+		public bool IsFirstCharDeterministic => FirstChars != null;
+
+		private readonly Lazy<HashSet<char>?> _firstCharsLazy;
+		/// <summary>
+		/// Gets a set of characters that can appear at the beginning of this parser element. If null,
+		/// it means that the first character is not deterministic.
+		/// </summary>
+		public HashSet<char>? FirstChars => _firstCharsLazy.Value;
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ParserElement"/> class.
+		/// </summary>
+		public ParserElement()
+		{
+			_firstCharsLazy = new(() => FirstCharsCore);
+		}
+
+		/// <summary>
+		/// Initializes this parser element. This method is called by the parser when it adds all elements (rules and tokens)
+		/// to itself.
+		/// </summary>
+		/// <remarks>
+		/// May be used to perform initialization tasks.
+		/// </remarks>
+		protected virtual void Initialize()
+		{
+		}
+
+		/// <summary>
+		/// Optimizes this parser element. This method is called by the parser when it adds all elements (rules and tokens)
+		/// to itself and it has 'optimized' flag set to true. This method is called after the 'Initialize' method.
+		/// </summary>
+		/// <remarks>
+		/// May be used to perform some optimizations.
+		/// </remarks>
+		protected virtual void Optimize()
+		{
+		}
+
+		/// <summary>
+		/// Post-initializes this parser element. This method is called by the parser when it adds all elements (rules and tokens)
+		/// to itself after all elements have been initialized and optimized.
+		/// </summary>
+		/// <remarks>
+		/// May be used to perform initialization tasks.
+		/// </remarks>
+		protected virtual void PostInitialize()
+		{
+		}
+
+		/// <summary>
+		/// Initializes this parser element internally.
+		/// </summary>
+		internal void InitializeInternal() => Initialize();
+
+		/// <summary>
+		/// Optimizes this parser element internally.
+		/// </summary>
+		internal void OptimizeInternal() => Optimize();
+
+		/// <summary>
+		/// Post-initializes this parser element internally.
+		/// </summary>
+		internal void PostInitializeInternal() => PostInitialize();
+
+
+
+		/// <summary>
+		/// Gets the rule by index within the current parser.
+		/// </summary>
+		/// <param name="index">The index of the rule to retrieve.</param>
+		/// <returns>The rule at the specified index.</returns>
+		protected ParserRule GetRule(int index)
+		{
+			return Parser.Rules[index];
+		}
+
+		/// <summary>
+		/// Gets the token pattern by index within the current parser.
+		/// </summary>
+		/// <param name="index">The index of the token pattern to retrieve.</param>
+		/// <returns>The token pattern at the specified index.</returns>
+		protected TokenPattern GetTokenPattern(int index)
+		{
+			return Parser.TokenPatterns[index];
+		}
+
+		/// <summary>
+		/// Records an error associated with this element in the provided parser context.
+		/// </summary>
+		/// <param name="context">The parser context to record the error in.</param>
+		protected void RecordError(ParserContext context)
+		{
+			context.RecordError(null, Id, this is TokenPattern);
+		}
+
+		/// <summary>
+		/// Records an error associated with this element and the specific message in the provided parser context.
+		/// </summary>
+		/// <param name="context">The parser context to record the error in.</param>
+		/// <param name="position">The position in the input string where the error occurred.</param>
+		protected void RecordError(ParserContext context, int position)
+		{
+			context.RecordError(position, null, Id, this is TokenPattern);
+		}
+
+		/// <summary>
+		/// Records an error associated with this element and the specific message in the provided parser context.
+		/// </summary>
+		/// <param name="context">The parser context to record the error in.</param>
+		/// <param name="message">The error message to record.</param>
+		protected void RecordError(ParserContext context, string? message)
+		{
+			context.RecordError(message, Id, this is TokenPattern);
+		}
+
+		/// <summary>
+		/// Records an error associated with this element and the specific message in the provided parser context.
+		/// </summary>
+		/// <param name="context">The parser context to record the error in.</param>
+		/// <param name="position">The position in the input string where the error occurred.</param>
+		/// <param name="message">The error message to record.</param>
+		protected void RecordError(ParserContext context, int position, string? message)
+		{
+			context.RecordError(position, message, Id, this is TokenPattern);
+		}
+
+		/// <summary>
+		/// Tries to parse a rule with the given ID using the specified parsing context.
+		/// </summary>
+		/// <param name="ruleId">The ID of the rule to parse.</param>
+		/// <param name="context">The parsing context to use for the parse operation.</param>
+		/// <returns>The results of rule parsing operation if parsing was successful; otherwise, <see cref="ParsedRule.Fail"/> if parsing failed.</returns>
+		protected ParsedRule TryParseRule(int ruleId, ParserContext context)
+		{
+			return Parser.TryParseRule(ruleId, context);
+		}
+
+		/// <summary>
+		/// Tries to match a token with the given ID using the specified parsing context.
+		/// </summary>
+		/// <param name="tokenId">The ID of the token to match.</param>
+		/// <param name="input">The input string to match against.</param>
+		/// <param name="position">The starting position in the input string to match against.</param>
+		/// <returns>The parsed token containing the result of the match operation or <see cref="ParsedElement.Fail"/> if the match failed.</returns>
+		protected ParsedElement TryMatchToken(int tokenId, string input, int position)
+		{
+			return Parser.MatchToken(tokenId, input, position);
+		}
+
+		/// <summary>
+		/// Returns a string representation of the parser element using a specified depth for expansion.
+		/// </summary>
+		/// <param name="remainingDepth">The maximum depth to which the element should be expanded in the string representation. Defaults to 2.</param>
+		/// <returns>A string representation of the rule.</returns>
+		public abstract string ToStringOverride(int remainingDepth);
+
+		public string ToString(int remainingDepth)
+		{
+			if (Aliases.Count > 0)
+				return $"'{Aliases.Last()}'";
+			return ToStringOverride(remainingDepth);
+		}
+
+		public override string ToString()
+		{
+			if (Aliases.Count > 0)
+				return $"'{Aliases.Last()}'";
+			return ToStringOverride(2); // Default depth is 2.
+		}
+
+		public override bool Equals(object? obj)
+		{
+			return obj is ParserElement other &&
+				Id == other.Id &&
+				ReferenceEquals(Parser, other.Parser) &&
+				Aliases.SequenceEqual(other.Aliases);
+		}
+
+		public override int GetHashCode()
+		{
+			int hashCode = 17;
+			hashCode ^= Id.GetHashCode() * 23;
+			hashCode ^= (Parser?.GetHashCode() ?? 0) * 27;
+			hashCode ^= Aliases.GetSequenceHashCode() * 29;
+			return hashCode;
+		}
+	}
+}

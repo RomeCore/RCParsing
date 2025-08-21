@@ -1,0 +1,74 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+using System.Text.RegularExpressions;
+
+namespace RCParsing.TokenPatterns
+{
+	/// <summary>
+	/// Matches a regular expression pattern in the input text.
+	/// </summary>
+	/// <remarks>
+	/// Passes a <see cref="Match"/> object from the regex match as an intermediate value.
+	/// </remarks>
+	public class RegexTokenPattern : TokenPattern
+	{
+		/// <summary>
+		/// The regular expression pattern string to match.
+		/// </summary>
+		public string RegexPattern { get; }
+		
+		/// <summary>
+		/// The regular expression to match.
+		/// </summary>
+		public Regex Regex { get; }
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="RegexTokenPattern"/> class.
+		/// </summary>
+		/// <param name="pattern">The regular expression pattern.</param>
+		/// <param name="options">The regex options (default is None).</param>
+		public RegexTokenPattern(string pattern, RegexOptions options = RegexOptions.Compiled)
+		{
+			if (string.IsNullOrEmpty(pattern))
+				throw new ArgumentException("Pattern cannot be null or empty.", nameof(pattern));
+			RegexPattern = pattern;
+			Regex = new Regex($"\\G{RegexPattern}", options);
+		}
+
+		protected override HashSet<char>? FirstCharsCore => null;
+
+
+
+		public override ParsedElement Match(string input, int position)
+		{
+			var match = Regex.Match(input, position);
+
+			if (!match.Success || match.Index != position)
+				return ParsedElement.Fail;
+			else
+				return new ParsedElement(Id, position, match.Length, match);
+		}
+
+
+
+		public override string ToStringOverride(int remainingDepth)
+		{
+			return $"regex: '{RegexPattern}'";
+		}
+
+		public override bool Equals(object? obj)
+		{
+			return base.Equals(obj) &&
+				   obj is RegexTokenPattern pattern &&
+				   RegexPattern == pattern.RegexPattern;
+		}
+
+		public override int GetHashCode()
+		{
+			int hashCode = base.GetHashCode();
+			hashCode = hashCode * -1521134295 + RegexPattern.GetHashCode();
+			return hashCode;
+		}
+	}
+}
