@@ -51,7 +51,7 @@ namespace RCParsing.TokenPatterns
 
 
 
-		public override ParsedElement Match(string input, int position)
+		public override ParsedElement Match(string input, int position, object? parserParameter)
 		{
 			int initialPosition = position;
 			while (position < input.Length &&

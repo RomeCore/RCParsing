@@ -187,10 +187,11 @@ namespace RCParsing
 		/// <param name="tokenId">The ID of the token to match.</param>
 		/// <param name="input">The input string to match against.</param>
 		/// <param name="position">The starting position in the input string to match against.</param>
+		/// <param name="parserParameter">The optional parameter to pass to the token pattern. Can be used to pass additional information to the custom token patterns.</param>
 		/// <returns>The parsed token containing the result of the match operation or <see cref="ParsedElement.Fail"/> if the match failed.</returns>
-		protected ParsedElement TryMatchToken(int tokenId, string input, int position)
+		protected ParsedElement TryMatchToken(int tokenId, string input, int position, object? parserParameter)
 		{
-			return Parser.MatchToken(tokenId, input, position);
+			return Parser.MatchToken(tokenId, input, position, parserParameter);
 		}
 
 		/// <summary>

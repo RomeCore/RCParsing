@@ -98,6 +98,7 @@ namespace RCParsing
 	/// <summary>
 	/// Defines how parser elements should handle errors.
 	/// </summary>
+	[Flags]
 	public enum ParserErrorHandlingMode
 	{
 		/// <summary>
@@ -108,12 +109,27 @@ namespace RCParsing
 		/// <summary>
 		/// Ignores any errors when parser elements trying to record them.
 		/// </summary>
-		NoRecord,
+		NoRecord = 1,
 
 		/// <summary>
 		/// Throws any errors when parser elements trying to record them.
 		/// </summary>
-		Throw
+		Throw = 2,
+
+		/// <summary>
+		/// Displays what rules are expected or failed to parse when formatting errors for exceptions.
+		/// </summary>
+		DisplayRules = 4,
+
+		/// <summary>
+		/// Displays the hidden error messages when formatting errors for exceptions.
+		/// </summary>
+		DisplayMessages = 8,
+
+		/// <summary>
+		/// Displays more groups of errors (instead of a single group) when formatting errors for exceptions.
+		/// </summary>
+		DisplayExtended = 16,
 	}
 
 	/// <summary>

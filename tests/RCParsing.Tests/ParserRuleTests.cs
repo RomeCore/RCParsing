@@ -157,7 +157,8 @@ namespace RCParsing.Tests.Parsing
 			builder.CreateRule("skip")
 				.Choice(
 					b => b.Whitespaces(),
-					b => b.Literal("//").TextUntil('\n', '\r'));
+					b => b.Literal("//").TextUntil('\n', '\r'))
+				.Configure(c => c.IgnoreErrors());
 
 			builder.CreateToken("string")
 				.Literal("\"")
@@ -208,7 +209,7 @@ namespace RCParsing.Tests.Parsing
 				.Rule("value")
 				.Transform(v => KeyValuePair.Create(v.Children[0].GetValue<string>(), v.Children[2].GetValue()));
 
-			builder.CreateRule("content")
+			builder.CreateMainRule("content")
 				.Rule("value")
 				.EOF() // Sure that we captured all the input
 				.Transform(v => v.Children[0].Value);
@@ -231,7 +232,7 @@ namespace RCParsing.Tests.Parsing
 			""";
 			var invalidJson = "{ \"name\": \"Test\", \"age\": }";
 
-			var result = jsonParser.ParseRule("content", json.Replace("\t", "    ")).Value;
+			var result = jsonParser.Parse(json.Replace("\t", "    ")).Value;
 			Assert.True(result is Dictionary<string, object>);
 			Assert.Throws<ParsingException>(() => jsonParser.ParseRule("content", invalidJson));
 		}
@@ -318,14 +319,13 @@ namespace RCParsing.Tests.Parsing
 			builder.CreateRule("expression")
 				.Rule("additive_operator");
 
-			builder.CreateRule("content")
+			builder.CreateMainRule("content")
 				.Rule("expression")
 				.EOF();
 
 			var parser = builder.Build();
 
-			var result = parser.ParseRule(
-				"content",
+			var result = parser.Parse(
 				@"!1 + abc.def(1 + ""string"""""", ++test.index[1 + 5]) * (3 - ~4 * a.b[0]) / 5");
 		}
 
@@ -414,6 +414,22 @@ namespace RCParsing.Tests.Parsing
 			var parser = builder.Build();
 
 			Assert.Equal(["number", "int", "integer", "double"], parser.GetTokenPattern("number").Aliases);
+		}
+
+		[Fact]
+		public void RuleDeduplication()
+		{
+			var builder = new ParserBuilder();
+
+			builder.CreateRule("rule1")
+				.Literal("abc");
+
+			builder.CreateRule("rule2")
+				.Literal("abc");
+
+			var parser = builder.Build();
+
+			Assert.Equal(parser.GetRule("rule1").Id, parser.GetRule("rule2").Id);
 		}
 	}
 }

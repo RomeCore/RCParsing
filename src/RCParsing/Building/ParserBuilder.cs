@@ -47,6 +47,7 @@ namespace RCParsing.Building
 		private readonly Dictionary<string, TokenBuilder> _tokenPatterns = new Dictionary<string, TokenBuilder>();
 		private readonly Dictionary<string, RuleBuilder> _rules = new Dictionary<string, RuleBuilder>();
 		private readonly ParserSettingsBuilder _settingsBuilder = new ParserSettingsBuilder();
+		private string? _mainRuleAlias;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="ParserBuilder"/> class.
@@ -82,6 +83,28 @@ namespace RCParsing.Building
 			if (_rules.ContainsKey(name))
 				throw new ArgumentException($"Rule with name '{name}' already exists.");
 
+			var rule = new RuleBuilder();
+			_rules[name] = rule;
+			return rule;
+		}
+
+		/// <summary>
+		/// Creates a rule builder and registers it under the given name.
+		/// </summary>
+		/// <remarks>
+		/// Marks this rule as main rule. The main rule may be used as entry point for parsing.
+		/// </remarks>
+		/// <param name="name">The name of the rule. Will be bound to rule as alias in the built parser.</param>
+		/// <returns>A <see cref="RuleBuilder"/> instance for building the rule.</returns>
+		/// <exception cref="ArgumentException">Thrown if a rule with the same name already exists.</exception>
+		public RuleBuilder CreateMainRule(string name)
+		{
+			if (_mainRuleAlias != null)
+				throw new ArgumentException("Main rule has already been set.");
+			if (_rules.ContainsKey(name))
+				throw new ArgumentException($"Rule with name '{name}' already exists.");
+
+			_mainRuleAlias = name;
 			var rule = new RuleBuilder();
 			_rules[name] = rule;
 			return rule;
@@ -392,7 +415,7 @@ namespace RCParsing.Building
 			}
 
 			// Return the fully built parser instance with rules and token patterns
-			return new Parser(resultTokenPatterns.ToImmutableArray(), resultRules.ToImmutableArray(), settings, optimize);
+			return new Parser(resultTokenPatterns.ToImmutableArray(), resultRules.ToImmutableArray(), settings, _mainRuleAlias, optimize);
 		}
 	}
 }

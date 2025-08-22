@@ -37,7 +37,7 @@ namespace RCParsing.ParserRules
 
 		public override ParsedRule Parse(ParserContext context, ParserContext childContext)
 		{
-			var match = _pattern.Match(context.str, context.position);
+			var match = _pattern.Match(context.str, context.position, context.parserParameter);
 			if (!match.success)
 			{
 				RecordError(context, "Failed to parse token.");

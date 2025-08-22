@@ -33,6 +33,12 @@ namespace RCParsing
 		public ParserSettings settings;
 
 		/// <summary>
+		/// The optional parameter passed to the parser. Can be used to pass additional information to the
+		/// transformation functions, custom parser rules and token patterns.
+		/// </summary>
+		public readonly object? parserParameter;
+
+		/// <summary>
 		/// The parser object that is performing the parsing.
 		/// </summary>
 		public readonly Parser parser;
@@ -90,12 +96,14 @@ namespace RCParsing
 		/// </summary>
 		/// <param name="parser">The parser object that is performing the parsing.</param>
 		/// <param name="str">The input string to be parsed.</param>
-		internal ParserContext(Parser parser, string str)
+		/// <param name="parserParameter">Optional parameter that have been passed to the parser.</param>
+		internal ParserContext(Parser parser, string str, object? parserParameter)
 		{
 			this.str = str ?? throw new ArgumentNullException(nameof(str));
 			position = 0;
 			recursionDepth = 0;
 			settings = default;
+			this.parserParameter = parserParameter;
 
 			this.parser = parser ?? throw new ArgumentNullException(nameof(parser));
 			settings = parser.Settings;
@@ -110,20 +118,13 @@ namespace RCParsing
 		/// Records, ignores or throws an error based on the current settings.
 		/// </summary>
 		/// <param name="error">The parsing error to record.</param>
-		public void RecordError(ParsingError error)
+		public readonly void RecordError(ParsingError error)
 		{
-			switch (settings.errorHandling)
-			{
-				case ParserErrorHandlingMode.Default:
-					errors.Add(error);
-					break;
+			if (!settings.errorHandling.HasFlag(ParserErrorHandlingMode.NoRecord))
+				errors.Add(error);
 
-				case ParserErrorHandlingMode.NoRecord:
-					break;
-
-				case ParserErrorHandlingMode.Throw:
-					throw error.ToException(this);
-			}
+			if (settings.errorHandling.HasFlag(ParserErrorHandlingMode.Throw))
+				throw error.ToException(this);
 		}
 
 		/// <summary>
@@ -133,7 +134,7 @@ namespace RCParsing
 		/// <param name="elementId">The ID of the element (rule or token) that caused the error or been expected at this position.</param>
 		/// <param name="isToken">A value indicating whether the element that caused the error is a token.</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void RecordError(string? message = null, int elementId = -1, bool isToken = false)
+		public readonly void RecordError(string? message = null, int elementId = -1, bool isToken = false)
 		{
 			RecordError(new ParsingError(position, recursionDepth, message, elementId, isToken));
 		}
@@ -146,7 +147,7 @@ namespace RCParsing
 		/// <param name="elementId">The ID of the element (rule or token) that caused the error or been expected at this position.</param>
 		/// <param name="isToken">A value indicating whether the element that caused the error is a token.</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void RecordError(int position, string? message = null, int elementId = -1, bool isToken = false)
+		public readonly void RecordError(int position, string? message = null, int elementId = -1, bool isToken = false)
 		{
 			RecordError(new ParsingError(position, recursionDepth, message, elementId, isToken));
 		}

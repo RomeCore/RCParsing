@@ -66,7 +66,7 @@ namespace RCParsing
 		/// </summary>
 		public object? IntermediateValue => Result.intermediateValue;
 
-		private readonly Lazy<string> _textLazy;
+		private readonly Utils.LazyValue<string> _textLazy;
 		/// <summary>
 		/// Gets the parsed input text that was captured.
 		/// </summary>
@@ -89,7 +89,7 @@ namespace RCParsing
 			Context = context;
 			Result = result;
 
-			_textLazy = new Lazy<string>(() => Context.str.Substring(Result.startIndex, Result.length));
+			_textLazy = new Utils.LazyValue<string>(() => Context.str.Substring(Result.startIndex, Result.length));
 		}
 
 		/// <summary>

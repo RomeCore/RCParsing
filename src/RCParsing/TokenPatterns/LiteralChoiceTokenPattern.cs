@@ -58,7 +58,7 @@ namespace RCParsing.TokenPatterns
 
 
 
-		public override ParsedElement Match(string input, int position)
+		public override ParsedElement Match(string input, int position, object? parserParameter)
 		{
 			if (_root.TryGetLongestMatch(input, position, out var matchedLiteral, out int matchedLength))
 			{

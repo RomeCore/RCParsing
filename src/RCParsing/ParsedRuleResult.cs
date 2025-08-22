@@ -142,9 +142,9 @@ namespace RCParsing
 		/// <summary>
 		/// Gets the parsing parameter object that was passed to the parser during parsing. May be null if no parameter is passed.
 		/// </summary>
-		public object? ParsingParameter { get; }
+		public object? ParsingParameter => Context.parserParameter;
 
-		private readonly Lazy<string> _textLazy;
+		private readonly LazyValue<string> _textLazy;
 		/// <summary>
 		/// Gets the parsed input text that was captured.
 		/// </summary>
@@ -155,13 +155,13 @@ namespace RCParsing
 		/// </summary>
 		public ReadOnlySpan<char> Span => Context.str.AsSpan(Result.startIndex, Result.length);
 
-		private readonly Lazy<object?> _valueLazy;
+		private readonly LazyValue<object?> _valueLazy;
 		/// <summary>
 		/// Gets the parsed value associated with this rule.
 		/// </summary>
 		public object? Value => _valueLazy.Value;
 
-		private readonly Lazy<ParsedRuleResult[]> _childrenLazy;
+		private readonly LazyValue<ParsedRuleResult[]> _childrenLazy;
 		/// <summary>
 		/// Gets the children results of this rule. Valid for parallel and sequence rules.
 		/// </summary>
@@ -174,26 +174,24 @@ namespace RCParsing
 		/// <param name="treeOptimization">The optimization flags that used to optimize the parse tree.</param>
 		/// <param name="context">The parser context used for parsing.</param>
 		/// <param name="result">The parsed rule object containing the result of the parse.</param>
-		/// <param name="parsingParameter">The parsing parameter object that was passed to the parser during parsing. May be null if no parameter is passed.</param>
 		public ParsedRuleResult(ParseTreeOptimization treeOptimization,
-			ParsedRuleResult? parent, ParserContext context, ParsedRule result, object? parsingParameter)
+			ParsedRuleResult? parent, ParserContext context, ParsedRule result)
 		{
 			Optimization = treeOptimization;
 			Parent = parent;
 			Context = context;
 			Result = Optimized(result, context, Optimization);
 			Token = result.isToken ? new ParsedTokenResult(this, context, result.element) : null;
-			ParsingParameter = parsingParameter;
 
-			_textLazy = new Lazy<string>(() => Context.str.Substring(Result.startIndex, Result.length));
-			_valueLazy = new Lazy<object?>(() => Rule.ParsedValueFactory?.Invoke(this) ?? null);
+			_textLazy = new LazyValue<string>(() => Context.str.Substring(Result.startIndex, Result.length));
+			_valueLazy = new LazyValue<object?>(() => Rule.ParsedValueFactory?.Invoke(this) ?? null);
 
-			_childrenLazy = new Lazy<ParsedRuleResult[]>(() =>
+			_childrenLazy = new LazyValue<ParsedRuleResult[]>(() =>
 			{
 				var children = new ParsedRuleResult[Result.children?.Count ?? 0];
 
 				for (int i = 0; i < children.Length; i++)
-					children[i] = new ParsedRuleResult(Optimization, this, Context, Result.children[i], ParsingParameter);
+					children[i] = new ParsedRuleResult(Optimization, this, Context, Result.children[i]);
 
 				return children;
 			});
@@ -265,7 +263,7 @@ namespace RCParsing
 		/// <returns>An optimized version of this parsed rule result.</returns>
 		public ParsedRuleResult Optimized(ParseTreeOptimization optimization)
 		{
-			return new ParsedRuleResult(optimization, Parent, Context, Result, ParsingParameter);
+			return new ParsedRuleResult(optimization, Parent, Context, Result);
 		}
 
 		/// <summary>

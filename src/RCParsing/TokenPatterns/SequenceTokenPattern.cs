@@ -42,14 +42,14 @@ namespace RCParsing.TokenPatterns
 
 
 
-		public override ParsedElement Match(string input, int position)
+		public override ParsedElement Match(string input, int position, object? parserParameter)
 		{
 			var initialPosition = position;
 			var tokens = new List<ParsedElement>();
 
 			foreach (var tokenId in TokenPatterns)
 			{
-				var token = TryMatchToken(tokenId, input, position);
+				var token = TryMatchToken(tokenId, input, position, parserParameter);
 				if (!token.success)
 					return ParsedElement.Fail;
 

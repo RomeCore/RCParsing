@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Text;
 using System.Text.RegularExpressions;
+using RCParsing.Utils;
 
 namespace RCParsing.ParserRules
 {
@@ -38,7 +39,7 @@ namespace RCParsing.ParserRules
 			}
 			else
 			{
-				return ParsedRule.Rule(Id, context.position, 0, new List<ParsedRule> { }, null);
+				return ParsedRule.Rule(Id, context.position, 0, new List<ParsedRule>(), null);
 			}
 		}
 

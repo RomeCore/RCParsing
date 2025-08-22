@@ -133,6 +133,19 @@ namespace RCParsing.Building
 		}
 
 		/// <summary>
+		/// Sets the detailed error messages mode when throwing exceptions.
+		/// </summary>
+		/// <remarks>
+		/// Useful for debugging purposes.
+		/// </remarks>
+		/// <returns>This instance for method chaining.</returns>
+		public ParserSettingsBuilder DetailedErrors()
+		{
+			return ErrorHandling(_settings.errorHandling | ParserErrorHandlingMode.DisplayRules |
+				ParserErrorHandlingMode.DisplayMessages | ParserErrorHandlingMode.DisplayExtended);
+		}
+
+		/// <summary>
 		/// Sets the caching mode.
 		/// </summary>
 		/// <param name="mode">The caching mode.</param>

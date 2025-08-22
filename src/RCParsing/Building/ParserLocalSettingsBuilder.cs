@@ -164,6 +164,20 @@ namespace RCParsing.Building
 		}
 
 		/// <summary>
+		/// Sets the detailed error messages mode when throwing exceptions.
+		/// </summary>
+		/// <remarks>
+		/// Useful for debugging purposes. Note that this setting uses same flag as 'RecordErrors', 'IgnoreErrors' and 'ThrowErrors', so their setting mode will be overriden.
+		/// </remarks>
+		/// <param name="overrideMode">The override mode for the error handling setting.</param>
+		/// <returns>This instance for method chaining.</returns>
+		public ParserLocalSettingsBuilder DetailedErrors(ParserSettingMode overrideMode = ParserSettingMode.LocalForSelfAndChildren)
+		{
+			return ErrorHandling(_settings.errorHandling | ParserErrorHandlingMode.DisplayRules |
+				ParserErrorHandlingMode.DisplayMessages | ParserErrorHandlingMode.DisplayExtended, overrideMode);
+		}
+
+		/// <summary>
 		/// Sets the caching mode.
 		/// </summary>
 		/// <param name="mode">The caching mode.</param>

@@ -59,13 +59,7 @@ namespace RCParsing
 		/// <returns>A string that represents the parsing error.</returns>
 		public string ToString(ParserContext context)
 		{
-			string msg = message != null ? $"{message}\n" : string.Empty;
-			string elem = elementId != -1 ? $"Failed to parse/expected {(isToken ? context.parser.TokenPatterns[elementId] : context.parser.Rules[elementId])}\n" : string.Empty;
-
-			if (string.IsNullOrEmpty(msg) && string.IsNullOrEmpty(elem))
-				msg = "Unknown error\n";
-
-			return $"{msg}{elem}{PositionalFormatter.Format(context.str, position)}";
+			return ErrorFormatter.FormatError(context, this);
 		}
 
 		/// <summary>

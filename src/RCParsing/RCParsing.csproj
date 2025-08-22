@@ -8,7 +8,7 @@
 
 	<PropertyGroup>
 		<PackageId>RCParsing</PackageId>
-		<Version>1.0.1</Version>
+		<Version>1.1.0</Version>
 		<Authors>Roman K.</Authors>
 		<Company>RomeCore</Company>
 		<Product>RCParsing</Product>

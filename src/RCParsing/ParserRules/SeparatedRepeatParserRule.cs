@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Data;
 using System.Text;
+using RCParsing.Utils;
 
 namespace RCParsing.ParserRules
 {
@@ -101,7 +102,7 @@ namespace RCParsing.ParserRules
 					}
 
 					// No elements and no separator — return successful empty result
-					return ParsedRule.Rule(Id, initialPosition, 0, new List<ParsedRule>());
+					return ParsedRule.Rule(Id, initialPosition, 0, elements);
 				}
 				else
 				{

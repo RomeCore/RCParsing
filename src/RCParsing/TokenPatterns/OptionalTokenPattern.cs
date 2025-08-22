@@ -28,9 +28,9 @@ namespace RCParsing.TokenPatterns
 
 
 
-		public override ParsedElement Match(string input, int position)
+		public override ParsedElement Match(string input, int position, object? parserParameter)
 		{
-			var token = TryMatchToken(TokenPattern, input, position);
+			var token = TryMatchToken(TokenPattern, input, position, parserParameter);
 			if (token.success)
 				return new ParsedElement(Id, token.startIndex, token.length, token.intermediateValue);
 			else
