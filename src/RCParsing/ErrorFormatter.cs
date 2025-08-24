@@ -118,7 +118,7 @@ namespace RCParsing
 			if (groupedErrors.Count > max)
 				sb.AppendLine().AppendLine().Append("...and more errors omitted.");
 
-			return sb.ToString().Indent("  ", addIndentToFirstLine: false);
+			return sb.ToString();
 		}
 
 		private static string GetCharacterDisplay(string input, int position)

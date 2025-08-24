@@ -10,6 +10,11 @@ namespace RCParsing
 	public static class PositionalFormatter
 	{
 		/// <summary>
+		/// The size of a tab character in spaces.
+		/// </summary>
+		public static int tabSize = 4;
+
+		/// <summary>
 		/// Decomposes a string into lines and calculates the line number and column of a given position.
 		/// </summary>
 		/// <param name="str">The string to decompose.</param>
@@ -17,10 +22,12 @@ namespace RCParsing
 		/// <param name="lineStart">The start index of the current line. Outputs the start index of the line containing the given position.</param>
 		/// <param name="lineLength">The length of the current line. Outputs the length of the line containing the given position.</param>
 		/// <param name="lineNumber">The number of line containing the given position as a 1-based index. Outputs the line number containing the given position.</param>
-		/// <param name="column">The number of column containing the given position as a 1-based index. Outputs the column number containing the given position.</param>
+		/// <param name="columnNumber">The number of column containing the given position as a 1-based index. Outputs the column number containing the given position.</param>
+		/// <param name="visualColumnNumber">The number of visual column containing the given position as a 1-based index. The visual column number takes into account tab characters and other non-printable characters. Outputs the visual column number containing the given position.</param>
 		/// <exception cref="ArgumentOutOfRangeException">Thrown when the given position is out of range.</exception>
 		public static void Decompose(string str, int position,
-			out int lineStart, out int lineLength, out int lineNumber, out int column)
+			out int lineStart, out int lineLength,
+			out int lineNumber, out int columnNumber, out int visualColumnNumber)
 		{
 			if (position < 0 || position > str.Length)
 				throw new ArgumentOutOfRangeException(nameof(position), "Position must be within the bounds of the string.");
@@ -71,7 +78,17 @@ namespace RCParsing
 			lineStart = currentLineStart;
 			lineLength = currentLineEnd - currentLineStart;
 			lineNumber = currentLineNumber;
-			column = targetOffset + 1;
+			columnNumber = targetOffset + 1;
+
+			int _visualColumnNumber = 1;
+			for (int i = currentLineStart; i < currentLineEnd && i < currentLineStart + targetOffset; i++)
+			{
+				if (str[i] == '\t')
+					_visualColumnNumber += tabSize;
+				else
+					_visualColumnNumber += 1;
+			}
+			visualColumnNumber = _visualColumnNumber;
 		}
 
 		/// <summary>
@@ -89,15 +106,15 @@ namespace RCParsing
 		/// <exception cref="ArgumentOutOfRangeException">Thrown if the specified position is out of range for the input text.</exception>
 		public static string Format(string str, int position)
 		{
-			Decompose(str, position, out int lineStart, out int lineLength, out int lineNumber, out int column);
+			Decompose(str, position, out int lineStart, out int lineLength, out int lineNumber, out int columnNumber, out int visualColumnNumber);
 
-			string lineAndColumn = $"line {lineNumber}, column {column}";
+			string lineAndColumn = $"line {lineNumber}, column {columnNumber}";
 
 			string pointerLine;
-			if (column <= lineAndColumn.Length + 2)
-				pointerLine = new string(' ', column - 1) + '^' + ' ' + lineAndColumn;
+			if (visualColumnNumber <= lineAndColumn.Length + 2)
+				pointerLine = new string(' ', visualColumnNumber - 1) + '^' + ' ' + lineAndColumn;
 			else
-				pointerLine = new string(' ', column - 2 - lineAndColumn.Length) + lineAndColumn + ' ' + '^';
+				pointerLine = new string(' ', visualColumnNumber - 2 - lineAndColumn.Length) + lineAndColumn + ' ' + '^';
 
 			return $"{str.Substring(lineStart, lineLength)}\n{pointerLine}";
 		}

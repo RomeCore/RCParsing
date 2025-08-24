@@ -15,7 +15,7 @@ namespace RCParsing.Tests.Parsing
 			var inputStr = "line1\nline2 abc\nline3";
 
 			PositionalFormatter.Decompose(inputStr, 9,
-				out var lineStart, out var lineLength, out var lineNumber, out var column);
+				out var lineStart, out var lineLength, out var lineNumber, out var column, out _);
 
 			Assert.Equal(6, lineStart);    // start of "line2 abc\n"
 			Assert.Equal(9, lineLength);   // "line2 abc"
@@ -28,7 +28,7 @@ namespace RCParsing.Tests.Parsing
 		{
 			var inputStr = "abc\ndef";
 			PositionalFormatter.Decompose(inputStr, 0,
-				out var lineStart, out var lineLength, out var lineNumber, out var column);
+				out var lineStart, out var lineLength, out var lineNumber, out var column, out _);
 
 			Assert.Equal(0, lineStart);
 			Assert.Equal(3, lineLength);
@@ -41,7 +41,7 @@ namespace RCParsing.Tests.Parsing
 		{
 			var inputStr = "abc\ndef";
 			PositionalFormatter.Decompose(inputStr, 3,
-				out var lineStart, out var lineLength, out var lineNumber, out var column);
+				out var lineStart, out var lineLength, out var lineNumber, out var column, out _);
 
 			Assert.Equal(0, lineStart);   // still on line 1
 			Assert.Equal(3, lineLength);  // "abc"
@@ -54,7 +54,7 @@ namespace RCParsing.Tests.Parsing
 		{
 			var inputStr = "abc\r\ndef";
 			PositionalFormatter.Decompose(inputStr, 5,
-				out var lineStart, out var lineLength, out var lineNumber, out var column);
+				out var lineStart, out var lineLength, out var lineNumber, out var column, out _);
 
 			Assert.Equal(5, lineStart);   // "def" starts at 5
 			Assert.Equal(3, lineLength);  // "def"
@@ -67,7 +67,7 @@ namespace RCParsing.Tests.Parsing
 		{
 			var inputStr = "abc\ndef";
 			PositionalFormatter.Decompose(inputStr, 6,
-				out var lineStart, out var lineLength, out var lineNumber, out var column);
+				out var lineStart, out var lineLength, out var lineNumber, out var column, out _);
 
 			Assert.Equal(4, lineStart);   // "def" starts at index 4
 			Assert.Equal(3, lineLength);
@@ -80,7 +80,7 @@ namespace RCParsing.Tests.Parsing
 		{
 			var inputStr = "just one line";
 			PositionalFormatter.Decompose(inputStr, 5,
-				out var lineStart, out var lineLength, out var lineNumber, out var column);
+				out var lineStart, out var lineLength, out var lineNumber, out var column, out _);
 
 			Assert.Equal(0, lineStart);
 			Assert.Equal(13, lineLength);
@@ -93,7 +93,7 @@ namespace RCParsing.Tests.Parsing
 		{
 			var inputStr = "\n";
 			PositionalFormatter.Decompose(inputStr, 0,
-				out var lineStart, out var lineLength, out var lineNumber, out var column);
+				out var lineStart, out var lineLength, out var lineNumber, out var column, out _);
 
 			Assert.Equal(0, lineStart);
 			Assert.Equal(0, lineLength);
@@ -107,7 +107,7 @@ namespace RCParsing.Tests.Parsing
 			var inputStr = "abc";
 			Assert.Throws<ArgumentOutOfRangeException>(() =>
 				PositionalFormatter.Decompose(inputStr, 5,
-					out _, out _, out _, out _));
+					out _, out _, out _, out _, out _));
 		}
 	}
 

@@ -107,6 +107,8 @@ namespace RCParsing.Building
 			_changed = true;
 			_settings.skippingStrategy = ParserSkippingStrategy.Default;
 			_settings.skippingStrategyUseMode = overrideMode;
+			_skipRule = null;
+			_settings.skipRuleUseMode = overrideMode;
 			return this;
 		}
 

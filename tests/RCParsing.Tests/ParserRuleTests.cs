@@ -221,8 +221,8 @@ namespace RCParsing.Tests.Parsing
 			{
 				"id": 1,
 				"name": "Sample Data",
-				"created": "2023-01-01T00:00:00", // Lol, this is a comment
-				"tags": ["tag1", "tag2", "tag3"], // But the comments also can be viewed in the parsing results!
+				"created": "2023-01-01T00:00:00", // This is a comment
+				"tags": ["tag1", "tag2", "tag3"],
 				"isActive": true,
 				"nested": {
 					"value": 123.456,
@@ -232,8 +232,7 @@ namespace RCParsing.Tests.Parsing
 			""";
 			var invalidJson = "{ \"name\": \"Test\", \"age\": }";
 
-			var result = jsonParser.Parse(json.Replace("\t", "    ")).Value;
-			Assert.True(result is Dictionary<string, object>);
+			var result = jsonParser.Parse<Dictionary<string, object>>(json);
 			Assert.Throws<ParsingException>(() => jsonParser.ParseRule("content", invalidJson));
 		}
 
