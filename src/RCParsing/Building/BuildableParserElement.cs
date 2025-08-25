@@ -38,7 +38,7 @@ namespace RCParsing.Building
 
 		public override int GetHashCode()
 		{
-			int hashCode = 17;
+			int hashCode = 397;
 			return hashCode;
 		}
 	}

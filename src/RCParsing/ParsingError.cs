@@ -35,6 +35,11 @@ namespace RCParsing
 		public readonly bool isToken;
 
 		/// <summary>
+		/// Gets the stack frame that describes the state of the parser when the error occurred.
+		/// </summary>
+		public readonly ParserStackFrame? stackFrame;
+
+		/// <summary>
 		/// Initializes a new instance of the <see cref="ParsingError"/> struct.
 		/// </summary>
 		/// <param name="position">The position in the input string where the error occurred.</param>
@@ -42,13 +47,15 @@ namespace RCParsing
 		/// <param name="message">An optional description of the parsing error.</param>
 		/// <param name="elementId">The ID of the element (rule or token) that caused the error or been expected at this position.</param>
 		/// <param name="isToken">A value indicating whether the element that caused the error is a token.</param>
-		public ParsingError(int position, int depth, string? message = null, int elementId = -1, bool isToken = false)
+		/// <param name="stackFrame">The stack frame that describes the state of the parser when the error occurred.</param>
+		public ParsingError(int position, int depth, string? message = null, int elementId = -1, bool isToken = false, ParserStackFrame? stackFrame = null)
 		{
 			this.position = position;
 			this.depth = depth;
 			this.message = message;
 			this.elementId = elementId;
 			this.isToken = isToken;
+			this.stackFrame = stackFrame;
 		}
 
 		/// <summary>

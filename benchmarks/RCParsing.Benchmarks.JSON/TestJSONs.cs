@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BenchmarkJSON
+namespace RCParsing.Benchmarks.JSON
 {
 	public static class TestJSONs
 	{

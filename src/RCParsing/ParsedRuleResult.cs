@@ -89,10 +89,11 @@ namespace RCParsing
 		/// </summary>
 		public ParsedRule Result { get; }
 
+		private ParsedTokenResult? _token;
 		/// <summary>
 		/// Gets the token result if the parsed result represents a token. Otherwise, returns null.
 		/// </summary>
-		public ParsedTokenResult? Token { get; }
+		public ParsedTokenResult? Token => Result.isToken ? _token ??= new ParsedTokenResult(this, Context, Result.element) : null;
 
 		/// <summary>
 		/// Gets value indicating whether the parsing operation was successful.
@@ -144,28 +145,43 @@ namespace RCParsing
 		/// </summary>
 		public object? ParsingParameter => Context.parserParameter;
 
-		private readonly LazyValue<string> _textLazy;
+		private string _text;
 		/// <summary>
 		/// Gets the parsed input text that was captured.
 		/// </summary>
-		public string Text => _textLazy.Value;
+		public string Text => _text ??= Context.str.Substring(Result.startIndex, Result.length);
 
 		/// <summary>
 		/// Gets the parsed input text that was captured as a span of characters.
 		/// </summary>
 		public ReadOnlySpan<char> Span => Context.str.AsSpan(Result.startIndex, Result.length);
 
-		private readonly LazyValue<object?> _valueLazy;
+		private bool _valueConstructed;
+		private object? _value;
 		/// <summary>
 		/// Gets the parsed value associated with this rule.
 		/// </summary>
-		public object? Value => _valueLazy.Value;
+		public object? Value
+		{
+			get
+			{
+				if (_valueConstructed)
+					return _value;
 
-		private readonly LazyValue<ParsedRuleResult[]> _childrenLazy;
+				_value = Rule.ParsedValueFactory?.Invoke(this) ?? null;
+				_valueConstructed = true;
+				return _value;
+			}
+		}
+
+		private LazyArray<ParsedRuleResult>? _childrenLazy;
 		/// <summary>
 		/// Gets the children results of this rule. Valid for parallel and sequence rules.
 		/// </summary>
-		public ParsedRuleResult[] Children => _childrenLazy.Value;
+		public LazyArray<ParsedRuleResult> Children => _childrenLazy ??= new LazyArray<ParsedRuleResult>(Result.children?.Count ?? 0, i =>
+		{
+			return new ParsedRuleResult(Optimization, this, Context, Result.children[i]);
+		});
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="ParsedRuleResult"/> class.
@@ -180,21 +196,7 @@ namespace RCParsing
 			Optimization = treeOptimization;
 			Parent = parent;
 			Context = context;
-			Result = Optimized(result, context, Optimization);
-			Token = result.isToken ? new ParsedTokenResult(this, context, result.element) : null;
-
-			_textLazy = new LazyValue<string>(() => Context.str.Substring(Result.startIndex, Result.length));
-			_valueLazy = new LazyValue<object?>(() => Rule.ParsedValueFactory?.Invoke(this) ?? null);
-
-			_childrenLazy = new LazyValue<ParsedRuleResult[]>(() =>
-			{
-				var children = new ParsedRuleResult[Result.children?.Count ?? 0];
-
-				for (int i = 0; i < children.Length; i++)
-					children[i] = new ParsedRuleResult(Optimization, this, Context, Result.children[i]);
-
-				return children;
-			});
+			Result = treeOptimization == ParseTreeOptimization.None ? result : Optimized(result, context, Optimization);
 		}
 
 		private static ParsedRule Optimized(ParsedRule rule, ParserContext context, ParseTreeOptimization optimization)

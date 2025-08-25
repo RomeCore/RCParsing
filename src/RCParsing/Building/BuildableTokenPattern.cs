@@ -49,8 +49,8 @@ namespace RCParsing.Building
 		public override int GetHashCode()
 		{
 			int hashCode = base.GetHashCode();
-			hashCode ^= DefaultParsedValueFactory?.GetHashCode() * 23 ?? 0;
-			hashCode ^= DefaultConfigurationAction?.GetHashCode() * 23 ?? 0;
+			hashCode = hashCode * 397 + DefaultParsedValueFactory?.GetHashCode() * 23 ?? 0;
+			hashCode = hashCode * 397 + DefaultConfigurationAction?.GetHashCode() * 23 ?? 0;
 			return hashCode;
 		}
 	}

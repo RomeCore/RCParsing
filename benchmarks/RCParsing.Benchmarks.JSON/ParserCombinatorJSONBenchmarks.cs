@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Jobs;
 
-namespace BenchmarkJSON
+namespace RCParsing.Benchmarks.JSON
 {
 	[MemoryDiagnoser]
 	[SimpleJob(RuntimeMoniker.Net80, iterationCount: 3, warmupCount: 2)]

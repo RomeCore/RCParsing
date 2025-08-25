@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using RCParsing;
 using RCParsing.Building;
 
-namespace BenchmarkJSON
+namespace RCParsing.Benchmarks.JSON
 {
 	public static class RCJsonParser
 	{
@@ -17,12 +17,13 @@ namespace BenchmarkJSON
 		{
 			var builder = new ParserBuilder();
 
-			builder.Settings()
-				.Skip(r => r.Whitespaces(), ParserSkippingStrategy.SkipBeforeParsing);
+			builder.Settings
+				.Skip(r => r.Whitespaces().ConfigureForSkip(), ParserSkippingStrategy.SkipBeforeParsing)
+				.UseInitFlags(ParserInitFlags.InlineRules);
 
 			builder.CreateToken("string")
 				.Literal("\"")
-				.EscapedTextPrefix(prefix: "\\", "\\", "\"")
+				.TextUntil("\"")
 				.Literal("\"")
 				.Pass(v => v[1])
 				.Transform(v => v.IntermediateValue);
@@ -65,12 +66,12 @@ namespace BenchmarkJSON
 				.Token("string")
 				.Literal(":")
 				.Rule("value")
-				.Transform(v => new KeyValuePair<string, object>((string)v.Children[0].Value!, v.Children[2].Value!));
+				.Transform(v => new KeyValuePair<string, object>(v.GetValue<string>(0), v.GetValue(2)));
 
 			builder.CreateMainRule("content")
 				.Rule("value")
 				.EOF()
-				.Transform(v => v.Children[0].Value);
+				.Transform(v => v.GetValue(0));
 
 			parser = builder.Build();
 		}

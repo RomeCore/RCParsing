@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using RCParsing.ParserRules;
 using RCParsing.Utils;
 
 namespace RCParsing.Building
@@ -11,6 +12,7 @@ namespace RCParsing.Building
 	public class ParserSettingsBuilder
 	{
 		private ParserSettings _settings = new ParserSettings();
+		private Func<ParserElement, ParserInitFlags> _initFlagsFactory = e => ParserInitFlags.None;
 		private Or<string, BuildableParserRule>? _skipRule = null;
 
 		/// <summary>
@@ -24,11 +26,11 @@ namespace RCParsing.Building
 		/// </summary>
 		/// <param name="ruleChildren">The list of child elements.</param>
 		/// <returns>The built settings for parser.</returns>
-		public ParserSettings Build(List<int> ruleChildren)
+		public (ParserSettings, Func<ParserElement, ParserInitFlags>) Build(List<int> ruleChildren)
 		{
 			var result = _settings;
 			result.skipRule = ruleChildren[0];
-			return result;
+			return (result, _initFlagsFactory);
 		}
 
 		public override bool Equals(object? obj)
@@ -146,26 +148,19 @@ namespace RCParsing.Building
 		}
 
 		/// <summary>
-		/// Sets the caching mode.
+		/// Uses the specified initialization flags for all elements.
 		/// </summary>
-		/// <param name="mode">The caching mode.</param>
+		/// <param name="flags">The initialization flags to use.</param>
 		/// <returns>This instance for method chaining.</returns>
-		public ParserSettingsBuilder Caching(ParserCachingMode mode)
+		public ParserSettingsBuilder UseInitFlags(ParserInitFlags flags)
 		{
-			_settings.caching = mode;
+			var prevFactory = _initFlagsFactory;
+			_initFlagsFactory = e =>
+			{
+				var _flags = prevFactory(e);
+				return _flags | flags;
+			};
 			return this;
-		}
-
-		/// <summary>
-		/// Sets the default (disabled) caching mode.
-		/// </summary>
-		/// <remarks>
-		/// This will cause the parser to ignore any caching.
-		/// </remarks>
-		/// <returns>This instance for method chaining.</returns>
-		public ParserSettingsBuilder NoCaching()
-		{
-			return Caching(ParserCachingMode.Default);
 		}
 
 		/// <summary>
@@ -175,9 +170,16 @@ namespace RCParsing.Building
 		/// This will cause the parser to use and write both rules and token patterns via caching.
 		/// </remarks>
 		/// <returns>This instance for method chaining.</returns>
-		public ParserSettingsBuilder CacheAll()
+		public ParserSettingsBuilder UseCaching()
 		{
-			return Caching(ParserCachingMode.CacheAll);
+			var prevFactory = _initFlagsFactory;
+			_initFlagsFactory = e =>
+			{
+				var flags = prevFactory(e);
+				flags |= ParserInitFlags.EnableMemoization;
+				return flags;
+			};
+			return this;
 		}
 
 		/// <summary>
@@ -189,7 +191,7 @@ namespace RCParsing.Building
 		/// <returns>This instance for method chaining.</returns>
 		public ParserSettingsBuilder CacheOnlyRules()
 		{
-			return Caching(ParserCachingMode.Rules);
+			return UseCachingOn(e => e is not TokenPattern && e is not TokenParserRule);
 		}
 
 		/// <summary>
@@ -201,27 +203,102 @@ namespace RCParsing.Building
 		/// <returns>This instance for method chaining.</returns>
 		public ParserSettingsBuilder CacheOnlyTokens()
 		{
-			return Caching(ParserCachingMode.TokenPatterns);
+			return UseCachingOn(e => e is TokenPattern || e is TokenParserRule);
 		}
 
 		/// <summary>
-		/// Sets the maximum recursion depth.
+		/// Sets the caching mode for token patterns and rules based on the specified predicate.
 		/// </summary>
-		/// <param name="depth">The maximum recursion depth. Can be 0 for no limit.</param>
+		/// <param name="predicate">The predicate to determine whether a parser element should be cached.</param>
 		/// <returns>This instance for method chaining.</returns>
-		public ParserSettingsBuilder MaxRecursionDepth(int depth)
+		public ParserSettingsBuilder UseCachingOn(Predicate<ParserElement> predicate)
 		{
-			_settings.maxRecursionDepth = depth;
+			var prevFactory = _initFlagsFactory;
+			_initFlagsFactory = e =>
+			{
+				var flags = prevFactory(e);
+				if (predicate(e))
+					flags |= ParserInitFlags.EnableMemoization;
+				return flags;
+			};
 			return this;
 		}
 
 		/// <summary>
-		/// Sets the infinite recursion depth.
+		/// Sets the caching mode for token patterns and rules based on the specified predicate.
+		/// </summary>
+		/// <remarks>
+		/// Overrides the previous caching mode with the new one for all elements.
+		/// </remarks>
+		/// <param name="predicate">The predicate to determine whether a parser element should be cached.</param>
+		/// <returns>This instance for method chaining.</returns>
+		public ParserSettingsBuilder UseCachingOnOnly(Predicate<ParserElement> predicate)
+		{
+			var prevFactory = _initFlagsFactory;
+			_initFlagsFactory = e =>
+			{
+				var flags = prevFactory(e);
+				if (predicate(e))
+					flags |= ParserInitFlags.EnableMemoization;
+				else
+					flags &= ~ParserInitFlags.EnableMemoization;
+				return flags;
+			};
+			return this;
+		}
+
+		/// <summary>
+		/// Uses the first character match mode for all elements.
+		/// </summary>
+		/// <remarks>
+		/// May improve performance by avoiding unnecessary backtracking in some cases. However, it can also reduce helpful errors.
+		/// </remarks>
+		/// <returns>This instance for method chaining.</returns>
+		public ParserSettingsBuilder UseFirstCharacterMatch()
+		{
+			var prevFactory = _initFlagsFactory;
+			_initFlagsFactory = e =>
+			{
+				var flags = prevFactory(e);
+				flags |= ParserInitFlags.FirstCharacterMatch;
+				return flags;
+			};
+			return this;
+		}
+
+		/// <summary>
+		/// Uses the inlining mode for all rules.
+		/// </summary>
+		/// <remarks>
+		/// May lead to unexpected behavior if not used properly. Use with caution.
+		/// </remarks>
+		/// <returns>This instance for method chaining.</returns>
+		public ParserSettingsBuilder UseInlining()
+		{
+			var prevFactory = _initFlagsFactory;
+			_initFlagsFactory = e =>
+			{
+				var flags = prevFactory(e);
+				flags |= ParserInitFlags.InlineRules;
+				return flags;
+			};
+			return this;
+		}
+
+		/// <summary>
+		/// Sets the stack trace writing mode to enabled.
 		/// </summary>
 		/// <returns>This instance for method chaining.</returns>
-		public ParserSettingsBuilder DisableRecursionLimit()
+		public ParserSettingsBuilder WriteStackTrace()
 		{
-			return MaxRecursionDepth(0);
+			var prevFactory = _initFlagsFactory;
+			_initFlagsFactory = e =>
+			{
+				var flags = prevFactory(e);
+				flags |= ParserInitFlags.StackTraceWriting;
+				return flags;
+			};
+			return this;
 		}
 	}
 }

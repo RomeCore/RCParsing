@@ -80,12 +80,12 @@ namespace RCParsing.TokenPatterns
 
 
 
-		public override ParsedElement Match(string input, int position, object? parserParameter)
+		public override ParsedElement Match(string input, int position, int barrierPosition, object? parserParameter)
 		{
 			int startPos = position;
 			int length = 0;
 
-			if (startPos >= input.Length)
+			if (startPos >= barrierPosition)
 			{
 				return ParsedElement.Fail;
 			}
@@ -99,7 +99,7 @@ namespace RCParsing.TokenPatterns
 			length = 1;
 			int pos = startPos + 1;
 
-			while (pos < input.Length &&
+			while (pos < barrierPosition &&
 				   (MaxLength == -1 || length < MaxLength) &&
 				   ContinuePredicate(input[pos]))
 			{

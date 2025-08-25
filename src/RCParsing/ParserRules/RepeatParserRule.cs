@@ -50,40 +50,75 @@ namespace RCParsing.ParserRules
 
 
 
+		private Func<ParserContext, ParserContext, ParsedRule> parseFunction;
+
+		protected override void Initialize(ParserInitFlags initFlags)
+		{
+			parseFunction = (ctx, chCtx) =>
+			{
+				var rules = new List<ParsedRule>();
+				var initialPosition = chCtx.position;
+				ParsedRule parsedRule = default;
+
+				for (int i = 0; i < this.MaxCount || this.MaxCount == -1; i++)
+				{
+					parsedRule = TryParseRule(Rule, chCtx);
+					if (!parsedRule.success)
+						break;
+
+					chCtx.position = parsedRule.startIndex + parsedRule.length;
+					parsedRule.occurency = i;
+					rules.Add(parsedRule);
+				}
+
+				if (rules.Count < MinCount)
+				{
+					RecordError(ref ctx, $"Expected at least {MinCount} repetitions of child rule, but found {rules.Count}.");
+					return ParsedRule.Fail;
+				}
+
+				return ParsedRule.Rule(Id, initialPosition, chCtx.position - initialPosition, rules, null);
+			};
+
+			if (initFlags.HasFlag(ParserInitFlags.EnableMemoization))
+			{
+				var previous = parseFunction;
+				parseFunction = (ctx, chCtx) =>
+				{
+					if (ctx.cache.TryGetRule(Id, ctx.position, out var cachedResult))
+						return cachedResult;
+					cachedResult = previous(ctx, chCtx);
+					ctx.cache.AddRule(Id, ctx.position, cachedResult);
+					return cachedResult;
+				};
+			}
+		}
+
 		public override ParsedRule Parse(ParserContext context, ParserContext childContext)
 		{
-			var rules = new List<ParsedRule>();
-			var initialPosition = childContext.position;
-			ParsedRule parsedRule = default;
-
-			for (int i = 0; i < this.MaxCount || this.MaxCount == -1; i++)
-			{
-				parsedRule = TryParseRule(Rule, childContext);
-				if (!parsedRule.success)
-					break;
-
-				childContext.position = parsedRule.startIndex + parsedRule.length;
-				parsedRule.occurency = i;
-				rules.Add(parsedRule);
-			}
-
-			if (rules.Count < MinCount)
-			{
-				RecordError(context, $"Expected at least {MinCount} repetitions of child rule, but found {rules.Count}.");
-				return ParsedRule.Fail;
-			}
-
-			return ParsedRule.Rule(Id, initialPosition, childContext.position - initialPosition, rules, null);
+			return parseFunction(context, childContext);
 		}
 
 
 
 		public override string ToStringOverride(int remainingDepth)
 		{
+			string alias = Aliases.Count > 0 ? $" '{Aliases.Last()}' " : string.Empty;
+
 			if (remainingDepth <= 0)
-				return $"Repeat{{{MinCount}..{(MaxCount == -1 ? "" : MaxCount)}}}...";
-			return $"Repeat{{{MinCount}..{(MaxCount == -1 ? "" : MaxCount)}}}: " +
+				return $"Repeat{alias}{{{MinCount}..{(MaxCount == -1 ? "" : MaxCount)}}}...";
+			return $"Repeat{alias}{{{MinCount}..{(MaxCount == -1 ? "" : MaxCount)}}}: " +
 				$"{GetRule(Rule).ToString(remainingDepth - 1)}";
+		}
+
+		public override string ToStackTraceString(int remainingDepth, int childIndex)
+		{
+			string alias = Aliases.Count > 0 ? $" '{Aliases.Last()}' " : string.Empty;
+
+			if (remainingDepth <= 0)
+				return $"Repeat{alias}{{{MinCount}..{(MaxCount == -1 ? "" : MaxCount)}}}...";
+			return $"Repeat{alias}{{{MinCount}..{(MaxCount == -1 ? "" : MaxCount)}}}: " +
+				$"{GetRule(Rule).ToString(remainingDepth - 1)} <-- here";
 		}
 
 		public override bool Equals(object? obj)

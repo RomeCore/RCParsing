@@ -29,28 +29,64 @@ namespace RCParsing.ParserRules
 
 
 		private TokenPattern _pattern;
+		private Func<ParserContext, ParserContext, ParsedRule> parseFunction;
 
-		protected override void Initialize()
+		protected override void PreInitialize(ParserInitFlags initFlags)
 		{
 			_pattern = Parser.TokenPatterns[TokenPattern];
 		}
 
+		protected override void Initialize(ParserInitFlags initFlags)
+		{
+			parseFunction = (ctx, chCtx) =>
+			{
+				var match = _pattern.Match(ctx.str, ctx.position, ctx.str.Length, ctx.parserParameter);
+				if (!match.success)
+				{
+					RecordError(ref ctx, "Failed to parse token");
+					return ParsedRule.Fail;
+				}
+
+				return ParsedRule.Token(Id, TokenPattern, match.startIndex, match.length, match.intermediateValue);
+			};
+
+			if (initFlags.HasFlag(ParserInitFlags.EnableMemoization))
+			{
+				var previous = parseFunction;
+				parseFunction = (ctx, chCtx) =>
+				{
+					if (ctx.cache.TryGetRule(Id, ctx.position, out var cachedResult))
+						return cachedResult;
+					cachedResult = previous(ctx, chCtx);
+					ctx.cache.AddRule(Id, ctx.position, cachedResult);
+					return cachedResult;
+				};
+			}
+		}
+
 		public override ParsedRule Parse(ParserContext context, ParserContext childContext)
 		{
-			var match = _pattern.Match(context.str, context.position, context.parserParameter);
-			if (!match.success)
-			{
-				RecordError(context, "Failed to parse token.");
-				return ParsedRule.Fail;
-			}
-
-			return ParsedRule.Token(Id, TokenPattern, match.startIndex, match.length, match.intermediateValue);
+			return parseFunction(context, childContext);
 		}
 
 
 
 		public override string ToStringOverride(int remainingDepth)
 		{
+			string alias = Aliases.Count > 0 ? $" '{Aliases.Last()}'" : string.Empty;
+			if (!string.IsNullOrEmpty(alias))
+				return $"{alias} {GetTokenPattern(TokenPattern).ToString(remainingDepth)}";
+
+			return GetTokenPattern(TokenPattern).ToString(remainingDepth);
+		}
+
+		public override string ToStackTraceString(int remainingDepth, int childIndex)
+		{
+			string alias = Aliases.Count > 0 ? $"'{Aliases.Last()}'" : string.Empty;
+
+			if (!string.IsNullOrEmpty(alias))
+				return $"{alias} {GetTokenPattern(TokenPattern).ToString(remainingDepth)}";
+
 			return GetTokenPattern(TokenPattern).ToString(remainingDepth);
 		}
 

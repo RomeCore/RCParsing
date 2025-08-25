@@ -6,7 +6,7 @@ using Superpower.Model;
 using Superpower.Parsers;
 using Superpower.Tokenizers;
 
-namespace BenchmarkJSON
+namespace RCParsing.Benchmarks.JSON
 {
 	public static class SuperpowerJsonParser
 	{

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using RCParsing.ParserRules;
 
@@ -37,13 +38,24 @@ namespace RCParsing
 		/// <param name="rules">The rules to use.</param>
 		/// <param name="settings">The settings to use.</param>
 		/// <param name="mainRuleAlias">The optional alias of the main rule to use.</param>
-		/// <param name="optimize">
-		/// Whether to optimize the parser rules and token patterns.
-		/// May cause significant performance improvements but may also cause issues with certain patterns/rules
-		/// and use more memory. Most of parsing errors may be lost.
-		/// </param>
+		/// <param name="initFlags">The initialization flags to use. Default is <see cref="ParserInitFlags.None"/>.</param>
 		public Parser(ImmutableArray<TokenPattern> tokenPatterns, ImmutableArray<ParserRule> rules,
-			ParserSettings settings, string? mainRuleAlias = null, bool optimize = false)
+			ParserSettings settings, string? mainRuleAlias = null, ParserInitFlags initFlags = ParserInitFlags.None)
+			: this(tokenPatterns, rules, settings, mainRuleAlias, e => initFlags)
+		{
+
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="Parser"/> class.
+		/// </summary>
+		/// <param name="tokenPatterns">The token patterns to use. </param>
+		/// <param name="rules">The rules to use.</param>
+		/// <param name="settings">The settings to use.</param>
+		/// <param name="mainRuleAlias">The optional alias of the main rule to use.</param>
+		/// <param name="initFlagsFactory">The initialization flags factory to use.</param>
+		public Parser(ImmutableArray<TokenPattern> tokenPatterns, ImmutableArray<ParserRule> rules,
+			ParserSettings settings, string? mainRuleAlias = null, Func<ParserElement, ParserInitFlags>? initFlagsFactory = null)
 		{
 			Rules = rules;
 			TokenPatterns = tokenPatterns;
@@ -87,23 +99,23 @@ namespace RCParsing
 				}
 			}
 
-			foreach (var pattern in tokenPatterns)
-				pattern.InitializeInternal();
-			foreach (var rule in rules)
-				rule.InitializeInternal();
-
-			if (optimize)
-			{
-				foreach (var pattern in tokenPatterns)
-					pattern.OptimizeInternal();
-				foreach (var rule in rules)
-					rule.OptimizeInternal();
-			}
+			var initFlagsDict = tokenPatterns.Cast<ParserElement>().Concat(rules).ToDictionary(e => e,
+				initFlagsFactory ?? (e => ParserInitFlags.None));
 
 			foreach (var pattern in tokenPatterns)
-				pattern.PostInitializeInternal();
+				pattern.PreInitializeInternal(initFlagsDict[pattern]);
 			foreach (var rule in rules)
-				rule.PostInitializeInternal();
+				rule.PreInitializeInternal(initFlagsDict[rule]);
+
+			foreach (var pattern in tokenPatterns)
+				pattern.InitializeInternal(initFlagsDict[pattern]);
+			foreach (var rule in rules)
+				rule.InitializeInternal(initFlagsDict[rule]);
+
+			foreach (var pattern in tokenPatterns)
+				pattern.PostInitializeInternal(initFlagsDict[pattern]);
+			foreach (var rule in rules)
+				rule.PostInitializeInternal(initFlagsDict[rule]);
 		}
 
 		/// <summary>
@@ -133,68 +145,6 @@ namespace RCParsing
 		}
 
 		/// <summary>
-		/// Returns true if the current recursion depth is greater than the maximum allowed recursion depth.
-		/// </summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		private bool CheckRecursionDepth(ParserContext context)
-		{
-			if (context.settings.maxRecursionDepth != 0 && context.recursionDepth > context.settings.maxRecursionDepth)
-			{
-				return true;
-			}
-			return false;
-		}
-
-		/// <summary>
-		/// Tries to parse rule based on the caching settings.
-		/// </summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		private ParsedRule ParseNonSkipped(ParserRule rule, int ruleId,
-			ref ParserContext context, ref ParserContext childContext)
-		{
-			switch (context.settings.caching)
-			{
-				case ParserCachingMode.Default:
-					return rule.Parse(context, childContext);
-
-				case ParserCachingMode.CacheAll:
-					if (!context.cache.TryGetRule(ruleId, context.position, out var parsedRule))
-					{
-						parsedRule = rule.Parse(context, childContext);
-						context.cache.AddRule(ruleId, context.position, parsedRule);
-					}
-					return parsedRule;
-
-				case ParserCachingMode.TokenPatterns:
-					if (rule is TokenParserRule)
-					{
-						if (!context.cache.TryGetRule(ruleId, context.position, out parsedRule))
-						{
-							parsedRule = rule.Parse(context, childContext);
-							context.cache.AddRule(ruleId, context.position, parsedRule);
-						}
-						return parsedRule;
-					}
-					return rule.Parse(context, childContext);
-
-				case ParserCachingMode.Rules:
-					if (rule is not TokenParserRule)
-					{
-						if (!context.cache.TryGetRule(ruleId, context.position, out parsedRule))
-						{
-							parsedRule = rule.Parse(context, childContext);
-							context.cache.AddRule(ruleId, context.position, parsedRule);
-						}
-						return parsedRule;
-					}
-					return rule.Parse(context, childContext);
-
-				default:
-					throw new InvalidOperationException("Invalid caching mode.");
-			}
-		}
-
-		/// <summary>
 		/// Creates a <see cref="ParsingException"/> from the current parser context.
 		/// </summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -212,10 +162,10 @@ namespace RCParsing
 		/// Matches the given input using the specified token identifier and parser context.
 		/// </summary>
 		/// <returns>A parsed token object containing the result of the match.</returns>
-		internal ParsedElement MatchToken(int tokenPatternId, string input, int position, object? parameter)
+		internal ParsedElement MatchToken(int tokenPatternId, string input, int position, int barrierPosition, object? parameter)
 		{
 			var tokenPattern = TokenPatterns[tokenPatternId];
-			return tokenPattern.Match(input, position, parameter);
+			return tokenPattern.Match(input, position, barrierPosition, parameter);
 		}
 
 		/// <summary>
@@ -244,16 +194,13 @@ namespace RCParsing
 		/// <returns>A parsed rule object containing the result of the parse.</returns>
 		internal ParsedRule TryParseRule(int ruleId, ParserContext context)
 		{
-			if (CheckRecursionDepth(context))
-				throw new ParsingException(context, "Maximum recursion depth exceeded.");
-
 			var rule = Rules[ruleId];
 			rule.AdvanceContext(ref context, out var childContext);
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			ParsedRule Parse()
 			{
-				var parsedRule = ParseNonSkipped(rule, ruleId, ref context, ref childContext);
+				var parsedRule = rule.Parse(context, childContext);
 				if (parsedRule.success && parsedRule.startIndex < context.str.Length)
 					context.successPositions[parsedRule.startIndex] = true;
 				return parsedRule;
@@ -262,7 +209,7 @@ namespace RCParsing
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			bool TryParse(out ParsedRule result)
 			{
-				var parsedRule = ParseNonSkipped(rule, ruleId, ref context, ref childContext);
+				var parsedRule = rule.Parse(context, childContext);
 				if (parsedRule.success && parsedRule.startIndex < context.str.Length)
 					context.successPositions[parsedRule.startIndex] = true;
 				result = parsedRule;
@@ -274,8 +221,7 @@ namespace RCParsing
 
 			// Skip rule preparation
 
-			int skipRuleId = context.settings.skipRule;
-			var skipRule = Rules[skipRuleId];
+			var skipRule = Rules[context.settings.skipRule];
 			var skipContext = context;
 			skipRule.AdvanceContext(ref skipContext, out var childSkipContext);
 			skipContext.settings.skipRule = -1;
@@ -284,8 +230,12 @@ namespace RCParsing
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			bool TrySkip()
 			{
-				var parsedSkipRule = ParseNonSkipped(skipRule, skipRuleId,
-					ref skipContext, ref childSkipContext);
+				if (context.position >= context.str.Length)
+					return false;
+				if (skipContext.shared.positionsToAvoidSkipping[skipContext.position])
+					return false;
+
+				var parsedSkipRule = skipRule.Parse(skipContext, childSkipContext);
 				int newPosition = parsedSkipRule.startIndex + parsedSkipRule.length;
 
 				if (parsedSkipRule.success && newPosition != context.position)
@@ -302,7 +252,11 @@ namespace RCParsing
 			{
 				case ParserSkippingStrategy.SkipBeforeParsing:
 
-					TrySkip();
+					if (TrySkip())
+					{
+						if (context.position < context.str.Length)
+							context.shared.positionsToAvoidSkipping[context.position] = true;
+					}
 					return Parse();
 
 				case ParserSkippingStrategy.SkipBeforeParsingLazy:
@@ -313,15 +267,20 @@ namespace RCParsing
 						if (TrySkip())
 						{
 							if (TryParse(out var res))
+							{
 								return res;
+							}
 							continue;
 						}
-						return Parse();
+						Parse();
 					}
 
 				case ParserSkippingStrategy.SkipBeforeParsingGreedy:
 
-					while (TrySkip()) { }
+					int c = 0;
+					while (TrySkip()) { c++; }
+					if (c > 0 && context.position < context.str.Length)
+						context.shared.positionsToAvoidSkipping[context.position] = true;
 					return Parse();
 
 				case ParserSkippingStrategy.TryParseThenSkip:
@@ -329,26 +288,36 @@ namespace RCParsing
 					if (TryParse(out var result))
 						return result;
 
-					if (!TrySkip())
-						return ParsedRule.Fail;
+					if (TrySkip())
+					{
+						if (context.position < context.str.Length)
+							context.shared.positionsToAvoidSkipping[context.position] = true;
+						return Parse();
+					}
 
-					return Parse();
+					return ParsedRule.Fail;
 
 				case ParserSkippingStrategy.TryParseThenSkipLazy:
 
 					// First try parse (handled above in TryParseThenSkip pattern),
 					// then alternate Skip -> TryParse -> Skip -> TryParse ... until success or nothing consumes
 					if (TryParse(out var firstResult))
+					{
 						return firstResult;
+					}
 
 					while (true)
 					{
 						if (TrySkip())
 						{
 							if (TryParse(out var res))
+							{
 								return res;
+							}
 							continue;
 						}
+						if (context.position < context.str.Length)
+							context.shared.positionsToAvoidSkipping[context.position] = true;
 						return ParsedRule.Fail;
 					}
 
@@ -359,6 +328,8 @@ namespace RCParsing
 						return firstRes;
 
 					while (TrySkip()) { }
+					if (context.position < context.str.Length)
+						context.shared.positionsToAvoidSkipping[context.position] = true;
 
 					return Parse();
 
@@ -382,7 +353,7 @@ namespace RCParsing
 				throw new ArgumentException("Invalid token pattern alias", nameof(tokenPatternAlias));
 
 			var context = new ParserContext(this, input, paratemeter);
-			var parsedToken = MatchToken(tokenPatternId, context.str, context.position, paratemeter);
+			var parsedToken = MatchToken(tokenPatternId, context.str, context.position, context.str.Length, paratemeter);
 			return new ParsedTokenResult(null, context, parsedToken);
 		}
 
@@ -399,7 +370,7 @@ namespace RCParsing
 				throw new ArgumentException("Invalid token pattern alias", nameof(tokenPatternAlias));
 
 			var context = new ParserContext(this, input, null);
-			var parsedToken = MatchToken(tokenPatternId, context.str, context.position, null);
+			var parsedToken = MatchToken(tokenPatternId, context.str, context.position, context.str.Length, null);
 			result = new ParsedTokenResult(null, context, parsedToken);
 			return parsedToken.success;
 		}
@@ -418,7 +389,7 @@ namespace RCParsing
 				throw new ArgumentException("Invalid token pattern alias", nameof(tokenPatternAlias));
 
 			var context = new ParserContext(this, input, paratemeter);
-			var parsedToken = MatchToken(tokenPatternId, context.str, context.position, paratemeter);
+			var parsedToken = MatchToken(tokenPatternId, context.str, context.position, context.str.Length, paratemeter);
 			result = new ParsedTokenResult(null, context, parsedToken);
 			return parsedToken.success;
 		}

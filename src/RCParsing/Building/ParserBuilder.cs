@@ -113,22 +113,13 @@ namespace RCParsing.Building
 		/// <summary>
 		/// Gets the current settings builder for configuring additional options.
 		/// </summary>
-		/// <returns>A <see cref="ParserSettingsBuilder"/> instance for configuring additional options.</returns>
-		public ParserSettingsBuilder Settings()
-		{
-			return _settingsBuilder;
-		}
+		public ParserSettingsBuilder Settings => _settingsBuilder;
 
 		/// <summary>
 		/// Builds the parser from the registered token patterns and rules.
 		/// </summary>
-		/// <param name="optimize">
-		/// Whether to optimize the parser rules and token patterns.
-		/// May cause significant performance improvements but may also cause issues with certain patterns/rules
-		/// and use more memory. Most of parsing errors may be lost.
-		/// </param>
 		/// <returns>A <see cref="Parser"/> instance representing the built parser.</returns>
-		public Parser Build(bool optimize = false)
+		public Parser Build()
 		{
 			// Counters for assigning unique IDs to rules and tokens
 			int ruleCounter = 0;
@@ -363,7 +354,7 @@ namespace RCParsing.Building
 				List<string> aliases)> finalMap = new();
 
 			// Build the final parser settings with resolved child rules
-			var settings = _settingsBuilder.Build(parserSettingsRuleChildren
+			var (settings, initFlagsFactory) = _settingsBuilder.Build(parserSettingsRuleChildren
 				.Select(r => r == null ? -1 : elements[r]).ToList());
 
 			// Fill the final map
@@ -415,7 +406,8 @@ namespace RCParsing.Building
 			}
 
 			// Return the fully built parser instance with rules and token patterns
-			return new Parser(resultTokenPatterns.ToImmutableArray(), resultRules.ToImmutableArray(), settings, _mainRuleAlias, optimize);
+			return new Parser(resultTokenPatterns.ToImmutableArray(), resultRules.ToImmutableArray(),
+				settings, _mainRuleAlias, initFlagsFactory);
 		}
 	}
 }

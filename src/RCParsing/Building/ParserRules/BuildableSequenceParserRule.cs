@@ -34,7 +34,7 @@ namespace RCParsing.Building.ParserRules
 		public override int GetHashCode()
 		{
 			int hashCode = base.GetHashCode();
-			hashCode ^= Elements.GetSequenceHashCode() * 23;
+			hashCode = hashCode * 397 + Elements.GetSequenceHashCode() * 23;
 			return hashCode;
 		}
 	}

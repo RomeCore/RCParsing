@@ -133,32 +133,6 @@ namespace RCParsing
 	}
 
 	/// <summary>
-	/// Defines how parser elements should handle caching of parsed data.
-	/// </summary>
-	public enum ParserCachingMode
-	{
-		/// <summary>
-		/// Caches nothing. The parser will not cache any rules or token patterns. This is the default mode.
-		/// </summary>
-		Default = 0,
-
-		/// <summary>
-		/// Caches only rules.
-		/// </summary>
-		Rules,
-
-		/// <summary>
-		/// Caches only token patterns.
-		/// </summary>
-		TokenPatterns,
-
-		/// <summary>
-		/// Caches both rules and token patterns. This may help
-		/// </summary>
-		CacheAll
-	}
-
-	/// <summary>
 	/// Defines settings for a parser. These can be used to control how the parser behaves and what it does when encountering errors or other situations.
 	/// </summary>
 	public struct ParserSettings : IEquatable<ParserSettings>
@@ -179,16 +153,6 @@ namespace RCParsing
 		/// If set to <see cref="ParserErrorHandlingMode.Throw"/>, any errors are thrown regardless of whether they are being parsed or just trying, no errors are recorded.
 		/// </summary>
 		public ParserErrorHandlingMode errorHandling;
-
-		/// <summary>
-		/// The caching mode to use when parsing. This controls whether rules, token patterns, or both are cached. The default is to cache both.
-		/// </summary>
-		public ParserCachingMode caching;
-
-		/// <summary>
-		/// The maximum recursion depth allowed when parsing. If set to 0, no limit is applied. Use negative values to instantly throw an error. The default is 0.
-		/// </summary>
-		public int maxRecursionDepth;
 
 
 		/// <summary>
@@ -226,20 +190,6 @@ namespace RCParsing
 				this.errorHandling, localSettings.errorHandling, globalSettings.errorHandling,
 				localSettings.errorHandlingUseMode,
 				ref forLocal.errorHandling, ref forChildren.errorHandling
-			);
-
-			// ---- caching ----
-			ApplySetting(
-				this.caching, localSettings.caching, globalSettings.caching,
-				localSettings.cachingUseMode,
-				ref forLocal.caching, ref forChildren.caching
-			);
-
-			// ---- maxRecursionDepth ----
-			ApplySetting(
-				this.maxRecursionDepth, localSettings.maxRecursionDepth, globalSettings.maxRecursionDepth,
-				localSettings.maxRecursionDepthUseMode,
-				ref forLocal.maxRecursionDepth, ref forChildren.maxRecursionDepth
 			);
 		}
 
@@ -294,9 +244,7 @@ namespace RCParsing
 		{
 			return skippingStrategy == other.skippingStrategy &&
 				   skipRule == other.skipRule &&
-				   errorHandling == other.errorHandling &&
-				   caching == other.caching &&
-				   maxRecursionDepth == other.maxRecursionDepth;
+				   errorHandling == other.errorHandling;
 		}
 
 		public override readonly int GetHashCode()
@@ -305,8 +253,6 @@ namespace RCParsing
 			hash ^= 23 * skippingStrategy.GetHashCode();
 			hash ^= 23 * skipRule.GetHashCode();
 			hash ^= 23 * errorHandling.GetHashCode();
-			hash ^= 23 * caching.GetHashCode();
-			hash ^= 23 * maxRecursionDepth.GetHashCode();
 			return hash;
 		}
 
@@ -363,34 +309,13 @@ namespace RCParsing
 
 
 
-		/// <summary>
-		/// Defines an override mode for <see cref="caching"/> setting.
-		/// </summary>
-		public ParserSettingMode cachingUseMode;
-
-		/// <inheritdoc cref="ParserSettings.caching"/>
-		public ParserCachingMode caching;
-
-
-
-		/// <summary>
-		/// Defines an override mode for <see cref="maxRecursionDepth"/> setting.
-		/// </summary>
-		public ParserSettingMode maxRecursionDepthUseMode;
-
-		/// <inheritdoc cref="ParserSettings.maxRecursionDepth"/>
-		public int maxRecursionDepth;
-
-
-
-
-		public override readonly bool Equals(object? obj)
+		public override bool Equals(object? obj)
 		{
 			return obj is ParserLocalSettings other &&
 				   Equals(other);
 		}
 
-		public readonly bool Equals(ParserLocalSettings other)
+		public bool Equals(ParserLocalSettings other)
 		{
 			return isDefault == other.isDefault &&
 				   skippingStrategyUseMode == other.skippingStrategyUseMode &&
@@ -398,14 +323,10 @@ namespace RCParsing
 				   skipRuleUseMode == other.skipRuleUseMode &&
 				   skipRule == other.skipRule &&
 				   errorHandlingUseMode == other.errorHandlingUseMode &&
-				   errorHandling == other.errorHandling &&
-				   cachingUseMode == other.cachingUseMode &&
-				   caching == other.caching &&
-				   maxRecursionDepthUseMode == other.maxRecursionDepthUseMode &&
-				   maxRecursionDepth == other.maxRecursionDepth;
+				   errorHandling == other.errorHandling;
 		}
 
-		public override readonly int GetHashCode()
+		public override int GetHashCode()
 		{
 			int hash = 17;
 			hash ^= 23 * isDefault.GetHashCode();
@@ -415,10 +336,6 @@ namespace RCParsing
 			hash ^= 23 * skipRule.GetHashCode();
 			hash ^= 23 * errorHandlingUseMode.GetHashCode();
 			hash ^= 23 * errorHandling.GetHashCode();
-			hash ^= 23 * cachingUseMode.GetHashCode();
-			hash ^= 23 * caching.GetHashCode();
-			hash ^= 23 * maxRecursionDepthUseMode.GetHashCode();
-			hash ^= 23 * maxRecursionDepth.GetHashCode();
 			return hash;
 		}
 

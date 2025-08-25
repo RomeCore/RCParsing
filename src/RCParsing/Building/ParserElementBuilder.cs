@@ -49,6 +49,7 @@ namespace RCParsing.Building
 		/// - <see cref="CustomTokenPattern"/>: The current custom token pattern. <br/>
 		/// - <see cref="string"/>: The input text to match. <br/>
 		/// - <see cref="int"/>: The position in the input text to start matching from. <br/>
+		/// - <see cref="int"/>: The position in the input text to stop matching at. <br/>
 		/// - <see cref="object"/>?: The optional context parameter to that have been passed from parser. <br/>
 		/// Returns: <br/>
 		/// - <see cref="ParsedElement"/>: The parsed element containing the result of the match.
@@ -57,7 +58,7 @@ namespace RCParsing.Building
 		/// <param name="factory">The factory function to create a parsed value.</param>
 		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public T Custom(Func<CustomTokenPattern, string, int, object?, ParsedElement> matchFunction,
+		public T Custom(Func<CustomTokenPattern, string, int, int, object?, ParsedElement> matchFunction,
 			string stringRepresentation = "custom",
 			Func<ParsedRuleResult, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)

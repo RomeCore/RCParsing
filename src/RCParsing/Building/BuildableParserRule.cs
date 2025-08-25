@@ -47,7 +47,7 @@ namespace RCParsing.Building
 		public override int GetHashCode()
 		{
 			int hashCode = base.GetHashCode();
-			hashCode ^= ParsedValueFactory?.GetHashCode() * 23 ?? 0;
+			hashCode = hashCode * 397 + (ParsedValueFactory?.GetHashCode() ?? 0) * 23;
 			return hashCode;
 		}
 	}

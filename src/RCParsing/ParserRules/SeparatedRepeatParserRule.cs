@@ -80,127 +80,164 @@ namespace RCParsing.ParserRules
 
 
 
-		public override ParsedRule Parse(ParserContext context, ParserContext childContext)
+		private Func<ParserContext, ParserContext, ParsedRule> parseFunction;
+
+		protected override void Initialize(ParserInitFlags initFlags)
 		{
-			var elements = new List<ParsedRule>();
-			var initialPosition = childContext.position;
-
-			// Try to parse the first element (if required - error if not found; if optional - may return empty result)
-			var firstElement = TryParseRule(Rule, childContext);
-			if (!firstElement.success)
+			parseFunction = (ctx, chCtx) =>
 			{
-				// No first element found
-				// If minCount == 0 — OK: empty sequence (but first check if there's a separator at the start)
-				if (MinCount == 0)
+				var elements = new List<ParsedRule>();
+				var initialPosition = chCtx.position;
+
+				// Try to parse the first element (if required - error if not found; if optional - may return empty result)
+				var firstElement = TryParseRule(Rule, chCtx);
+				if (!firstElement.success)
 				{
-					// If there is a separator at the start — this is an error (unexpected leading separator)
-					var sepAtStart = TryParseRule(Separator, childContext);
-					if (sepAtStart.success)
+					// No first element found
+					// If minCount == 0 — OK: empty sequence (but first check if there's a separator at the start)
+					if (MinCount == 0)
 					{
-						RecordError(context, "Unexpected separator before any element.");
-						return ParsedRule.Fail;
-					}
+						// If there is a separator at the start — this is an error (unexpected leading separator)
+						var sepAtStart = TryParseRule(Separator, chCtx);
+						if (sepAtStart.success)
+						{
+							RecordError(ref ctx, "Unexpected separator before any element.");
+							return ParsedRule.Fail;
+						}
 
-					// No elements and no separator — return successful empty result
-					return ParsedRule.Rule(Id, initialPosition, 0, elements);
-				}
-				else
-				{
-					// Minimum count > 0, but first element not found — explicit error
-					RecordError(context, $"Expected at least {MinCount} repetitions of child rule, but found 0.");
-					return ParsedRule.Fail;
-				}
-			}
-
-			// We have the first element
-			if (firstElement.length == 0)
-			{
-				RecordError(context, "Parsed child element has zero length, which is not allowed.");
-				return ParsedRule.Fail;
-			}
-
-			firstElement.occurency = elements.Count;
-			elements.Add(firstElement);
-			childContext.position = firstElement.startIndex + firstElement.length;
-
-			// Parse "separator + element" until limit reached
-			while (MaxCount == -1 || elements.Count < MaxCount)
-			{
-				var beforeSepPos = childContext.position;
-
-				// Try to parse the separator
-				var parsedSep = TryParseRule(Separator, childContext);
-				if (!parsedSep.success)
-					break; // no separator — end of sequence
-
-				if (parsedSep.length == 0)
-				{
-					RecordError(context, "Parsed separator has zero length, which is not allowed.");
-					return ParsedRule.Fail;
-				}
-
-				// Include separator in result if requested
-				if (IncludeSeparatorsInResult)
-					elements.Add(parsedSep);
-
-				// Separator successfully parsed — position already updated inside TryParseRule, but update again for safety:
-				childContext.position = parsedSep.startIndex + parsedSep.length;
-
-				// Try to parse the next element
-				var nextElement = TryParseRule(Rule, childContext);
-				if (!nextElement.success)
-				{
-					// Separator was found, but next element is missing
-					if (AllowTrailingSeparator)
-					{
-						// Trailing separator allowed — consider separator consumed and stop.
-						// Keep childContext.position after separator as is and exit loop.
-						break;
+						// No elements and no separator — return successful empty result
+						return ParsedRule.Rule(Id, initialPosition, 0, elements);
 					}
 					else
 					{
-						RecordError(context, "Expected element after separator, but found none.");
+						// Minimum count > 0, but first element not found — explicit error
+						RecordError(ref ctx, $"Expected at least {MinCount} repetitions of child rule, but found 0.");
 						return ParsedRule.Fail;
 					}
 				}
 
-				if (nextElement.length == 0)
+				// We have the first element
+				if (firstElement.length == 0)
 				{
-					RecordError(context, "Parsed child element has zero length, which is not allowed.");
+					RecordError(ref ctx, "Parsed child element has zero length, which is not allowed.");
 					return ParsedRule.Fail;
 				}
 
-				nextElement.occurency = elements.Count;
-				elements.Add(nextElement);
-				childContext.position = nextElement.startIndex + nextElement.length;
+				firstElement.occurency = elements.Count;
+				elements.Add(firstElement);
+				chCtx.position = firstElement.startIndex + firstElement.length;
 
-				// loop continues — try to find next separator + element
-			}
+				// Parse "separator + element" until limit reached
+				while (MaxCount == -1 || elements.Count < MaxCount)
+				{
+					var beforeSepPos = chCtx.position;
 
-			// Check minimum count
-			if (elements.Count < MinCount)
+					// Try to parse the separator
+					var parsedSep = TryParseRule(Separator, chCtx);
+					if (!parsedSep.success)
+						break; // no separator — end of sequence
+
+					if (parsedSep.length == 0)
+					{
+						RecordError(ref ctx, "Parsed separator has zero length, which is not allowed.");
+						return ParsedRule.Fail;
+					}
+
+					// Include separator in result if requested
+					if (IncludeSeparatorsInResult)
+						elements.Add(parsedSep);
+
+					// Separator successfully parsed — position already updated inside TryParseRule, but update again for safety:
+					chCtx.position = parsedSep.startIndex + parsedSep.length;
+
+					// Try to parse the next element
+					var nextElement = TryParseRule(Rule, chCtx);
+					if (!nextElement.success)
+					{
+						// Separator was found, but next element is missing
+						if (AllowTrailingSeparator)
+						{
+							// Trailing separator allowed — consider separator consumed and stop.
+							// Keep childContext.position after separator as is and exit loop.
+							break;
+						}
+						else
+						{
+							RecordError(ref ctx, "Expected element after separator, but found none.");
+							return ParsedRule.Fail;
+						}
+					}
+
+					if (nextElement.length == 0)
+					{
+						RecordError(ref ctx, "Parsed child element has zero length, which is not allowed.");
+						return ParsedRule.Fail;
+					}
+
+					nextElement.occurency = elements.Count;
+					elements.Add(nextElement);
+					chCtx.position = nextElement.startIndex + nextElement.length;
+
+					// loop continues — try to find next separator + element
+				}
+
+				// Check minimum count
+				if (elements.Count < MinCount)
+				{
+					RecordError(ref ctx, $"Expected at least {MinCount} repetitions of child rule, but found {elements.Count}.");
+					return ParsedRule.Fail;
+				}
+
+				return ParsedRule.Rule(Id, initialPosition, chCtx.position - initialPosition, elements);
+			};
+
+			if (initFlags.HasFlag(ParserInitFlags.EnableMemoization))
 			{
-				;
-				RecordError(context, $"Expected at least {MinCount} repetitions of child rule, but found {elements.Count}.");
-				return ParsedRule.Fail;
+				var previous = parseFunction;
+				parseFunction = (ctx, chCtx) =>
+				{
+					if (ctx.cache.TryGetRule(Id, ctx.position, out var cachedResult))
+						return cachedResult;
+					cachedResult = previous(ctx, chCtx);
+					ctx.cache.AddRule(Id, ctx.position, cachedResult);
+					return cachedResult;
+				};
 			}
-
-			return ParsedRule.Rule(Id, initialPosition, childContext.position - initialPosition, elements);
 		}
 
-
-
+		public override ParsedRule Parse(ParserContext context, ParserContext childContext)
+		{
+			return parseFunction(context, childContext);
+		}
 
 
 
 		public override string ToStringOverride(int remainingDepth)
 		{
+			string alias = Aliases.Count > 0 ? $" '{Aliases.Last()}' " : string.Empty;
+
 			string trailing = AllowTrailingSeparator ? " (allow trailing)" : "";
 			if (remainingDepth <= 0)
-				return $"SeparatedRepeat{{{MinCount}..{(MaxCount == -1 ? "" : MaxCount)}}}{trailing}...";
+				return $"SeparatedRepeat{alias}{{{MinCount}..{(MaxCount == -1 ? "" : MaxCount)}}}{trailing}...";
 
-			return $"SeparatedRepeat{{{MinCount}..{(MaxCount == -1 ? "" : MaxCount)}}}{trailing}: " +
+			return $"SeparatedRepeat{alias}{{{MinCount}..{(MaxCount == -1 ? "" : MaxCount)}}}{trailing}: " +
 				   $"{GetRule(Rule).ToString(remainingDepth - 1)} sep {GetRule(Separator).ToString(remainingDepth - 1)}";
+		}
+
+		public override string ToStackTraceString(int remainingDepth, int childIndex)
+		{
+			string alias = Aliases.Count > 0 ? $" '{Aliases.Last()}' " : string.Empty;
+
+			string trailing = AllowTrailingSeparator ? " (allow trailing)" : "";
+			if (remainingDepth <= 0)
+				return $"SeparatedRepeat{alias}{{{MinCount}..{(MaxCount == -1 ? "" : MaxCount)}}}{trailing}...";
+
+			string mainPointer = childIndex == Rule ? " <--- here" : " ";
+			string sepPointer = childIndex == Separator ? " <--- here" : "";
+
+			return $"SeparatedRepeat{alias}{alias}{{{MinCount}..{(MaxCount == -1 ? "" : MaxCount)}}}{trailing}: " +
+				   $"{GetRule(Rule).ToString(remainingDepth - 1)}{mainPointer}\n" +
+				   $"sep {GetRule(Separator).ToString(remainingDepth - 1)}{sepPointer}";
 		}
 
 		public override bool Equals(object? obj)

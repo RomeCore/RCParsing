@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using RCParsing.Building;
 
-namespace RCParsing.Tests.Parsing
+namespace RCParsing.Tests
 {
 	public class TokenPatternTests
 	{

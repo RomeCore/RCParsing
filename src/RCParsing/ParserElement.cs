@@ -61,52 +61,50 @@ namespace RCParsing
 		}
 
 		/// <summary>
-		/// Initializes this parser element. This method is called by the parser when it adds all elements (rules and tokens)
+		/// Pre-initializes this parser element. This method is called by the parser when it adds all elements (rules and tokens)
 		/// to itself.
 		/// </summary>
 		/// <remarks>
 		/// May be used to perform initialization tasks.
 		/// </remarks>
-		protected virtual void Initialize()
+		protected virtual void PreInitialize(ParserInitFlags initFlags)
 		{
 		}
 
 		/// <summary>
-		/// Optimizes this parser element. This method is called by the parser when it adds all elements (rules and tokens)
-		/// to itself and it has 'optimized' flag set to true. This method is called after the 'Initialize' method.
+		/// Initializes this parser element. This method is called after the 'PreInitialize' method.
 		/// </summary>
 		/// <remarks>
 		/// May be used to perform some optimizations.
 		/// </remarks>
-		protected virtual void Optimize()
+		protected virtual void Initialize(ParserInitFlags initFlags)
 		{
 		}
 
 		/// <summary>
-		/// Post-initializes this parser element. This method is called by the parser when it adds all elements (rules and tokens)
-		/// to itself after all elements have been initialized and optimized.
+		/// Post-initializes this parser element. This method is called after the 'Initialize' method.
 		/// </summary>
 		/// <remarks>
 		/// May be used to perform initialization tasks.
 		/// </remarks>
-		protected virtual void PostInitialize()
+		protected virtual void PostInitialize(ParserInitFlags initFlags)
 		{
 		}
 
 		/// <summary>
-		/// Initializes this parser element internally.
+		/// Pre-initializes this parser element internally.
 		/// </summary>
-		internal void InitializeInternal() => Initialize();
+		internal void PreInitializeInternal(ParserInitFlags initFlags) => PreInitialize(initFlags);
 
 		/// <summary>
-		/// Optimizes this parser element internally.
+		/// Initializes this parser element internally.
 		/// </summary>
-		internal void OptimizeInternal() => Optimize();
+		internal void InitializeInternal(ParserInitFlags initFlags) => Initialize(initFlags);
 
 		/// <summary>
 		/// Post-initializes this parser element internally.
 		/// </summary>
-		internal void PostInitializeInternal() => PostInitialize();
+		internal void PostInitializeInternal(ParserInitFlags initFlags) => PostInitialize(initFlags);
 
 
 
@@ -134,7 +132,7 @@ namespace RCParsing
 		/// Records an error associated with this element in the provided parser context.
 		/// </summary>
 		/// <param name="context">The parser context to record the error in.</param>
-		protected void RecordError(ParserContext context)
+		protected void RecordError(ref ParserContext context)
 		{
 			context.RecordError(null, Id, this is TokenPattern);
 		}
@@ -144,7 +142,7 @@ namespace RCParsing
 		/// </summary>
 		/// <param name="context">The parser context to record the error in.</param>
 		/// <param name="position">The position in the input string where the error occurred.</param>
-		protected void RecordError(ParserContext context, int position)
+		protected void RecordError(ref ParserContext context, int position)
 		{
 			context.RecordError(position, null, Id, this is TokenPattern);
 		}
@@ -154,7 +152,7 @@ namespace RCParsing
 		/// </summary>
 		/// <param name="context">The parser context to record the error in.</param>
 		/// <param name="message">The error message to record.</param>
-		protected void RecordError(ParserContext context, string? message)
+		protected void RecordError(ref ParserContext context, string? message)
 		{
 			context.RecordError(message, Id, this is TokenPattern);
 		}
@@ -165,7 +163,7 @@ namespace RCParsing
 		/// <param name="context">The parser context to record the error in.</param>
 		/// <param name="position">The position in the input string where the error occurred.</param>
 		/// <param name="message">The error message to record.</param>
-		protected void RecordError(ParserContext context, int position, string? message)
+		protected void RecordError(ref ParserContext context, int position, string? message)
 		{
 			context.RecordError(position, message, Id, this is TokenPattern);
 		}
@@ -187,11 +185,12 @@ namespace RCParsing
 		/// <param name="tokenId">The ID of the token to match.</param>
 		/// <param name="input">The input string to match against.</param>
 		/// <param name="position">The starting position in the input string to match against.</param>
+		/// <param name="barrierPosition">The position in the input string to stop matching at.</param>
 		/// <param name="parserParameter">The optional parameter to pass to the token pattern. Can be used to pass additional information to the custom token patterns.</param>
 		/// <returns>The parsed token containing the result of the match operation or <see cref="ParsedElement.Fail"/> if the match failed.</returns>
-		protected ParsedElement TryMatchToken(int tokenId, string input, int position, object? parserParameter)
+		protected ParsedElement TryMatchToken(int tokenId, string input, int position, int barrierPosition, object? parserParameter)
 		{
-			return Parser.MatchToken(tokenId, input, position, parserParameter);
+			return Parser.MatchToken(tokenId, input, position, barrierPosition, parserParameter);
 		}
 
 		/// <summary>

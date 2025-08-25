@@ -2,35 +2,23 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime;
 using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace RCParsing
 {
+#pragma warning disable IDE1006 // Naming Styles
+
 	/// <summary>
-	/// Represents the context for parsing operations.
+	/// Represents a shared parser context part for parsing input text.
 	/// </summary>
-	public struct ParserContext
+	public class SharedParserContext
 	{
 		/// <summary>
-		/// The input string to be parsed.
+		/// Gets the input text being parsed.
 		/// </summary>
 		public readonly string str;
-
-		/// <summary>
-		/// The current position in the input string.
-		/// </summary>
-		public int position;
-
-		/// <summary>
-		/// The current recursion depth.
-		/// </summary>
-		public int recursionDepth;
-
-		/// <summary>
-		/// The inherited settings that control the behavior of the parser during parsing operations.
-		/// </summary>
-		public ParserSettings settings;
 
 		/// <summary>
 		/// The optional parameter passed to the parser. Can be used to pass additional information to the
@@ -57,6 +45,11 @@ namespace RCParsing
 		public readonly BitArray successPositions;
 
 		/// <summary>
+		/// A set of positions that should be avoided when skipping rules and tokens.
+		/// </summary>
+		public readonly BitArray positionsToAvoidSkipping;
+
+		/// <summary>
 		/// A list to store any parsing errors encountered during the process.
 		/// </summary>
 		public readonly List<ParsingError> errors;
@@ -67,12 +60,133 @@ namespace RCParsing
 		public readonly List<ParsedRule> skippedRules;
 
 		/// <summary>
+		/// Initializes a new instance of the <see cref="SharedParserContext"/> class.
+		/// </summary>
+		/// <param name="parser">The parser object that is performing the parsing.</param>
+		/// <param name="str">The input string to parse.</param>
+		/// <param name="parserParameter">The optional parameter passed to the parser. Can be used to pass additional information to the transformation functions, custom parser rules and token patterns.</param>
+		/// <exception cref="ArgumentNullException"></exception>
+		public SharedParserContext(Parser parser, string str, object? parserParameter = null)
+		{
+			this.str = str;
+			this.parser = parser ?? throw new ArgumentNullException(nameof(parser));
+			this.cache = new ParserCache();
+			this.successPositions = new BitArray(str.Length);
+			this.positionsToAvoidSkipping = new BitArray(str.Length);
+			this.errors = new List<ParsingError>();
+			this.skippedRules = new List<ParsedRule>();
+		}
+	}
+
+	/// <summary>
+	/// Represents a stack frame for the parser. Used to keep track of the current state during parsing.
+	/// </summary>
+	public class ParserStackFrame
+	{
+		/// <summary>
+		/// Gets the previous stack frame, if any.
+		/// </summary>
+		public readonly ParserStackFrame? previous;
+
+		/// <summary>
+		/// Gets the rule ID that is currently being parsed.
+		/// </summary>
+		public readonly int ruleId;
+
+		/// <summary>
+		/// Gets the recursion depth at which the current parsing operation is taking place.
+		/// </summary>
+		public readonly int recursionDepth;
+
+		/// <summary>
+		/// Creates a new instance of the <see cref="ParserStackFrame"/> class.
+		/// </summary>
+		/// <param name="previous">The parser stack frame that is the previous one in the stack.</param>
+		/// <param name="ruleId">The ID of the parser rule that is currently being parsed.</param>
+		public ParserStackFrame(ParserStackFrame? previous, int ruleId)
+		{
+			this.previous = previous;
+			this.ruleId = ruleId;
+			this.recursionDepth = previous == null ? 0 : previous.recursionDepth + 1;
+		}
+	}
+
+	/// <summary>
+	/// Represents the context for parsing operations.
+	/// </summary>
+	public struct ParserContext
+	{
+		/// <summary>
+		/// The input string to be parsed.
+		/// </summary>
+		public readonly string str => shared.str;
+
+		/// <summary>
+		/// The current position in the input string.
+		/// </summary>
+		public int position;
+
+		/// <summary>
+		/// The inherited settings that control the behavior of the parser during parsing operations.
+		/// </summary>
+		public ParserSettings settings;
+
+		/// <summary>
+		/// Gets the top stack frame in the stack, if any.
+		/// </summary>
+		public ParserStackFrame? topStackFrame;
+
+		/// <summary>
+		/// The shared parser context that is performing the parsing.
+		/// </summary>
+		public SharedParserContext shared;
+
+		/// <summary>
+		/// Gets the current recursion depth of the parsing operation if the stack tracing is enabled.
+		/// </summary>
+		public readonly int recursionDepth => topStackFrame == null ? 0 : topStackFrame.recursionDepth;
+
+		/// <summary>
+		/// The optional parameter passed to the parser. Can be used to pass additional information to the
+		/// transformation functions, custom parser rules and token patterns.
+		/// </summary>
+		public readonly object? parserParameter => shared.parserParameter;
+
+		/// <summary>
+		/// The parser object that is performing the parsing.
+		/// </summary>
+		public readonly Parser parser => shared.parser;
+
+		/// <summary>
+		/// A cache to store parsed results for reuse.
+		/// </summary>
+		public readonly ParserCache cache => shared.cache;
+
+		/// <summary>
+		/// A set of positions that have successfully parsed rules and tokens.
+		/// </summary>
+		/// <remarks>
+		/// Used to retrive relevant errors that can be used for debugging purposes.
+		/// </remarks>
+		public readonly BitArray successPositions => shared.successPositions;
+
+		/// <summary>
+		/// A list to store any parsing errors encountered during the process.
+		/// </summary>
+		public readonly List<ParsingError> errors => shared.errors;
+
+		/// <summary>
+		/// A list to store any rules that were skipped during the parsing process.
+		/// </summary>
+		public readonly List<ParsedRule> skippedRules => shared.skippedRules;
+
+		/// <summary>
 		/// Gets a summary of first 10 parsing errors encountered during the process.
 		/// </summary>
 		/// <remarks>
 		/// Needed for debugging purposes.
 		/// </remarks>
-		public string ErrorSummary => GetErrorSummary(10);
+		public readonly string ErrorSummary => GetErrorSummary(10);
 
 		/// <summary>
 		/// Gets the text after the current position in the input string.
@@ -99,25 +213,26 @@ namespace RCParsing
 		/// <param name="parserParameter">Optional parameter that have been passed to the parser.</param>
 		internal ParserContext(Parser parser, string str, object? parserParameter)
 		{
-			this.str = str ?? throw new ArgumentNullException(nameof(str));
 			position = 0;
-			recursionDepth = 0;
-			settings = default;
-			this.parserParameter = parserParameter;
-
-			this.parser = parser ?? throw new ArgumentNullException(nameof(parser));
 			settings = parser.Settings;
+			topStackFrame = null;
+			shared = new SharedParserContext(parser, str, parserParameter);
+		}
 
-			this.cache = new ParserCache();
-			this.successPositions = new BitArray(str.Length);
-			this.errors = new List<ParsingError>();
-			this.skippedRules = new List<ParsedRule>();
+		/// <summary>
+		/// Appends a new stack frame to the parser's stack. Used for tracking recursion depth and parsing rules.
+		/// </summary>
+		/// <param name="ruleId">The ID of the parser rule that is currently being parsed.</param>
+		public void AppendStackFrame(int ruleId)
+		{
+			topStackFrame = new ParserStackFrame(topStackFrame, ruleId);
 		}
 
 		/// <summary>
 		/// Records, ignores or throws an error based on the current settings.
 		/// </summary>
 		/// <param name="error">The parsing error to record.</param>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public readonly void RecordError(ParsingError error)
 		{
 			if (!settings.errorHandling.HasFlag(ParserErrorHandlingMode.NoRecord))
@@ -136,7 +251,7 @@ namespace RCParsing
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public readonly void RecordError(string? message = null, int elementId = -1, bool isToken = false)
 		{
-			RecordError(new ParsingError(position, recursionDepth, message, elementId, isToken));
+			RecordError(new ParsingError(position, recursionDepth, message, elementId, isToken, topStackFrame));
 		}
 
 		/// <summary>
@@ -149,7 +264,7 @@ namespace RCParsing
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public readonly void RecordError(int position, string? message = null, int elementId = -1, bool isToken = false)
 		{
-			RecordError(new ParsingError(position, recursionDepth, message, elementId, isToken));
+			RecordError(new ParsingError(position, recursionDepth, message, elementId, isToken, topStackFrame));
 		}
 
 		/// <summary>

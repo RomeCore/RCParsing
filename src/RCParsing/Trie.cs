@@ -90,9 +90,22 @@ namespace RCParsing
 		/// <returns>True if at least one stored key matches a prefix of <paramref name="text"/> starting at <paramref name="startIndex"/>.</returns>
 		public bool TryGetLongestMatch(string text, int startIndex, out object? value, out int matchedLength)
 		{
-			if (text == null) throw new ArgumentNullException(nameof(text));
-			if (startIndex < 0 || startIndex > text.Length) throw new ArgumentOutOfRangeException(nameof(startIndex));
+			return TryGetLongestMatch(text, startIndex, text.Length, out value, out matchedLength);
+		}
 
+		/// <summary>
+		/// Attempts to find the longest stored key that matches the input <paramref name="text"/>
+		/// starting at <paramref name="startIndex"/>. If a match is found, returns true and outputs
+		/// the matched value and length in characters consumed.
+		/// </summary>
+		/// <param name="text">Input text to search in.</param>
+		/// <param name="startIndex">Start position in <paramref name="text"/>.</param>
+		/// <param name="endIndex">End position in <paramref name="text"/> (exclusive).</param>
+		/// <param name="value">Value associated with the matched key (or null if stored value is null).</param>
+		/// <param name="matchedLength">Length in characters of the matched key (0 if no match).</param>
+		/// <returns>True if at least one stored key matches a prefix of <paramref name="text"/> starting at <paramref name="startIndex"/>.</returns>
+		public bool TryGetLongestMatch(string text, int startIndex, int endIndex, out object? value, out int matchedLength)
+		{
 			value = null;
 			matchedLength = 0;
 
@@ -109,7 +122,7 @@ namespace RCParsing
 			}
 
 			// Traverse characters one by one; record the last terminal node encountered.
-			while (pos < text.Length)
+			while (pos < endIndex)
 			{
 				char c = text[pos];
 				if (!TryGetChild(node, c, out var next))
@@ -145,16 +158,27 @@ namespace RCParsing
 		/// <returns>IEnumerable of (length, value) tuples for every stored key that matches at the position.</returns>
 		public IEnumerable<(int length, object? value)> GetAllMatches(string text, int startIndex)
 		{
-			if (text == null) throw new ArgumentNullException(nameof(text));
-			if (startIndex < 0 || startIndex > text.Length) throw new ArgumentOutOfRangeException(nameof(startIndex));
+			return GetAllMatches(text, startIndex);
+		}
 
+		/// <summary>
+		/// Returns all stored keys that match starting at <paramref name="startIndex"/>.
+		/// Each result is returned as a pair: (lengthConsumed, value).
+		/// Results are yielded in order of increasing length (shorter matches first).
+		/// </summary>
+		/// <param name="text">Input text.</param>
+		/// <param name="startIndex">Start index.</param>
+		/// <param name="maxIndex">Maximum index to consider.</param>
+		/// <returns>IEnumerable of (length, value) tuples for every stored key that matches at the position.</returns>
+		public IEnumerable<(int length, object? value)> GetAllMatches(string text, int startIndex, int maxIndex)
+		{
 			var node = root;
 			int pos = startIndex;
 
 			if (node.isTerminal)
 				yield return (0, node.value);
 
-			while (pos < text.Length)
+			while (pos < maxIndex)
 			{
 				char c = text[pos];
 				if (!TryGetChild(node, c, out var next))
@@ -169,24 +193,31 @@ namespace RCParsing
 		}
 
 		/// <summary>
+		/// Returns whether the substring text[startIndex..endOfText] is a prefix of at least one stored key.
+		/// Equivalent to <see cref="IsPrefix(string,int,int)"/> with the remaining length to the end of the string.
+		/// </summary>
+		/// <param name="text">Input text.</param>
+		/// <param name="startIndex">Start index.</param>
+		/// <returns>True if the suffix text[startIndex..] is a prefix of some stored key.</returns>
+		public bool IsPrefix(string text, int startIndex)
+		{
+			return IsPrefix(text, startIndex, text.Length);
+		}
+
+		/// <summary>
 		/// Returns whether the substring text[startIndex..startIndex+length] is a prefix of at least one stored key.
 		/// That is, whether walking the trie for the given substring succeeds (regardless of terminal flags).
 		/// </summary>
 		/// <param name="text">Input text.</param>
 		/// <param name="startIndex">Start index in text.</param>
-		/// <param name="length">Number of characters to consider from startIndex.</param>
+		/// <param name="endIndex">End index in text (exclusive).</param>
 		/// <returns>True if the provided substring is a prefix of some stored key.</returns>
-		public bool IsPrefix(string text, int startIndex, int length)
+		public bool IsPrefix(string text, int startIndex, int endIndex)
 		{
-			if (text == null) throw new ArgumentNullException(nameof(text));
-			if (startIndex < 0 || startIndex > text.Length) throw new ArgumentOutOfRangeException(nameof(startIndex));
-			if (length < 0 || startIndex + length > text.Length) throw new ArgumentOutOfRangeException(nameof(length));
-
 			var node = root;
 			int pos = startIndex;
-			int end = startIndex + length;
 
-			while (pos < end)
+			while (pos < endIndex)
 			{
 				char c = text[pos];
 				if (!TryGetChild(node, c, out var next))
@@ -197,19 +228,6 @@ namespace RCParsing
 
 			// We succeeded walking all characters; it is a prefix if node exists (we don't require terminal).
 			return true;
-		}
-
-		/// <summary>
-		/// Returns whether the substring text[startIndex..endOfText] is a prefix of at least one stored key.
-		/// Equivalent to <see cref="IsPrefix(string,int,int)"/> with the remaining length to the end of the string.
-		/// </summary>
-		/// <param name="text">Input text.</param>
-		/// <param name="startIndex">Start index.</param>
-		/// <returns>True if the suffix text[startIndex..] is a prefix of some stored key.</returns>
-		public bool IsPrefix(string text, int startIndex)
-		{
-			if (text == null) throw new ArgumentNullException(nameof(text));
-			return IsPrefix(text, startIndex, text.Length - startIndex);
 		}
 
 		/// <summary>
@@ -226,14 +244,29 @@ namespace RCParsing
 		/// <returns><see langword="true"/> when the substring is a strict prefix of some stored key; otherwise <see langword="false"/>.</returns>
 		public bool IsStrictPrefixOfAny(string text, int startIndex)
 		{
-			if (text == null) throw new ArgumentNullException(nameof(text));
-			if (startIndex < 0 || startIndex > text.Length) throw new ArgumentOutOfRangeException(nameof(startIndex));
+			return IsStrictPrefixOfAny(text, startIndex, text.Length);
+		}
 
+		/// <summary>
+		/// Determines whether the substring of the specified text starting at the given index
+		/// is a strict prefix of any key stored in the trie.
+		/// </summary>
+		/// <remarks>
+		/// A strict prefix means that the substring exactly matches the path to a node in the trie,
+		/// the node is not terminal, and it has at least one child node. In other words,
+		/// the substring can be extended to form at least one complete key in the trie.
+		/// </remarks>
+		/// <param name="text">Input text to check.</param>
+		/// <param name="startIndex">Start index in <paramref name="text"/>.</param>
+		/// <param name="endIndex">End index in <paramref name="text"/> (exclusive).</param>
+		/// <returns><see langword="true"/> when the substring is a strict prefix of some stored key; otherwise <see langword="false"/>.</returns>
+		public bool IsStrictPrefixOfAny(string text, int startIndex, int endIndex)
+		{
 			var node = root;
 			int pos = startIndex;
 
 			// Walk as far as input goes.
-			while (pos < text.Length)
+			while (pos < endIndex)
 			{
 				char ch = text[pos];
 				if (!TryGetChild(node, ch, out var child))
@@ -303,12 +336,39 @@ namespace RCParsing
 		}
 
 		/// <summary>
+		/// Returns true if there exists at least one stored key that exactly matches a prefix of the input
+		/// starting at <paramref name="startIndex"/>. If found, the method returns the matched length via out parameter.
+		/// If multiple matches exist, the longest is returned.
+		/// </summary>
+		/// <param name="text">Input text.</param>
+		/// <param name="startIndex">Start index.</param>
+		/// <param name="endIndex">End index in text (exclusive).</param>
+		/// <param name="matchedLength">Matched length (0 when no match).</param>
+		/// <returns>True if a stored key matches a prefix of the input.</returns>
+		public bool ContainsMatch(string text, int startIndex, int endIndex, out int matchedLength)
+		{
+			bool ok = TryGetLongestMatch(text, startIndex, endIndex, out _, out matchedLength);
+			return ok;
+		}
+
+		/// <summary>
 		/// Convenience: returns the matched value for the longest match starting at <paramref name="startIndex"/>,
 		/// or <paramref name="defaultValue"/> if none found. Also returns the matched length in <paramref name="matchedLength"/>.
 		/// </summary>
 		public object? GetValueOrDefault(string text, int startIndex, object? defaultValue, out int matchedLength)
 		{
 			if (TryGetLongestMatch(text, startIndex, out var value, out matchedLength))
+				return value;
+			return defaultValue;
+		}
+
+		/// <summary>
+		/// Convenience: returns the matched value for the longest match starting at <paramref name="startIndex"/>,
+		/// or <paramref name="defaultValue"/> if none found. Also returns the matched length in <paramref name="matchedLength"/>.
+		/// </summary>
+		public object? GetValueOrDefault(string text, int startIndex, int endIndex, object? defaultValue, out int matchedLength)
+		{
+			if (TryGetLongestMatch(text, startIndex, endIndex, out var value, out matchedLength))
 				return value;
 			return defaultValue;
 		}

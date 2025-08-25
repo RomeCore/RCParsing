@@ -43,9 +43,9 @@ namespace RCParsing.Building.ParserRules
 		public override int GetHashCode()
 		{
 			int hashCode = base.GetHashCode();
-			hashCode ^= Child.GetHashCode() * 23;
-			hashCode ^= MinCount.GetHashCode() * 29;
-			hashCode ^= MaxCount.GetHashCode() * 31;
+			hashCode = hashCode * 397 + Child.GetHashCode() * 23;
+			hashCode = hashCode * 397 + MinCount.GetHashCode() * 29;
+			hashCode = hashCode * 397 + MaxCount.GetHashCode() * 31;
 			return hashCode;
 		}
 	}

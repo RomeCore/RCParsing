@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 
-namespace BenchmarkJSON
+namespace RCParsing.Benchmarks.JSON
 {
 	public static class PidginJsonParser
 	{

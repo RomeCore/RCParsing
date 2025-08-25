@@ -10,7 +10,7 @@ namespace RCParsing.Building
 	/// </summary>
 	public class ParserLocalSettingsBuilder
 	{
-		private ParserLocalSettings _settings = default;
+		private ParserLocalSettings _settings = new ParserLocalSettings();
 		private bool _changed = false;
 		private Or<string, BuildableParserRule>? _skipRule = null;
 
@@ -38,9 +38,7 @@ namespace RCParsing.Building
 			result.isDefault =
 				result.skippingStrategyUseMode == ParserSettingMode.InheritForSelfAndChildren &&
 				result.skipRuleUseMode == ParserSettingMode.InheritForSelfAndChildren &&
-				result.maxRecursionDepthUseMode == ParserSettingMode.InheritForSelfAndChildren &&
-				result.errorHandlingUseMode == ParserSettingMode.InheritForSelfAndChildren &&
-				result.cachingUseMode == ParserSettingMode.InheritForSelfAndChildren;
+				result.errorHandlingUseMode == ParserSettingMode.InheritForSelfAndChildren;
 
 			return result;
 		}
@@ -177,96 +175,6 @@ namespace RCParsing.Building
 		{
 			return ErrorHandling(_settings.errorHandling | ParserErrorHandlingMode.DisplayRules |
 				ParserErrorHandlingMode.DisplayMessages | ParserErrorHandlingMode.DisplayExtended, overrideMode);
-		}
-
-		/// <summary>
-		/// Sets the caching mode.
-		/// </summary>
-		/// <param name="mode">The caching mode.</param>
-		/// <param name="overrideMode">The override mode for the caching setting.</param>
-		/// <returns>This instance for method chaining.</returns>
-		public ParserLocalSettingsBuilder Caching(ParserCachingMode mode, ParserSettingMode overrideMode = ParserSettingMode.LocalForSelfAndChildren)
-		{
-			_changed = true;
-			_settings.caching = mode;
-			_settings.cachingUseMode = overrideMode;
-			return this;
-		}
-
-		/// <summary>
-		/// Sets the default (disabled) caching mode.
-		/// </summary>
-		/// <remarks>
-		/// This will cause the parser element to ignore any caching.
-		/// </remarks>
-		/// <param name="overrideMode">The override mode for the caching setting.</param>
-		/// <returns>This instance for method chaining.</returns>
-		public ParserLocalSettingsBuilder NoCaching(ParserSettingMode overrideMode = ParserSettingMode.LocalForSelfAndChildren)
-		{
-			return Caching(ParserCachingMode.Default, overrideMode);
-		}
-
-		/// <summary>
-		/// Sets the token and rule caching mode.
-		/// </summary>
-		/// <remarks>
-		/// This will cause the parser element to use and write both rules and token patterns via caching.
-		/// </remarks>
-		/// <param name="overrideMode">The override mode for the caching setting.</param>
-		/// <returns>This instance for method chaining.</returns>
-		public ParserLocalSettingsBuilder CacheAll(ParserSettingMode overrideMode = ParserSettingMode.LocalForSelfAndChildren)
-		{
-			return Caching(ParserCachingMode.CacheAll, overrideMode);
-		}
-
-		/// <summary>
-		/// Sets the only rules caching mode.
-		/// </summary>
-		/// <remarks>
-		/// This will cause the parser element to use and write rules via caching.
-		/// </remarks>
-		/// <param name="overrideMode">The override mode for the caching setting.</param>
-		/// <returns>This instance for method chaining.</returns>
-		public ParserLocalSettingsBuilder CacheOnlyRules(ParserSettingMode overrideMode = ParserSettingMode.LocalForSelfAndChildren)
-		{
-			return Caching(ParserCachingMode.Rules, overrideMode);
-		}
-
-		/// <summary>
-		/// Sets the only tokens caching mode.
-		/// </summary>
-		/// <remarks>
-		/// This will cause the parser element to use and write token patterns via caching.
-		/// </remarks>
-		/// <param name="overrideMode">The override mode for the caching setting.</param>
-		/// <returns>This instance for method chaining.</returns>
-		public ParserLocalSettingsBuilder CacheOnlyTokens(ParserSettingMode overrideMode = ParserSettingMode.LocalForSelfAndChildren)
-		{
-			return Caching(ParserCachingMode.TokenPatterns, overrideMode);
-		}
-
-		/// <summary>
-		/// Sets the maximum recursion depth.
-		/// </summary>
-		/// <param name="depth">The maximum recursion depth. Can be 0 for no limit.</param>
-		/// <param name="overrideMode">The override mode for the maximum recursion depth setting.</param>
-		/// <returns>This instance for method chaining.</returns>
-		public ParserLocalSettingsBuilder MaxRecursionDepth(int depth, ParserSettingMode overrideMode = ParserSettingMode.LocalForSelfAndChildren)
-		{
-			_changed = true;
-			_settings.maxRecursionDepth = depth;
-			_settings.maxRecursionDepthUseMode = overrideMode;
-			return this;
-		}
-
-		/// <summary>
-		/// Sets the infinite recursion depth.
-		/// </summary>
-		/// <param name="overrideMode">The override mode for the maximum recursion depth setting.</param>
-		/// <returns>This instance for method chaining.</returns>
-		public ParserLocalSettingsBuilder DisableRecursionLimit(ParserSettingMode overrideMode = ParserSettingMode.LocalForSelfAndChildren)
-		{
-			return MaxRecursionDepth(0, overrideMode);
 		}
 	}
 }

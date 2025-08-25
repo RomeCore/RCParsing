@@ -106,13 +106,35 @@ namespace RCParsing
 					if (expected.Count > 1 || expected.Sum(s => s.Length) > 30)
 						sb.AppendLine($"{unexpected}, expected{oneOf}:\n" + string.Join("\n", expected).Indent("  "));
 					else
-						sb.AppendLine($"{unexpected}, expected{oneOf}: " + string.Join(", ", expected));
+						sb.AppendLine($"{unexpected}, expected{oneOf} " + string.Join(", ", expected));
+				}
+
+				foreach (var error in groupedError)
+				{
+					var topFrame = error.stackFrame;
+					int prevStackRule = -1;
+
+					if (topFrame != null)
+					{
+						sb.AppendLine();
+						sb.Append($"[{context.parser.Rules[topFrame.ruleId].ToString(0)}] ");
+						sb.AppendLine("Stack trace (top call recently):");
+						prevStackRule = topFrame.ruleId;
+						topFrame = topFrame.previous;
+						while (topFrame != null)
+						{
+							var rule = context.parser.Rules[topFrame.ruleId];
+							sb.AppendLine("- " + rule.ToStackTraceString(1, prevStackRule).Indent("  ", addIndentToFirstLine: false));
+							prevStackRule = topFrame.ruleId;
+							topFrame = topFrame.previous;
+						}
+					}
 				}
 
 				sb.Length -= Environment.NewLine.Length;
 
 				if (i < last - 1)
-					sb.AppendLine().AppendLine();
+					sb.AppendLine().AppendLine().Append("===== NEXT ERROR =====").AppendLine().AppendLine();
 			}
 
 			if (groupedErrors.Count > max)
@@ -130,10 +152,10 @@ namespace RCParsing
 
 			return ch switch
 			{
-				'\t' => "tab",
-				'\n' => "newline",
-				'\r' => "return",
-				' ' => "space",
+				'\t' => "tab (\\t)",
+				'\n' => "newline (\\n)",
+				'\r' => "return (\\r)",
+				' ' => "space (' ')",
 				_ => ch.ToString()
 			};
 		}

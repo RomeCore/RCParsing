@@ -19,6 +19,7 @@ namespace RCParsing.Building
 		private object? DefaultFactory_Repeat(ParsedRuleResult r) => r.SelectArray();
 		private object? DefaultFactory_Choice(ParsedRuleResult r) => r.Children[0].Value;
 		private object? DefaultFactory_RepeatSeparated(ParsedRuleResult r) => r.SelectArray();
+		private object? DefaultFactory_Token(ParsedRuleResult r) => r.IntermediateValue;
 
 		private Or<string, BuildableParserRule>? _rule;
 
@@ -245,6 +246,16 @@ namespace RCParsing.Building
 			else
 				throw new ParserBuildingException("Parser rule is not set or it is a direct reference to named rule.");
 			return this;
+		}
+
+		/// <summary>
+		/// Configures the local settings for the current sequence rule to skip parsing and ignore errors.
+		/// </summary>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if the parser rule is not set or it is a direct reference to a named rule.</exception>
+		public RuleBuilder ConfigureForSkip()
+		{
+			return Configure(c => c.NoSkipping().IgnoreErrors());
 		}
 
 		/// <summary>

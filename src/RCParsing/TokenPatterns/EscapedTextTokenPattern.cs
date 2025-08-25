@@ -204,17 +204,17 @@ namespace RCParsing.TokenPatterns
 
 
 
-		public override ParsedElement Match(string input, int position, object? parserParameter)
+		public override ParsedElement Match(string input, int position, int barrierPosition, object? parserParameter)
 		{
 			int start = position;
 			int pos = start;
 			var sb = new StringBuilder();
 
-			while (pos < input.Length)
+			while (pos < barrierPosition)
 			{
 				// 1) Try to match the longest escape starting at pos.
 				//    If found — apply replacement and continue.
-				if (_escape.TryGetLongestMatch(input, pos, out var replacement, out int escapeConsumed))
+				if (_escape.TryGetLongestMatch(input, pos, barrierPosition, out var replacement, out int escapeConsumed))
 				{
 					sb.Append(replacement as string ?? string.Empty);
 					pos += escapeConsumed;
@@ -223,7 +223,7 @@ namespace RCParsing.TokenPatterns
 
 				// 2) No escape terminal at this position.
 				//    If a forbidden terminal starts here, stop (do not consume forbidden).
-				if (_forbidden.TryGetLongestMatch(input, pos, out _, out int forbiddenConsumed))
+				if (_forbidden.TryGetLongestMatch(input, pos, barrierPosition, out _, out int forbiddenConsumed))
 				{
 					break; // unescaped forbidden sequence -> end of matched text
 				}
@@ -233,7 +233,7 @@ namespace RCParsing.TokenPatterns
 				//    If the remainder of the input starting at pos is a strict prefix of some escape
 				//    AND we are at the end of the input (no more chars to try) => incomplete escape -> error.
 				//    Otherwise treat the current char as normal text.
-				if (_escape.IsStrictPrefixOfAny(input, pos))
+				if (_escape.IsStrictPrefixOfAny(input, pos, barrierPosition))
 				{
 					// If the remaining input is a strict prefix of some escape and we are at EOF
 					// (i.e. there are no more characters to complete that escape), then it's invalid.

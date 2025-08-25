@@ -73,7 +73,7 @@ namespace RCParsing
 		/// <summary>
 		/// Gets the children rules of this rule. Valid for parallel and sequence rules.
 		/// </summary>
-		public List<ParsedRule>? children;
+		public IReadOnlyList<ParsedRule>? children;
 
 		/// <summary>
 		/// Gets a parsed rule that represents failure.
@@ -110,7 +110,7 @@ namespace RCParsing
 		/// <param name="children">The array of child rules.</param>
 		/// <param name="intermediateValue">The intermediate value associated with this rule.</param>
 		/// <returns>A parsed rule.</returns>
-		public static ParsedRule Rule(int ruleId, int startIndex, int length, List<ParsedRule> children, object? intermediateValue = null)
+		public static ParsedRule Rule(int ruleId, int startIndex, int length, IReadOnlyList<ParsedRule> children, object? intermediateValue = null)
 		{
 			return new ParsedRule
 			{

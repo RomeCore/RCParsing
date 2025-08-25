@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using RCParsing;
 using RCParsing.Building;
 
-namespace RCParsing.Tests.Parsing
+namespace RCParsing.Tests
 {
 	public class ParserRuleTests
 	{
@@ -31,7 +31,7 @@ namespace RCParsing.Tests.Parsing
 		{
 			var builder = new ParserBuilder();
 
-			builder.Settings().Skip(r => r.Token("whitespace"));
+			builder.Settings.Skip(r => r.Token("whitespace"));
 
 			builder.CreateToken("whitespace")
 				.Regex(@"\s+");
@@ -64,7 +64,7 @@ namespace RCParsing.Tests.Parsing
 		{
 			var builder = new ParserBuilder();
 
-			builder.Settings().Skip(r => r.Token("whitespace"));
+			builder.Settings.Skip(r => r.Token("whitespace"));
 
 			builder.CreateToken("whitespace")
 				.Regex(@"\s+");
@@ -90,7 +90,7 @@ namespace RCParsing.Tests.Parsing
 		{
 			var builder = new ParserBuilder();
 
-			builder.Settings().Skip(r => r.Token("whitespace"));
+			builder.Settings.Skip(r => r.Token("whitespace"));
 
 			builder.CreateToken("whitespace")
 				.Regex(@"\s+");
@@ -117,7 +117,7 @@ namespace RCParsing.Tests.Parsing
 		{
 			var builder = new ParserBuilder();
 
-			builder.Settings().Skip(r => r.Token("whitespace"));
+			builder.Settings.Skip(r => r.Token("whitespace"));
 
 			builder.CreateToken("whitespace")
 				.Regex(@"\s+");
@@ -149,7 +149,7 @@ namespace RCParsing.Tests.Parsing
 		{
 			var builder = new ParserBuilder();
 
-			builder.Settings()
+			builder.Settings
 				.Skip(r => r.Rule("skip"), ParserSkippingStrategy.SkipBeforeParsingGreedy);
 
 			// Parser will always try to skip the skip-rules until they are not capturing anything
@@ -241,7 +241,7 @@ namespace RCParsing.Tests.Parsing
 		{
 			var builder = new ParserBuilder();
 
-			builder.Settings().Skip(r => r.Whitespaces());
+			builder.Settings.Skip(r => r.Whitespaces());
 
 			// Values
 
@@ -428,7 +428,7 @@ namespace RCParsing.Tests.Parsing
 
 			var parser = builder.Build();
 
-			Assert.Equal(parser.GetRule("rule1").Id, parser.GetRule("rule2").Id);
+			Assert.True(parser.GetRule("rule1").Id == parser.GetRule("rule2").Id);
 		}
 	}
 }

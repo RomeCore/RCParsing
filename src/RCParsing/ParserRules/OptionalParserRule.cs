@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using RCParsing.Utils;
@@ -30,26 +31,60 @@ namespace RCParsing.ParserRules
 
 
 
+		private Func<ParserContext, ParserContext, ParsedRule> parseFunction;
+
+		protected override void Initialize(ParserInitFlags initFlags)
+		{
+			parseFunction = (ctx, chCtx) =>
+			{
+				var result = TryParseRule(Rule, chCtx);
+				if (result.success)
+				{
+					return ParsedRule.Rule(Id, result.startIndex, result.length, ParsedRuleChildUtils.Single(ref result), result.intermediateValue);
+				}
+				else
+				{
+					return ParsedRule.Rule(Id, ctx.position, 0, ParsedRuleChildUtils.empty, null);
+				}
+			};
+
+			if (initFlags.HasFlag(ParserInitFlags.EnableMemoization))
+			{
+				var previous = parseFunction;
+				parseFunction = (ctx, chCtx) =>
+				{
+					if (ctx.cache.TryGetRule(Id, ctx.position, out var cachedResult))
+						return cachedResult;
+					cachedResult = previous(ctx, chCtx);
+					ctx.cache.AddRule(Id, ctx.position, cachedResult);
+					return cachedResult;
+				};
+			}
+		}
+
 		public override ParsedRule Parse(ParserContext context, ParserContext childContext)
 		{
-			var result = TryParseRule(Rule, childContext);
-			if (result.success)
-			{
-				return ParsedRule.Rule(Id, result.startIndex, result.length, new List<ParsedRule> { result }, result.intermediateValue);
-			}
-			else
-			{
-				return ParsedRule.Rule(Id, context.position, 0, new List<ParsedRule>(), null);
-			}
+			return parseFunction(context, childContext);
 		}
 
 
 
 		public override string ToStringOverride(int remainingDepth)
 		{
+			string alias = Aliases.Count > 0 ? $" '{Aliases.Last()}'" : string.Empty;
+
 			if (remainingDepth <= 0)
-				return "Optional...";
-			return $"Optional: {GetRule(Rule).ToString(remainingDepth - 1)}";
+				return $"Optional{alias}...";
+			return $"Optional{alias}: {GetRule(Rule).ToString(remainingDepth - 1)}";
+		}
+
+		public override string ToStackTraceString(int remainingDepth, int childIndex)
+		{
+			string alias = Aliases.Count > 0 ? $" '{Aliases.Last()}'" : string.Empty;
+
+			if (remainingDepth <= 0)
+				return $"Optional{alias}...";
+			return $"Optional{alias}: {GetRule(Rule).ToString(remainingDepth - 1)} <-- here";
 		}
 
 		public override bool Equals(object? obj)

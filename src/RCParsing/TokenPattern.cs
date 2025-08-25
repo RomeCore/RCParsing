@@ -14,9 +14,13 @@ namespace RCParsing
 		/// </summary>
 		/// <param name="input">The input text to match.</param>
 		/// <param name="position">The position in the input text to start matching from.</param>
+		/// <param name="barrierPosition">
+		/// The position in the input text to stop matching at.
+		/// Can be length of input text or an index to next barrier token.
+		/// </param>
 		/// <param name="parserParameter">The optional context parameter to pass to the pattern.</param>
 		/// <returns>The parsed element containing the result of the match.</returns>
-		public abstract ParsedElement Match(string input, int position, object? parserParameter);
+		public abstract ParsedElement Match(string input, int position, int barrierPosition, object? parserParameter);
 
 		public override bool Equals(object? obj)
 		{

@@ -27,13 +27,18 @@ namespace RCParsing.Building.TokenPatterns
 		public int MaxCount { get; set; } = -1;
 
 		/// <summary>
+		/// The function to pass the intermediate values from each pattern to the result intermediate value.
+		/// </summary>
+		public Func<IReadOnlyList<object?>, object?>? PassageFunction { get; set; } = null;
+
+		/// <summary>
 		/// Gets the children of this token pattern.
 		/// </summary>
 		public override IEnumerable<Or<string, BuildableTokenPattern>>? TokenChildren => Child.WrapIntoEnumerable();
 
 		protected override TokenPattern BuildToken(List<int>? tokenChildren)
 		{
-			return new RepeatTokenPattern(tokenChildren[0], MinCount, MaxCount);
+			return new RepeatTokenPattern(tokenChildren[0], MinCount, MaxCount, PassageFunction);
 		}
 
 		public override bool Equals(object? obj)
@@ -42,15 +47,17 @@ namespace RCParsing.Building.TokenPatterns
 				   obj is BuildableRepeatTokenPattern other &&
 				   Child == other.Child &&
 				   MinCount == other.MinCount &&
-				   MaxCount == other.MaxCount;
+				   MaxCount == other.MaxCount &&
+				   Equals(PassageFunction, other.PassageFunction);
 		}
 
 		public override int GetHashCode()
 		{
 			int hashCode = base.GetHashCode();
-			hashCode ^= Child.GetHashCode() * 23;
-			hashCode ^= MinCount.GetHashCode() * 29;
-			hashCode ^= MaxCount.GetHashCode() * 31;
+			hashCode = hashCode * 397 + Child.GetHashCode() * 23;
+			hashCode = hashCode * 397 + MinCount.GetHashCode() * 29;
+			hashCode = hashCode * 397 + MaxCount.GetHashCode() * 31;
+			hashCode = hashCode * 397 + (PassageFunction?.GetHashCode() ?? 0) * 37;
 			return hashCode;
 		}
 	}

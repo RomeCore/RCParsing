@@ -20,7 +20,7 @@ namespace RCParsing.TokenPatterns
 		/// <summary>
 		/// The function to pass the intermediate values from each pattern to the result intermediate value.
 		/// </summary>
-		public Func<List<object?>, object?>? PassageFunction { get; }
+		public Func<IReadOnlyList<object?>, object?>? PassageFunction { get; }
 
 
 
@@ -29,7 +29,7 @@ namespace RCParsing.TokenPatterns
 		/// </summary>
 		/// <param name="tokenPatternIds">The token patterns ids to match in sequence.</param>
 		/// <param name="passageFunction">The function to pass the intermediate values from each pattern to the result intermediate value.</param>
-		public SequenceTokenPattern(IEnumerable<int> tokenPatternIds, Func<List<object?>, object?>? passageFunction = null)
+		public SequenceTokenPattern(IEnumerable<int> tokenPatternIds, Func<IReadOnlyList<object?>, object?>? passageFunction = null)
 		{
 			TokenPatterns = tokenPatternIds?.ToImmutableArray()
 				?? throw new ArgumentNullException(nameof(tokenPatternIds));
@@ -42,25 +42,34 @@ namespace RCParsing.TokenPatterns
 
 
 
-		public override ParsedElement Match(string input, int position, object? parserParameter)
+		private TokenPattern[] _patterns;
+
+		protected override void Initialize(ParserInitFlags initFlags)
+		{
+			_patterns = TokenPatterns.Select(p => GetTokenPattern(p)).ToArray();
+		}
+
+		public override ParsedElement Match(string input, int position, int barrierPosition, object? parserParameter)
 		{
 			var initialPosition = position;
-			var tokens = new List<ParsedElement>();
+			ParsedElement[]? tokens = null;
 
-			foreach (var tokenId in TokenPatterns)
+			for (int i = 0; i < _patterns.Length; i++)
 			{
-				var token = TryMatchToken(tokenId, input, position, parserParameter);
+				var pattern = _patterns[i];
+				var token = pattern.Match(input, position, barrierPosition, parserParameter);
 				if (!token.success)
 					return ParsedElement.Fail;
 
-				tokens.Add(token);
+				tokens ??= new ParsedElement[TokenPatterns.Length];
+				tokens[i] = token;
 				position = token.startIndex + token.length;
 			}
 
 			object? intermediateValue = null;
 			if (PassageFunction != null)
 			{
-				var intermediateValues = tokens.Select(t => t.intermediateValue).ToList();
+				var intermediateValues = new ListSelectWrapper<ParsedElement, object?>(tokens, t => t.intermediateValue);
 				intermediateValue = PassageFunction(intermediateValues);
 			}
 

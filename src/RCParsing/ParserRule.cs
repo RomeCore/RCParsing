@@ -21,6 +21,22 @@ namespace RCParsing
 		public ParserLocalSettings Settings { get; internal set; } = default;
 
 		/// <summary>
+		/// Gets a value indicating whether this rule can be used directly without using parser.
+		/// </summary>
+		public virtual bool CanBeInlined => Settings.isDefault;
+
+
+
+
+		private bool _writeStackTrace = false;
+
+		protected override void PreInitialize(ParserInitFlags initFlags)
+		{
+			if (initFlags.HasFlag(ParserInitFlags.StackTraceWriting))
+				_writeStackTrace = true;
+		}
+
+		/// <summary>
 		/// Advances the parser context to use for this and child elements.
 		/// </summary>
 		/// <remarks>
@@ -29,21 +45,17 @@ namespace RCParsing
 		/// </remarks>
 		public void AdvanceContext(ref ParserContext context, out ParserContext childContext)
 		{
+			if (_writeStackTrace)
+				context.AppendStackFrame(Id);
 			childContext = context;
 
-			if (Settings.isDefault)
-			{
-				childContext.settings = context.settings;
-			}
-			else
+			if (!Settings.isDefault)
 			{
 				context.settings.Resolve(Settings, Parser.Settings, out var forLocal, out var forChildren);
 				context.settings = forLocal;
 
 				childContext.settings = forChildren;
 			}
-
-			childContext.recursionDepth++;
 		}
 
 		/// <summary>
@@ -53,6 +65,14 @@ namespace RCParsing
 		/// <param name="childContext">The parser context for the child elements.</param>
 		/// <returns>The parsed rule containing the result of parsing.</returns>
 		public abstract ParsedRule Parse(ParserContext context, ParserContext childContext);
+
+		/// <summary>
+		/// Converts this parser rule to a stack trace string for debugging purposes.
+		/// </summary>
+		/// <param name="remainingDepth">The remaining depth of the stack trace to include. Default is 2.</param>
+		/// <param name="childIndex">The index of the child element to include in the stack trace. Default is -1.</param>
+		/// <returns>A stack trace string representing the rule with '&lt;-- here' pointers.</returns>
+		public abstract string ToStackTraceString(int remainingDepth, int childIndex);
 
 		public override bool Equals(object? obj)
 		{

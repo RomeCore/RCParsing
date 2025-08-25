@@ -21,7 +21,7 @@ namespace RCParsing.Building.TokenPatterns
 		/// <summary>
 		/// The function to pass the intermediate values from each pattern to the result intermediate value.
 		/// </summary>
-		public Func<List<object?>, object?>? PassageFunction { get; set; } = null;
+		public Func<IReadOnlyList<object?>, object?>? PassageFunction { get; set; } = null;
 
 		protected override TokenPattern BuildToken(List<int>? tokenChildren)
 		{
@@ -39,8 +39,8 @@ namespace RCParsing.Building.TokenPatterns
 		public override int GetHashCode()
 		{
 			int hashCode = base.GetHashCode();
-			hashCode ^= Elements.GetSequenceHashCode() * 23;
-			hashCode ^= PassageFunction?.GetHashCode() ?? 0 * 39;
+			hashCode = hashCode * 397 + Elements.GetSequenceHashCode() * 23;
+			hashCode = hashCode * 397 + PassageFunction?.GetHashCode() ?? 0 * 39;
 			return hashCode;
 		}
 	}

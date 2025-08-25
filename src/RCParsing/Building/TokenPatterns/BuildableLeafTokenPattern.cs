@@ -31,7 +31,7 @@ namespace RCParsing.Building.TokenPatterns
 		public override int GetHashCode()
 		{
 			int hashCode = base.GetHashCode();
-			hashCode ^= 23 * TokenPattern.GetHashCode();
+			hashCode = hashCode * 397 + TokenPattern.GetHashCode();
 			return hashCode;
 		}
 	}

@@ -138,12 +138,14 @@ namespace RCParsing.Building
 		/// <param name="passageFunction">The function to pass the intermediate values from each pattern to the result intermediate value.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		/// <exception cref="ParserBuildingException">Thrown if the current pattern is not a sequence or has fewer than two child elements.</exception>
-		public TokenBuilder Pass(Func<List<object?>, object?>? passageFunction)
+		public TokenBuilder Pass(Func<IReadOnlyList<object?>, object?>? passageFunction)
 		{
-			if (_pattern?.AsT2() is BuildableSequenceTokenPattern sequenceRule)
-				sequenceRule.PassageFunction = passageFunction;
+			if (_pattern?.AsT2() is BuildableSequenceTokenPattern sequence)
+				sequence.PassageFunction = passageFunction;
+			else if (_pattern?.AsT2() is BuildableRepeatTokenPattern repeat)
+				repeat.PassageFunction = passageFunction;
 			else
-				throw new ParserBuildingException("Passage function can only be set on a sequence token pattern " +
+				throw new ParserBuildingException("Passage function can only be set on a sequence or repeat token pattern " +
 					"(must be added at least two child elements or must be converted to a sequence first).");
 			return this;
 		}

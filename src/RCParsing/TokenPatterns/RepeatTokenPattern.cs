@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Text;
+using RCParsing.Utils;
 
 namespace RCParsing.TokenPatterns
 {
@@ -27,12 +28,18 @@ namespace RCParsing.TokenPatterns
 		public int MaxCount { get; }
 
 		/// <summary>
+		/// The function to pass the intermediate values from each pattern to the result intermediate value.
+		/// </summary>
+		public Func<IReadOnlyList<object?>, object?>? PassageFunction { get; }
+
+		/// <summary>
 		/// Initializes a new instance of the <see cref="RepeatTokenPattern"/> class.
 		/// </summary>
 		/// <param name="tokenPatternId">The token pattern ID to repeat.</param>
 		/// <param name="minCount">The minimum number of times the token pattern must repeat.</param>
 		/// <param name="maxCount">The maximum number of times the token pattern can repeat. -1 indicates no upper limit.</param>
-		public RepeatTokenPattern(int tokenPatternId, int minCount, int maxCount)
+		/// <param name="passageFunction">The function to pass the intermediate values from each pattern to the result intermediate value.</param>
+		public RepeatTokenPattern(int tokenPatternId, int minCount, int maxCount, Func<IReadOnlyList<object?>, object?>? passageFunction = null)
 		{
 			if (minCount < 0)
 				throw new ArgumentOutOfRangeException(nameof(minCount), "minCount must be greater than or equal to 0");
@@ -43,6 +50,7 @@ namespace RCParsing.TokenPatterns
 			TokenPattern = tokenPatternId;
 			MinCount = minCount;
 			MaxCount = maxCount;
+			PassageFunction = passageFunction;
 		}
 
 		protected override HashSet<char>? FirstCharsCore => MinCount == 0 ? null :
@@ -50,14 +58,14 @@ namespace RCParsing.TokenPatterns
 
 
 
-		public override ParsedElement Match(string input, int position, object? parserParameter)
+		public override ParsedElement Match(string input, int position, int barrierPosition, object? parserParameter)
 		{
 			var tokens = new List<ParsedElement>();
 			var initialPosition = position;
 
 			for (int i = 0; i < MaxCount || MaxCount == -1; i++)
 			{
-				ParsedElement matchedToken = TryMatchToken(TokenPattern, input, position, parserParameter);
+				ParsedElement matchedToken = Parser.TokenPatterns[TokenPattern].Match(input, position, barrierPosition, parserParameter);
 				if (!matchedToken.success || matchedToken.startIndex + matchedToken.length == position)
 				{
 					break;
@@ -70,7 +78,14 @@ namespace RCParsing.TokenPatterns
 			if (tokens.Count < this.MinCount)
 				return ParsedElement.Fail;
 
-			return new ParsedElement(Id, initialPosition, position - initialPosition);
+			object? intermediateValue = null;
+			if (PassageFunction != null)
+			{
+				var intermediateValues = new ListSelectWrapper<ParsedElement, object?>(tokens, t => t.intermediateValue);
+				intermediateValue = PassageFunction(intermediateValues);
+			}
+
+			return new ParsedElement(Id, initialPosition, position - initialPosition, intermediateValue);
 		}
 
 
@@ -89,7 +104,8 @@ namespace RCParsing.TokenPatterns
 				   obj is RepeatTokenPattern pattern &&
 				   TokenPattern == pattern.TokenPattern &&
 				   MinCount == pattern.MinCount &&
-				   MaxCount == pattern.MaxCount;
+				   MaxCount == pattern.MaxCount &&
+				   Equals(PassageFunction, pattern.PassageFunction);
 		}
 
 		public override int GetHashCode()
@@ -98,6 +114,7 @@ namespace RCParsing.TokenPatterns
 			hashCode = hashCode * -1521134295 + TokenPattern.GetHashCode();
 			hashCode = hashCode * -1521134295 + MinCount.GetHashCode();
 			hashCode = hashCode * -1521134295 + MaxCount.GetHashCode();
+			hashCode = hashCode * -1521134295 + (PassageFunction?.GetHashCode() ?? 0);
 			return hashCode;
 		}
 	}

@@ -70,12 +70,12 @@ namespace RCParsing.Building.ParserRules
 		public override int GetHashCode()
 		{
 			int hashCode = base.GetHashCode();
-			hashCode ^= Child.GetHashCode() * 23;
-			hashCode ^= Separator.GetHashCode() * 29;
-			hashCode ^= MinCount.GetHashCode() * 31;
-			hashCode ^= MaxCount.GetHashCode() * 37;
-			hashCode ^= AllowTrailingSeparator.GetHashCode() * 41;
-			hashCode ^= IncludeSeparatorsInResult.GetHashCode() * 50;
+			hashCode = hashCode * 397 + Child.GetHashCode() * 23;
+			hashCode = hashCode * 397 + Separator.GetHashCode() * 29;
+			hashCode = hashCode * 397 + MinCount.GetHashCode() * 31;
+			hashCode = hashCode * 397 + MaxCount.GetHashCode() * 37;
+			hashCode = hashCode * 397 + AllowTrailingSeparator.GetHashCode() * 41;
+			hashCode = hashCode * 397 + IncludeSeparatorsInResult.GetHashCode() * 50;
 			return hashCode;
 		}
 	}
