@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
@@ -98,7 +99,6 @@ namespace RCParsing
 	/// <summary>
 	/// Defines how parser elements should handle errors.
 	/// </summary>
-	[Flags]
 	public enum ParserErrorHandlingMode
 	{
 		/// <summary>
@@ -114,22 +114,7 @@ namespace RCParsing
 		/// <summary>
 		/// Throws any errors when parser elements trying to record them.
 		/// </summary>
-		Throw = 2,
-
-		/// <summary>
-		/// Displays what rules are expected or failed to parse when formatting errors for exceptions.
-		/// </summary>
-		DisplayRules = 4,
-
-		/// <summary>
-		/// Displays the hidden error messages when formatting errors for exceptions.
-		/// </summary>
-		DisplayMessages = 8,
-
-		/// <summary>
-		/// Displays more groups of errors (instead of a single group) when formatting errors for exceptions.
-		/// </summary>
-		DisplayExtended = 16,
+		Throw = 2
 	}
 
 	/// <summary>
@@ -154,6 +139,12 @@ namespace RCParsing
 		/// </summary>
 		public ParserErrorHandlingMode errorHandling;
 
+		/// <summary>
+		/// The value indicates whether to ignore barriers while parsing. Default is false.
+		/// </summary>
+		public bool ignoreBarriers;
+
+
 
 		/// <summary>
 		/// Resolves the settings based on the provided local and global settings.
@@ -165,7 +156,7 @@ namespace RCParsing
 		/// <param name="globalSettings">The global settings to use.</param>
 		/// <param name="forLocal">The settings to use for the current element.</param>
 		/// <param name="forChildren">The settings to use for child elements.</param>
-		public void Resolve(ParserLocalSettings localSettings, ParserSettings globalSettings,
+		public readonly void Resolve(ParserLocalSettings localSettings, ParserSettings globalSettings,
 			out ParserSettings forLocal, out ParserSettings forChildren)
 		{
 			forLocal = new ParserSettings();
@@ -190,6 +181,13 @@ namespace RCParsing
 				this.errorHandling, localSettings.errorHandling, globalSettings.errorHandling,
 				localSettings.errorHandlingUseMode,
 				ref forLocal.errorHandling, ref forChildren.errorHandling
+			);
+
+			// ---- ignoreBarriers ----
+			ApplySetting(
+				this.ignoreBarriers, localSettings.ignoreBarriers, globalSettings.ignoreBarriers,
+				localSettings.ignoreBarriersUseMode,
+				ref forLocal.ignoreBarriers, ref forChildren.ignoreBarriers
 			);
 		}
 
@@ -244,15 +242,17 @@ namespace RCParsing
 		{
 			return skippingStrategy == other.skippingStrategy &&
 				   skipRule == other.skipRule &&
-				   errorHandling == other.errorHandling;
+				   errorHandling == other.errorHandling &&
+				   ignoreBarriers == other.ignoreBarriers;
 		}
 
 		public override readonly int GetHashCode()
 		{
 			int hash = 17;
-			hash ^= 23 * skippingStrategy.GetHashCode();
-			hash ^= 23 * skipRule.GetHashCode();
-			hash ^= 23 * errorHandling.GetHashCode();
+			hash = hash * 397 + skippingStrategy.GetHashCode();
+			hash = hash * 397 + skipRule.GetHashCode();
+			hash = hash * 397 + errorHandling.GetHashCode();
+			hash = hash * 397 + ignoreBarriers.GetHashCode();
 			return hash;
 		}
 
@@ -309,6 +309,16 @@ namespace RCParsing
 
 
 
+		/// <summary>
+		/// Defines an override mode for <see cref="ignoreBarriers"/> setting.
+		/// </summary>
+		public ParserSettingMode ignoreBarriersUseMode;
+
+		/// <inheritdoc cref="ParserSettings.ignoreBarriers"/>
+		public bool ignoreBarriers;
+
+
+
 		public override bool Equals(object? obj)
 		{
 			return obj is ParserLocalSettings other &&
@@ -323,19 +333,23 @@ namespace RCParsing
 				   skipRuleUseMode == other.skipRuleUseMode &&
 				   skipRule == other.skipRule &&
 				   errorHandlingUseMode == other.errorHandlingUseMode &&
-				   errorHandling == other.errorHandling;
+				   errorHandling == other.errorHandling &&
+				   ignoreBarriersUseMode == other.ignoreBarriersUseMode &&
+				   ignoreBarriers == other.ignoreBarriers;
 		}
 
 		public override int GetHashCode()
 		{
 			int hash = 17;
-			hash ^= 23 * isDefault.GetHashCode();
-			hash ^= 23 * skippingStrategyUseMode.GetHashCode();
-			hash ^= 23 * skippingStrategy.GetHashCode();
-			hash ^= 23 * skipRuleUseMode.GetHashCode();
-			hash ^= 23 * skipRule.GetHashCode();
-			hash ^= 23 * errorHandlingUseMode.GetHashCode();
-			hash ^= 23 * errorHandling.GetHashCode();
+			hash = hash * 397 + isDefault.GetHashCode();
+			hash = hash * 397 + skippingStrategyUseMode.GetHashCode();
+			hash = hash * 397 + skippingStrategy.GetHashCode();
+			hash = hash * 397 + skipRuleUseMode.GetHashCode();
+			hash = hash * 397 + skipRule.GetHashCode();
+			hash = hash * 397 + errorHandlingUseMode.GetHashCode();
+			hash = hash * 397 + errorHandling.GetHashCode();
+			hash = hash * 397 + ignoreBarriersUseMode.GetHashCode();
+			hash = hash * 397 + ignoreBarriers.GetHashCode();
 			return hash;
 		}
 

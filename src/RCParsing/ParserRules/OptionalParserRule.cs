@@ -40,11 +40,11 @@ namespace RCParsing.ParserRules
 				var result = TryParseRule(Rule, chCtx);
 				if (result.success)
 				{
-					return ParsedRule.Rule(Id, result.startIndex, result.length, ParsedRuleChildUtils.Single(ref result), result.intermediateValue);
+					return ParsedRule.Rule(Id, result.startIndex, result.length, result.passedBarriers, ParsedRuleChildUtils.Single(ref result), result.intermediateValue);
 				}
 				else
 				{
-					return ParsedRule.Rule(Id, ctx.position, 0, ParsedRuleChildUtils.empty, null);
+					return ParsedRule.Rule(Id, ctx.position, 0, ctx.passedBarriers, ParsedRuleChildUtils.empty, null);
 				}
 			};
 

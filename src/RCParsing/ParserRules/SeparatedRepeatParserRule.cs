@@ -106,7 +106,7 @@ namespace RCParsing.ParserRules
 						}
 
 						// No elements and no separator — return successful empty result
-						return ParsedRule.Rule(Id, initialPosition, 0, elements);
+						return ParsedRule.Rule(Id, initialPosition, 0, chCtx.passedBarriers, elements);
 					}
 					else
 					{
@@ -126,6 +126,7 @@ namespace RCParsing.ParserRules
 				firstElement.occurency = elements.Count;
 				elements.Add(firstElement);
 				chCtx.position = firstElement.startIndex + firstElement.length;
+				chCtx.passedBarriers = firstElement.passedBarriers;
 
 				// Parse "separator + element" until limit reached
 				while (MaxCount == -1 || elements.Count < MaxCount)
@@ -149,6 +150,7 @@ namespace RCParsing.ParserRules
 
 					// Separator successfully parsed — position already updated inside TryParseRule, but update again for safety:
 					chCtx.position = parsedSep.startIndex + parsedSep.length;
+					chCtx.passedBarriers = parsedSep.passedBarriers;
 
 					// Try to parse the next element
 					var nextElement = TryParseRule(Rule, chCtx);
@@ -177,6 +179,7 @@ namespace RCParsing.ParserRules
 					nextElement.occurency = elements.Count;
 					elements.Add(nextElement);
 					chCtx.position = nextElement.startIndex + nextElement.length;
+					chCtx.passedBarriers = nextElement.passedBarriers;
 
 					// loop continues — try to find next separator + element
 				}
@@ -188,7 +191,7 @@ namespace RCParsing.ParserRules
 					return ParsedRule.Fail;
 				}
 
-				return ParsedRule.Rule(Id, initialPosition, chCtx.position - initialPosition, elements);
+				return ParsedRule.Rule(Id, initialPosition, chCtx.position - initialPosition, chCtx.passedBarriers, elements);
 			};
 
 			if (initFlags.HasFlag(ParserInitFlags.EnableMemoization))

@@ -49,13 +49,29 @@ namespace RCParsing
 		/// <param name="context">The parser context that was used during parsing.</param>
 		/// <param name="message">The error message.</param>
 		public ParsingException(ParserContext context, string message) :
-			base(FormatMessage(context, ErrorFromContextAndMessage(context, message)))
+			base(FormatMessage(context, ErrorFromContextAndMessage(context, message, context.position)))
 		{
 			Context = context;
 			ErrorMessages = ImmutableList.Create(message);
 			ErrorMessage = message;
 			Positions = ImmutableList.Create(context.position);
 			Position = context.position;
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ParsingException"/> class.
+		/// </summary>
+		/// <param name="context">The parser context that was used during parsing.</param>
+		/// <param name="message">The error message.</param>
+		/// <param name="position">The position in the input where the error occurred.</param>
+		public ParsingException(ParserContext context, string message, int position) :
+			base(FormatMessage(context, ErrorFromContextAndMessage(context, message, position)))
+		{
+			Context = context;
+			ErrorMessages = ImmutableList.Create(message);
+			ErrorMessage = message;
+			Positions = ImmutableList.Create(context.position);
+			Position = position;
 		}
 
 		/// <summary>
@@ -78,9 +94,9 @@ namespace RCParsing
 			Position = Positions[Positions.Count - 1];
 		}
 
-		private static ParsingError ErrorFromContextAndMessage(ParserContext context, string message)
+		private static ParsingError ErrorFromContextAndMessage(ParserContext context, string message, int position)
 		{
-			return new ParsingError(context.position, context.recursionDepth, message);
+			return new ParsingError(position, message);
 		}
 
 		private static string FormatMessage(ParserContext context, ParsingError error)

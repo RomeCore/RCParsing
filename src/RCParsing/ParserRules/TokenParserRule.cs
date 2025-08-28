@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Text;
+using RCParsing.TokenPatterns;
 
 namespace RCParsing.ParserRules
 {
@@ -27,9 +28,10 @@ namespace RCParsing.ParserRules
 
 
 
+		delegate ParsedRule ParseDelegate(ref ParserContext ctx, ref ParserContext chCtx);
 
 		private TokenPattern _pattern;
-		private Func<ParserContext, ParserContext, ParsedRule> parseFunction;
+		private ParseDelegate parseFunction;
 
 		protected override void PreInitialize(ParserInitFlags initFlags)
 		{
@@ -38,7 +40,7 @@ namespace RCParsing.ParserRules
 
 		protected override void Initialize(ParserInitFlags initFlags)
 		{
-			parseFunction = (ctx, chCtx) =>
+			ParsedRule ParseIgnoringBarriers(ref ParserContext ctx, ref ParserContext chCtx)
 			{
 				var match = _pattern.Match(ctx.str, ctx.position, ctx.str.Length, ctx.parserParameter);
 				if (!match.success)
@@ -47,26 +49,75 @@ namespace RCParsing.ParserRules
 					return ParsedRule.Fail;
 				}
 
-				return ParsedRule.Token(Id, TokenPattern, match.startIndex, match.length, match.intermediateValue);
-			};
+				return ParsedRule.Token(Id, TokenPattern, match.startIndex, match.length, ctx.passedBarriers, match.intermediateValue);
+			}
+
+			ParsedRule ParseUsingBarriers(ref ParserContext ctx, ref ParserContext chCtx)
+			{
+				if (ctx.settings.ignoreBarriers)
+				{
+					return ParseIgnoringBarriers(ref ctx, ref chCtx);
+				}
+
+				if (ctx.barrierTokens.TryGetBarrierToken(ctx.position, ctx.passedBarriers, out var barrierToken))
+				{
+					if (barrierToken.tokenId == TokenPattern)
+					{
+						return ParsedRule.Token(Id, TokenPattern, ctx.position, barrierToken.length,
+							barrierToken.index + 1, null);
+					}
+					else
+					{
+						RecordError(ref ctx, "Failed to match virtual token.");
+						return ParsedRule.Fail;
+					}
+				}
+
+				if (_pattern is BarrierTokenPattern)
+				{
+					RecordError(ref ctx, "Failed to match virtual token.");
+					return ParsedRule.Fail;
+				}
+
+				int maxPos = ctx.barrierTokens.GetNextBarrierPosition(ctx.position, ctx.passedBarriers);
+
+				var match = _pattern.Match(ctx.str, ctx.position, maxPos, ctx.parserParameter);
+				if (!match.success)
+				{
+					RecordError(ref ctx, "Failed to parse token.");
+					return ParsedRule.Fail;
+				}
+
+				return ParsedRule.Token(Id, TokenPattern, match.startIndex, match.length,
+					ctx.passedBarriers, match.intermediateValue);
+			}
+
+			parseFunction = Parser.Tokenizers.Length == 0 ? ParseIgnoringBarriers : ParseUsingBarriers;
+
+			if (Parser.Tokenizers.Length == 0 && _pattern is BarrierTokenPattern)
+				throw new InvalidOperationException($"Cannot use barrier token pattern '{_pattern}' without tokenizers.");
 
 			if (initFlags.HasFlag(ParserInitFlags.EnableMemoization))
 			{
-				var previous = parseFunction;
-				parseFunction = (ctx, chCtx) =>
+				var prev = parseFunction;
+
+				ParsedRule ParseMemoized(ref ParserContext ctx, ref ParserContext chCtx)
 				{
 					if (ctx.cache.TryGetRule(Id, ctx.position, out var cachedResult))
 						return cachedResult;
-					cachedResult = previous(ctx, chCtx);
+
+					cachedResult = prev(ref ctx, ref chCtx);
 					ctx.cache.AddRule(Id, ctx.position, cachedResult);
 					return cachedResult;
-				};
+				}
+
+				parseFunction = ParseMemoized;
 			}
 		}
 
 		public override ParsedRule Parse(ParserContext context, ParserContext childContext)
 		{
-			return parseFunction(context, childContext);
+			return parseFunction(ref context, ref childContext);
 		}
 
 

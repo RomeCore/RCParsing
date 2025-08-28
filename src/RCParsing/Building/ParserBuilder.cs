@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Data;
@@ -7,6 +8,7 @@ using System.Text;
 using RCParsing.Building.ParserRules;
 using RCParsing.Building.TokenPatterns;
 using RCParsing.ParserRules;
+using RCParsing.TokenPatterns;
 using RCParsing.Utils;
 
 namespace RCParsing.Building
@@ -47,6 +49,7 @@ namespace RCParsing.Building
 		private readonly Dictionary<string, TokenBuilder> _tokenPatterns = new Dictionary<string, TokenBuilder>();
 		private readonly Dictionary<string, RuleBuilder> _rules = new Dictionary<string, RuleBuilder>();
 		private readonly ParserSettingsBuilder _settingsBuilder = new ParserSettingsBuilder();
+		private readonly ParserTokenizersBuilder _tokenizersBuilder = new ParserTokenizersBuilder();
 		private string? _mainRuleAlias;
 
 		/// <summary>
@@ -116,6 +119,11 @@ namespace RCParsing.Building
 		public ParserSettingsBuilder Settings => _settingsBuilder;
 
 		/// <summary>
+		/// Gets the current barrier tokenizers builder.
+		/// </summary>
+		public ParserTokenizersBuilder BarrierTokenizers => _tokenizersBuilder;
+
+		/// <summary>
 		/// Builds the parser from the registered token patterns and rules.
 		/// </summary>
 		/// <returns>A <see cref="Parser"/> instance representing the built parser.</returns>
@@ -138,6 +146,26 @@ namespace RCParsing.Building
 
 			// Queues to process rules and tokens breadth-first
 			Queue<BuildableParserElement> elementsToProcess = new();
+
+			// Pre-process the tokenizers
+			var tokenizers = BarrierTokenizers.Build();
+			var allBarriers = new HashSet<string>();
+			foreach (var tokenizer in tokenizers)
+			{
+				var knownTokens = tokenizer.BarrierAliases.ToArray();
+				foreach (var tokenName in knownTokens)
+				{
+					if (!allBarriers.Add(tokenName))
+						continue;
+
+					var btoken = new BuildableLeafTokenPattern
+					{
+						TokenPattern = new BarrierTokenPattern(tokenName)
+					};
+					namedTokenPatterns[tokenName] = btoken;
+					elementsToProcess.Enqueue(btoken);
+				}
+			}
 
 			// Initialize processing queue and namedRules map with root rules
 			foreach (var rule in _rules)
@@ -353,10 +381,6 @@ namespace RCParsing.Building
 				List<int> settingsRuleChildren,
 				List<string> aliases)> finalMap = new();
 
-			// Build the final parser settings with resolved child rules
-			var (settings, initFlagsFactory) = _settingsBuilder.Build(parserSettingsRuleChildren
-				.Select(r => r == null ? -1 : elements[r]).ToList());
-
 			// Fill the final map
 			foreach (var elem in elements)
 			{
@@ -376,9 +400,14 @@ namespace RCParsing.Building
 				finalMap.Add((element, id, ruleChildren, tokenChildren, settingsRuleChildren, aliases));
 			}
 
-			// Release the final map to the result arrays
 			ParserRule[] resultRules = new ParserRule[elements.Count(e => e.Key is BuildableParserRule)];
 			TokenPattern[] resultTokenPatterns = new TokenPattern[elements.Count(e => e.Key is BuildableTokenPattern)];
+
+			// Build the final parser settings with resolved child rules
+			var (mainSettings, globalSettings, initFlagsFactory) = _settingsBuilder.Build(parserSettingsRuleChildren
+				.Select(r => r == null ? -1 : elements[r]).ToList());
+
+			// Release the final map to the result arrays
 			foreach (var elem in finalMap)
 			{
 				var element = elem.element;
@@ -395,8 +424,9 @@ namespace RCParsing.Building
 
 				if (builtElement is ParserRule rule)
 				{
-					var elementSettings = (element as BuildableParserRule).Settings.Build(settingsRuleChildren);
-					rule.Settings = elementSettings;
+					var elementSettings = (element as BuildableParserRule).Settings;
+					var builtSettings = elementSettings.Build(settingsRuleChildren);
+					rule.Settings = builtSettings;
 					resultRules[id] = rule;
 				}
 				else if (builtElement is TokenPattern pattern)
@@ -407,7 +437,7 @@ namespace RCParsing.Building
 
 			// Return the fully built parser instance with rules and token patterns
 			return new Parser(resultTokenPatterns.ToImmutableArray(), resultRules.ToImmutableArray(),
-				settings, _mainRuleAlias, initFlagsFactory);
+				tokenizers, mainSettings, globalSettings, _mainRuleAlias, initFlagsFactory);
 		}
 	}
 }

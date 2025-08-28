@@ -37,6 +37,11 @@ namespace RCParsing
 		public int length { readonly get => element.length; set => element.length = value; }
 
 		/// <summary>
+		/// The count of passed barrier tokens.
+		/// </summary>
+		public int passedBarriers;
+
+		/// <summary>
 		/// Gets the intermediate value associated with this rule.
 		/// </summary>
 		/// <remarks>
@@ -87,13 +92,15 @@ namespace RCParsing
 		/// <param name="tokenId">The ID of the token pattern that was parsed.</param>
 		/// <param name="startIndex">The starting index of the token in the input text.</param>
 		/// <param name="length">The length of the token in the input text.</param>
+		/// <param name="passedBarriers">The count of passed barrier tokens.</param>
 		/// <param name="intermediateValue">The intermediate value associated with this token.</param>
 		/// <returns>A parsed rule that represents success token.</returns>
-		public static ParsedRule Token(int ruleId, int tokenId, int startIndex, int length, object? intermediateValue)
+		public static ParsedRule Token(int ruleId, int tokenId, int startIndex, int length, int passedBarriers, object? intermediateValue)
 		{
 			return new ParsedRule
 			{
 				element = new ParsedElement(tokenId, startIndex, length, intermediateValue),
+				passedBarriers = passedBarriers,
 				ruleId = ruleId,
 				tokenId = tokenId,
 				isToken = true,
@@ -107,15 +114,17 @@ namespace RCParsing
 		/// <param name="ruleId">The ID of the rule that was parsed.</param>
 		/// <param name="startIndex">The starting index of the rule in the input text.</param>
 		/// <param name="length">The length of the rule in the input text.</param>
+		/// <param name="passedBarriers">The count of passed barrier tokens.</param>
 		/// <param name="children">The array of child rules.</param>
 		/// <param name="intermediateValue">The intermediate value associated with this rule.</param>
 		/// <returns>A parsed rule.</returns>
-		public static ParsedRule Rule(int ruleId, int startIndex, int length, IReadOnlyList<ParsedRule> children, object? intermediateValue = null)
+		public static ParsedRule Rule(int ruleId, int startIndex, int length, int passedBarriers, IReadOnlyList<ParsedRule> children, object? intermediateValue = null)
 		{
 			return new ParsedRule
 			{
 				tokenId = -1,
 				element = new ParsedElement(ruleId, startIndex, length, intermediateValue),
+				passedBarriers = passedBarriers,
 				isToken = false,
 				occurency = -1,
 				children = children

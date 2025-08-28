@@ -97,18 +97,8 @@ namespace RCParsing.Benchmarks.JSON
 
 		public static object ParseJson(string input)
 		{
-			if (string.IsNullOrWhiteSpace(input))
-				return null;
-
-			try
-			{
-				var tokens = Tokenizer.Tokenize(input);
-				return JsonValue.Parse(tokens);
-			}
-			catch (Exception ex)
-			{
-				throw new ArgumentException("Invalid JSON input", nameof(input), ex);
-			}
+			var tokens = Tokenizer.Tokenize(input);
+			return JsonValue.Parse(tokens);
 		}
 	}
 }

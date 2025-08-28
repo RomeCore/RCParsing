@@ -7,6 +7,9 @@ using RCParsing.Building;
 
 namespace RCParsing.Tests
 {
+	/// <summary>
+	/// The tests for parsing grammar for LLT (Large Language Template) language.
+	/// </summary>
 	public class LLTGrammarTests
 	{
 		private static readonly Parser _parser;
@@ -330,7 +333,6 @@ namespace RCParsing.Tests
 				.Rule("expression")
 				.Rule("text_template_block");
 
-			// TEMPORARY EXCLUDED: text while loop
 			builder.CreateRule("text_while")
 				.Literal("while")
 				.Rule("expression")
@@ -385,9 +387,9 @@ namespace RCParsing.Tests
 					c => c.Whitespaces(),
 					c => c.Literal("@//").TextUntil('\n', '\r'), // @// C#-like comments
 					c => c.Literal("@*").TextUntil("*@").Literal("*@")) // @*...*@ comments
-					.Configure(c => c.IgnoreErrors()), // Ignore all errors when parsing comments and unnecessary whitespace
+					.ConfigureForSkip(), // Ignore all errors when parsing comments and unnecessary whitespace
 					ParserSkippingStrategy.TryParseThenSkipLazy) // Allows rules to capture skip-rules contents if can, such as whitespaces
-				.UseCaching().UseInitFlags(ParserInitFlags.InlineRules).DetailedErrors(); // If caching is disabled, prepare to wait for a long time (seconds) when encountering an error :P (you will also get a million of errors, seriously)
+				.UseCaching().UseInlining().DetailedErrors(); // If caching is disabled, prepare to wait for a long time (seconds) when encountering an error :P (you will also get a million of errors, seriously)
 
 			// ---- Values ---- //
 			DeclareValues(builder);
@@ -489,7 +491,7 @@ namespace RCParsing.Tests
 			"""
 			@messages template ChatBot {
 			    @metadata {
-			        language: 'ru',
+			        language: 'en',
 			        version: 1
 			    }
 			
@@ -521,6 +523,47 @@ namespace RCParsing.Tests
 			""";
 
 			_parser.Parse(templateStr);
+		}
+
+		[Fact]
+		public void InvalidTemplateParsing()
+		{
+			string templateStr =
+			"""
+			@messages template ChatBot {
+			    @metadata {
+			        language: 'en',
+			        version: 1
+			    }
+			
+			    @syste message {
+			        You are a helpful assistant.
+			    }
+
+			    @user message {
+			        Hello!
+			    }
+
+			    @if user.isAdmin {
+			        @assistant message {
+			            Welcome back, admin!
+			        }
+			    } else {
+			        @assistant message {
+			            Welcome, user!
+			        }
+			    }
+
+			    @foreach item in items {
+			        @assistant message {
+			            Processing item: @item
+			        }
+			    }
+			}
+			
+			""";
+
+			Assert.Throws<ParsingException>(() => _parser.Parse(templateStr));
 		}
 	}
 }

@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Runtime;
 using System.Text;
 using RCParsing.Utils;
 
@@ -38,7 +40,8 @@ namespace RCParsing.Building
 			result.isDefault =
 				result.skippingStrategyUseMode == ParserSettingMode.InheritForSelfAndChildren &&
 				result.skipRuleUseMode == ParserSettingMode.InheritForSelfAndChildren &&
-				result.errorHandlingUseMode == ParserSettingMode.InheritForSelfAndChildren;
+				result.errorHandlingUseMode == ParserSettingMode.InheritForSelfAndChildren &&
+				result.ignoreBarriersUseMode == ParserSettingMode.InheritForSelfAndChildren;
 
 			return result;
 		}
@@ -53,8 +56,8 @@ namespace RCParsing.Building
 		public override int GetHashCode()
 		{
 			int hashCode = 17;
-			hashCode ^= _settings.GetHashCode() * 23;
-			hashCode ^= (_skipRule?.GetHashCode() ?? 0) * 27;
+			hashCode = hashCode * 397 + _settings.GetHashCode();
+			hashCode = hashCode * 397 + _skipRule?.GetHashCode() ?? 0;
 			return hashCode;
 		}
 
@@ -164,17 +167,40 @@ namespace RCParsing.Building
 		}
 
 		/// <summary>
-		/// Sets the detailed error messages mode when throwing exceptions.
+		/// Sets the barrier tokens to be ignored while parsing.
 		/// </summary>
-		/// <remarks>
-		/// Useful for debugging purposes. Note that this setting uses same flag as 'RecordErrors', 'IgnoreErrors' and 'ThrowErrors', so their setting mode will be overriden.
-		/// </remarks>
-		/// <param name="overrideMode">The override mode for the error handling setting.</param>
+		/// <param name="ignore">Whether to ignore barrier tokens or not.</param>
+		/// <param name="overrideMode">The override mode for the barriers ignore setting.</param>
 		/// <returns>This instance for method chaining.</returns>
-		public ParserLocalSettingsBuilder DetailedErrors(ParserSettingMode overrideMode = ParserSettingMode.LocalForSelfAndChildren)
+		public ParserLocalSettingsBuilder IgnoreBarriers(bool ignore, ParserSettingMode overrideMode = ParserSettingMode.LocalForSelfAndChildren)
 		{
-			return ErrorHandling(_settings.errorHandling | ParserErrorHandlingMode.DisplayRules |
-				ParserErrorHandlingMode.DisplayMessages | ParserErrorHandlingMode.DisplayExtended, overrideMode);
+			_settings.ignoreBarriers = ignore;
+			_settings.ignoreBarriersUseMode = overrideMode;
+			return this;
+		}
+
+		/// <summary>
+		/// Ignores barrier tokens while parsing.
+		/// </summary>
+		/// <param name="overrideMode">The override mode for the barriers ignore setting.</param>
+		/// <returns>This instance for method chaining.</returns>
+		public ParserLocalSettingsBuilder IgnoreBarriers(ParserSettingMode overrideMode = ParserSettingMode.LocalForSelfAndChildren)
+		{
+			_settings.ignoreBarriers = true;
+			_settings.ignoreBarriersUseMode = overrideMode;
+			return this;
+		}
+
+		/// <summary>
+		/// Enables barrier tokens while parsing.
+		/// </summary>
+		/// <param name="overrideMode">The override mode for the barriers ignore setting.</param>
+		/// <returns>This instance for method chaining.</returns>
+		public ParserLocalSettingsBuilder RestoreBarriers(ParserSettingMode overrideMode = ParserSettingMode.LocalForSelfAndChildren)
+		{
+			_settings.ignoreBarriers = false;
+			_settings.ignoreBarriersUseMode = overrideMode;
+			return this;
 		}
 	}
 }

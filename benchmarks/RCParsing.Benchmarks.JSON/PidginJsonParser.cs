@@ -1,10 +1,6 @@
 ﻿using Pidgin;
 using static Pidgin.Parser;
 using static Pidgin.Parser<char>;
-using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
 
 namespace RCParsing.Benchmarks.JSON
 {
@@ -72,20 +68,8 @@ namespace RCParsing.Benchmarks.JSON
 
 		public static object Parse(string input)
 		{
-			if (string.IsNullOrWhiteSpace(input))
-			{
-				return null;
-			}
-
-			try
-			{
-				var result = Json.Before(End).ParseOrThrow(input);
-				return result;
-			}
-			catch (Exception ex)
-			{
-				throw new ArgumentException("Invalid JSON input", nameof(input), ex);
-			}
+			var result = Json.Before(End).ParseOrThrow(input);
+			return result;
 		}
 	}
 }

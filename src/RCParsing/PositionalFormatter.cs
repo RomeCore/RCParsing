@@ -10,11 +10,6 @@ namespace RCParsing
 	public static class PositionalFormatter
 	{
 		/// <summary>
-		/// The size of a tab character in spaces.
-		/// </summary>
-		public static int tabSize = 4;
-
-		/// <summary>
 		/// Decomposes a string into lines and calculates the line number and column of a given position.
 		/// </summary>
 		/// <param name="str">The string to decompose.</param>
@@ -24,10 +19,11 @@ namespace RCParsing
 		/// <param name="lineNumber">The number of line containing the given position as a 1-based index. Outputs the line number containing the given position.</param>
 		/// <param name="columnNumber">The number of column containing the given position as a 1-based index. Outputs the column number containing the given position.</param>
 		/// <param name="visualColumnNumber">The number of visual column containing the given position as a 1-based index. The visual column number takes into account tab characters and other non-printable characters. Outputs the visual column number containing the given position.</param>
+		/// <param name="tabSize">The size of a tab character.</param>
 		/// <exception cref="ArgumentOutOfRangeException">Thrown when the given position is out of range.</exception>
 		public static void Decompose(string str, int position,
 			out int lineStart, out int lineLength,
-			out int lineNumber, out int columnNumber, out int visualColumnNumber)
+			out int lineNumber, out int columnNumber, out int visualColumnNumber, int tabSize = 4)
 		{
 			if (position < 0 || position > str.Length)
 				throw new ArgumentOutOfRangeException(nameof(position), "Position must be within the bounds of the string.");
@@ -80,15 +76,18 @@ namespace RCParsing
 			lineNumber = currentLineNumber;
 			columnNumber = targetOffset + 1;
 
-			int _visualColumnNumber = 1;
+			int _visualColumnNumber = 0;
 			for (int i = currentLineStart; i < currentLineEnd && i < currentLineStart + targetOffset; i++)
 			{
 				if (str[i] == '\t')
-					_visualColumnNumber += tabSize;
+				{
+					int add = tabSize - (_visualColumnNumber % tabSize);
+					_visualColumnNumber += add;
+				}
 				else
 					_visualColumnNumber += 1;
 			}
-			visualColumnNumber = _visualColumnNumber;
+			visualColumnNumber = _visualColumnNumber + 1;
 		}
 
 		/// <summary>

@@ -67,6 +67,7 @@ namespace RCParsing.ParserRules
 						break;
 
 					chCtx.position = parsedRule.startIndex + parsedRule.length;
+					chCtx.passedBarriers = parsedRule.passedBarriers;
 					parsedRule.occurency = i;
 					rules.Add(parsedRule);
 				}
@@ -77,7 +78,7 @@ namespace RCParsing.ParserRules
 					return ParsedRule.Fail;
 				}
 
-				return ParsedRule.Rule(Id, initialPosition, chCtx.position - initialPosition, rules, null);
+				return ParsedRule.Rule(Id, initialPosition, chCtx.position - initialPosition, chCtx.passedBarriers, rules, null);
 			};
 
 			if (initFlags.HasFlag(ParserInitFlags.EnableMemoization))

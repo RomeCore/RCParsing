@@ -158,14 +158,13 @@ namespace RCParsing.Tests
 				.Choice(
 					b => b.Whitespaces(),
 					b => b.Literal("//").TextUntil('\n', '\r'))
-				.Configure(c => c.IgnoreErrors());
+				.ConfigureForSkip();
 
 			builder.CreateToken("string")
 				.Literal("\"")
 				.EscapedTextPrefix(prefix: '\\', '\\', '\"') // This sub-token automatically escapes the source string and puts it into intermediate value
 				.Literal("\"")
-				.Pass(v => v[1]) // Pass the EscapedTextPrefix's intermediate value up
-				.Transform(v => v.IntermediateValue); // And use it as parsed value
+				.Pass(1); // Pass the EscapedTextPrefix's intermediate value up
 
 			builder.CreateToken("number")
 				.Regex(@"-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?", v => double.Parse(v.Text.Replace('.', ','))); // Hehe, here you can use Regex
@@ -178,41 +177,39 @@ namespace RCParsing.Tests
 
 			builder.CreateRule("value")
 				.Choice(
-					[c => c.Token("string"),
+					c => c.Token("string"),
 					c => c.Token("number"),
 					c => c.Token("boolean"),
 					c => c.Token("null"),
 					c => c.Rule("array"),
-					c => c.Rule("object")],
-					v => v.Children[0].Value // Pass the parsed value up
-				);
+					c => c.Rule("object"));
 
 			builder.CreateRule("array")
 				.Literal("[") // The string with one character automatically converts to LiteralCharTokenPattern
 				.ZeroOrMoreSeparated(v => v.Rule("value"), s => s.Literal(","),
-					allowTrailingSeparator: true, includeSeparatorsInResult: false,
-					factory: v => v.SelectArray())
+					allowTrailingSeparator: true, includeSeparatorsInResult: false)
+					.TransformLast(v => v.SelectArray())
 				.Literal("]")
-				.Transform(v => v.Children[1].Value);
+				.TransformSelect(1);
 
 			builder.CreateRule("object")
 				.Literal("{") // And chained calling with builder converts the rule into SequenceParserRule by default
 				.ZeroOrMoreSeparated(v => v.Rule("pair"), s => s.Literal(","),
-					allowTrailingSeparator: true, includeSeparatorsInResult: false,
-					factory: v => v.SelectValues<KeyValuePair<string, object>>().ToDictionary(k => k.Key, v => v.Value))
+					allowTrailingSeparator: true, includeSeparatorsInResult: false)
+					.TransformLast(v => v.SelectValues<KeyValuePair<string, object>>().ToDictionary(k => k.Key, v => v.Value))
 				.Literal("}")
-				.Transform(v => v.Children[1].Value);
+				.TransformSelect(1);
 
 			builder.CreateRule("pair")
 				.Token("string")
 				.Literal(":")
 				.Rule("value")
-				.Transform(v => KeyValuePair.Create(v.Children[0].GetValue<string>(), v.Children[2].GetValue()));
+				.Transform<string, Ignored, object>((k, _, v) => KeyValuePair.Create(k, v));
 
 			builder.CreateMainRule("content")
 				.Rule("value")
 				.EOF() // Sure that we captured all the input
-				.Transform(v => v.Children[0].Value);
+				.TransformSelect(0);
 
 			var jsonParser = builder.Build(); // <-- Here is the horryfying deduplication algorithm that builds the parser!
 

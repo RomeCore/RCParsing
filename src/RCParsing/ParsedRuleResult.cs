@@ -67,6 +67,9 @@ namespace RCParsing
 	/// <summary>
 	/// Represents the result of a parsed rule.
 	/// </summary>
+	/// <remarks>
+	/// This is a entirely lazy wrapper around <see cref="ParsedRule"/>.
+	/// </remarks>
 	public class ParsedRuleResult : IEnumerable<ParsedRuleResult>
 	{
 		/// <summary>
@@ -134,6 +137,11 @@ namespace RCParsing
 		/// Gets the length of the rule in the input text.
 		/// </summary>
 		public int Length => Result.length;
+
+		/// <summary>
+		/// Gets the occurency index in the parent choice, sequence or any repeat rule. -1 by default.
+		/// </summary>
+		public int Occurency => Result.occurency;
 
 		/// <summary>
 		/// Gets the intermediate value associated with this rule.
@@ -263,7 +271,7 @@ namespace RCParsing
 		/// </remarks>
 		/// <param name="optimization">The optimization flags to apply.</param>
 		/// <returns>An optimized version of this parsed rule result.</returns>
-		public ParsedRuleResult Optimized(ParseTreeOptimization optimization)
+		public ParsedRuleResult Optimized(ParseTreeOptimization optimization = ParseTreeOptimization.Default)
 		{
 			return new ParsedRuleResult(optimization, Parent, Context, Result);
 		}

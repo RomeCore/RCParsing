@@ -15,11 +15,6 @@ namespace RCParsing
 		public readonly int position;
 
 		/// <summary>
-		/// Gets the recursion depth at which the error occurred.
-		/// </summary>
-		public readonly int depth;
-
-		/// <summary>
 		/// Gets an optional description of the parsing error.
 		/// </summary>
 		public readonly string? message;
@@ -43,15 +38,13 @@ namespace RCParsing
 		/// Initializes a new instance of the <see cref="ParsingError"/> struct.
 		/// </summary>
 		/// <param name="position">The position in the input string where the error occurred.</param>
-		/// <param name="depth">The recursion depth at which the error occurred.</param>
 		/// <param name="message">An optional description of the parsing error.</param>
 		/// <param name="elementId">The ID of the element (rule or token) that caused the error or been expected at this position.</param>
 		/// <param name="isToken">A value indicating whether the element that caused the error is a token.</param>
 		/// <param name="stackFrame">The stack frame that describes the state of the parser when the error occurred.</param>
-		public ParsingError(int position, int depth, string? message = null, int elementId = -1, bool isToken = false, ParserStackFrame? stackFrame = null)
+		public ParsingError(int position, string? message = null, int elementId = -1, bool isToken = false, ParserStackFrame? stackFrame = null)
 		{
 			this.position = position;
-			this.depth = depth;
 			this.message = message;
 			this.elementId = elementId;
 			this.isToken = isToken;
@@ -87,7 +80,7 @@ namespace RCParsing
 			string msg = string.Empty;
 			if (message != null)
 				msg = $", message::{message}";
-			return $"[{position}::depth={depth}], expected a {target}{msg}";
+			return $"[{position}], expected a {target}{msg}";
 		}
 
 		public override bool Equals(object obj)
@@ -98,20 +91,20 @@ namespace RCParsing
 		public bool Equals(ParsingError other)
 		{
 			return position == other.position &&
-				   depth == other.depth &&
 				   message == other.message &&
 				   elementId == other.elementId &&
-				   isToken == other.isToken;
+				   isToken == other.isToken &&
+				   stackFrame == other.stackFrame;
 		}
 
 		public override int GetHashCode()
 		{
 			int hash = 17;
-			hash = hash * 23 + position.GetHashCode();
-			hash = hash * 23 + depth.GetHashCode();
-			hash = hash * 23 + (message?.GetHashCode() ?? 0);
-			hash = hash * 23 + elementId.GetHashCode();
-			hash = hash * 23 + isToken.GetHashCode();
+			hash = hash * 397 + position.GetHashCode();
+			hash = hash * 397 + (message?.GetHashCode() ?? 0);
+			hash = hash * 397 + elementId.GetHashCode();
+			hash = hash * 397 + isToken.GetHashCode();
+			hash = hash * 397 + (stackFrame?.GetHashCode() ?? 0);
 			return hash;
 		}
 	}

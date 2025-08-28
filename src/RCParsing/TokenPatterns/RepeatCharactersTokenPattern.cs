@@ -39,10 +39,9 @@ namespace RCParsing.TokenPatterns
 			if (maxCount < minCount && maxCount != -1)
 				throw new ArgumentOutOfRangeException(nameof(maxCount), "maxCount must be greater than or equal to minCount or be -1 if no maximum is specified.");
 
+			CharacterPredicate = characterPredicate ?? throw new ArgumentNullException(nameof(characterPredicate));
 			MinCount = minCount;
 			MaxCount = maxCount;
-
-			CharacterPredicate = characterPredicate ?? throw new ArgumentNullException(nameof(characterPredicate));
 		}
 
 		protected override HashSet<char>? FirstCharsCore => MinCount == 0 ? null :

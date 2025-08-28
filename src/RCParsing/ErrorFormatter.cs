@@ -51,7 +51,8 @@ namespace RCParsing
 				.OrderByDescending(g => g.Key)
 				.ToList();
 
-			int max = context.settings.errorHandling.HasFlag(ParserErrorHandlingMode.DisplayExtended) ? 5 : 1;
+			var flags = context.parser.MainSettings.errorFormattingFlags;
+			int max = flags.HasFlag(ErrorFormattingFlags.MoreGroups) ? 5 : 1;
 			int last = Math.Min(groupedErrors.Count, max);
 
 			for (int i = 0; i < last; i++)
@@ -61,10 +62,12 @@ namespace RCParsing
 				var position = groupedError.Key;
 				var groupErrors = groupedError.ToList();
 
-				if (!context.settings.errorHandling.HasFlag(ParserErrorHandlingMode.DisplayRules))
+				if (!flags.HasFlag(ErrorFormattingFlags.DisplayRules))
 				{
 					groupErrors.RemoveAll(e =>
 					{
+						if (e.elementId < 0)
+							return false;
 						ParserElement element = e.isToken
 							? context.parser.TokenPatterns[e.elementId]
 							: context.parser.Rules[e.elementId];
@@ -81,7 +84,8 @@ namespace RCParsing
 					.OrderBy(m => m)
 					.ToList();
 
-				if (context.settings.errorHandling.HasFlag(ParserErrorHandlingMode.DisplayMessages))
+				if (expected.Count == 0 ||
+					flags.HasFlag(ErrorFormattingFlags.DisplayMessages))
 				{
 					var msg = groupErrors
 						.Select(e => e.message)
@@ -101,6 +105,14 @@ namespace RCParsing
 					sb.AppendLine();
 
 					string unexpected = $"'{GetCharacterDisplay(context.str, position)}' is unexpected character";
+
+					if (context.barrierTokens.TryGetBarrierToken(position, context.passedBarriers, out var barrierToken))
+					{
+						unexpected = $"'{barrierToken.tokenAlias}' " +
+							$"is unexpected barrier token or '{GetCharacterDisplay(context.str, position)}' " +
+							$"is unexpected character";
+					}
+
 					string oneOf = expected.Count > 1 ? " one of" : "";
 
 					if (expected.Count > 1 || expected.Sum(s => s.Length) > 30)
@@ -109,25 +121,34 @@ namespace RCParsing
 						sb.AppendLine($"{unexpected}, expected{oneOf} " + string.Join(", ", expected));
 				}
 
+				HashSet<int> recodedElements = new HashSet<int>();
+
 				foreach (var error in groupedError)
 				{
 					var topFrame = error.stackFrame;
 					int prevStackRule = -1;
 
-					if (topFrame != null)
+					if (topFrame != null && !recodedElements.Add(topFrame.ruleId))
 					{
 						sb.AppendLine();
 						sb.Append($"[{context.parser.Rules[topFrame.ruleId].ToString(0)}] ");
 						sb.AppendLine("Stack trace (top call recently):");
 						prevStackRule = topFrame.ruleId;
 						topFrame = topFrame.previous;
-						while (topFrame != null)
+
+						int remainingFrames = 15;
+						while (topFrame != null && remainingFrames-- >= 0)
 						{
+							recodedElements.Add(topFrame.ruleId);
 							var rule = context.parser.Rules[topFrame.ruleId];
-							sb.AppendLine("- " + rule.ToStackTraceString(1, prevStackRule).Indent("  ", addIndentToFirstLine: false));
+							sb.AppendLine("- " + rule.ToStackTraceString(1, prevStackRule)
+								.Indent("  ", addIndentToFirstLine: false));
 							prevStackRule = topFrame.ruleId;
 							topFrame = topFrame.previous;
 						}
+
+						if (topFrame != null)
+							sb.AppendLine("Stack trace truncated...");
 					}
 				}
 

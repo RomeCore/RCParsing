@@ -71,9 +71,10 @@ namespace RCParsing.ParserRules
 					parsedRule.occurency = i;
 					rules[i] = parsedRule;
 					chCtx.position = parsedRule.startIndex + parsedRule.length;
+					chCtx.passedBarriers = parsedRule.passedBarriers;
 				}
 
-				return ParsedRule.Rule(Id, startIndex, chCtx.position - startIndex, rules);
+				return ParsedRule.Rule(Id, startIndex, chCtx.position - startIndex, chCtx.passedBarriers, rules);
 			};
 
 			if (initFlags.HasFlag(ParserInitFlags.EnableMemoization))
@@ -104,7 +105,7 @@ namespace RCParsing.ParserRules
 			string alias = Aliases.Count > 0 ? $" '{Aliases.Last()}'" : string.Empty;
 
 			if (remainingDepth <= 0)
-				return "Sequence{alias}...";
+				return $"Sequence{alias}...";
 
 			return $"Sequence{alias}:\n" +
 				string.Join("\n", Rules.Select(c => GetRule(c).ToString(remainingDepth - 1)))

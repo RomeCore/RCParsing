@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -17,33 +18,47 @@ namespace RCParsing
 		private readonly int _mainRuleId = -1;
 
 		/// <summary>
-		/// Gets the token patterns used by this parser.
+		/// Gets the token patterns registered in this parser.
 		/// </summary>
 		public ImmutableArray<TokenPattern> TokenPatterns { get; }
 
 		/// <summary>
-		/// Gets the rules used by this parser.
+		/// Gets the rules registered in this parser.
 		/// </summary>
 		public ImmutableArray<ParserRule> Rules { get; }
 
 		/// <summary>
-		/// Gets the global settings used by this parser.
+		/// Gets the barrier tokenizers used by when tokenizing input strings.
 		/// </summary>
-		public ParserSettings Settings { get; }
+		public ImmutableArray<BarrierTokenizer> Tokenizers { get; }
+
+		/// <summary>
+		/// Gets the main settings used by this parser.
+		/// </summary>
+		public ParserMainSettings MainSettings { get; }
+
+		/// <summary>
+		/// Gets the global settings used by this parser for configuring rules parsing processes.
+		/// </summary>
+		public ParserSettings GlobalSettings { get; }
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="Parser"/> class.
 		/// </summary>
 		/// <param name="tokenPatterns">The token patterns to use. </param>
 		/// <param name="rules">The rules to use.</param>
-		/// <param name="settings">The settings to use.</param>
+		/// <param name="tokenizers">The barrier tokenizers to use.</param>
+		/// <param name="mainSettings">The main settings to use for the parser itself.</param>
+		/// <param name="globalSettings">The global settings to use.</param>
 		/// <param name="mainRuleAlias">The optional alias of the main rule to use.</param>
 		/// <param name="initFlags">The initialization flags to use. Default is <see cref="ParserInitFlags.None"/>.</param>
 		public Parser(ImmutableArray<TokenPattern> tokenPatterns, ImmutableArray<ParserRule> rules,
-			ParserSettings settings, string? mainRuleAlias = null, ParserInitFlags initFlags = ParserInitFlags.None)
-			: this(tokenPatterns, rules, settings, mainRuleAlias, e => initFlags)
-		{
+			ImmutableArray<BarrierTokenizer> tokenizers, ParserMainSettings mainSettings, ParserSettings globalSettings,
+			string? mainRuleAlias = null, ParserInitFlags initFlags = ParserInitFlags.None)
 
+			: this(tokenPatterns, rules, tokenizers, mainSettings, globalSettings, mainRuleAlias, e => initFlags)
+
+		{
 		}
 
 		/// <summary>
@@ -51,15 +66,20 @@ namespace RCParsing
 		/// </summary>
 		/// <param name="tokenPatterns">The token patterns to use. </param>
 		/// <param name="rules">The rules to use.</param>
-		/// <param name="settings">The settings to use.</param>
+		/// <param name="tokenizers">The barrier tokenizers to use.</param>
+		/// <param name="mainSettings">The main settings to use for the parser itself.</param>
+		/// <param name="globalSettings">The global settings to use.</param>
 		/// <param name="mainRuleAlias">The optional alias of the main rule to use.</param>
 		/// <param name="initFlagsFactory">The initialization flags factory to use.</param>
 		public Parser(ImmutableArray<TokenPattern> tokenPatterns, ImmutableArray<ParserRule> rules,
-			ParserSettings settings, string? mainRuleAlias = null, Func<ParserElement, ParserInitFlags>? initFlagsFactory = null)
+			ImmutableArray<BarrierTokenizer> tokenizers, ParserMainSettings mainSettings, ParserSettings globalSettings,
+			string? mainRuleAlias = null, Func<ParserElement, ParserInitFlags>? initFlagsFactory = null)
 		{
 			Rules = rules;
 			TokenPatterns = tokenPatterns;
-			Settings = settings;
+			Tokenizers = tokenizers;
+			MainSettings = mainSettings;
+			GlobalSettings = globalSettings;
 
 			foreach (var rule in rules)
 			{
@@ -338,6 +358,17 @@ namespace RCParsing
 			}
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private void EmitBarriers(ref ParserContext context)
+		{
+			if (Tokenizers.Length == 0)
+				return;
+
+			var ctx = context;
+			var tokens = Tokenizers.SelectMany(t => t.Tokenize(ctx));
+			context.barrierTokens.FillWith(tokens, context.str, this);
+		}
+
 
 
 		/// <summary>
@@ -409,6 +440,7 @@ namespace RCParsing
 				throw new ArgumentException("Invalid rule alias", nameof(ruleAlias));
 
 			var context = new ParserContext(this, input, paratemeter);
+			EmitBarriers(ref context);
 			var parsedRule = ParseRule(ruleId, context);
 			return new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule);
 		}
@@ -426,6 +458,7 @@ namespace RCParsing
 				throw new ArgumentException("Invalid rule alias", nameof(ruleAlias));
 
 			var context = new ParserContext(this, input, paratemeter);
+			EmitBarriers(ref context);
 			var parsedRule = ParseRule(ruleId, context);
 			return new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule).GetValue<T>();
 		}
@@ -443,6 +476,7 @@ namespace RCParsing
 				throw new ArgumentException("Invalid rule alias", nameof(ruleAlias));
 
 			var context = new ParserContext(this, input, null);
+			EmitBarriers(ref context);
 			var parsedRule = TryParseRule(ruleId, context);
 			result = new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule);
 			return parsedRule.success;
@@ -461,6 +495,7 @@ namespace RCParsing
 				throw new ArgumentException("Invalid rule alias", nameof(ruleAlias));
 
 			var context = new ParserContext(this, input, null);
+			EmitBarriers(ref context);
 			var parsedRule = TryParseRule(ruleId, context);
 			result = new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule).GetValue<T>();
 			return parsedRule.success;
@@ -480,6 +515,7 @@ namespace RCParsing
 				throw new ArgumentException("Invalid rule alias", nameof(ruleAlias));
 
 			var context = new ParserContext(this, input, paratemeter);
+			EmitBarriers(ref context);
 			var parsedRule = TryParseRule(ruleId, context);
 			result = new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule);
 			return parsedRule.success;
@@ -499,6 +535,7 @@ namespace RCParsing
 				throw new ArgumentException("Invalid rule alias", nameof(ruleAlias));
 
 			var context = new ParserContext(this, input, paratemeter);
+			EmitBarriers(ref context);
 			var parsedRule = TryParseRule(ruleId, context);
 			result = new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule).GetValue<T>();
 			return parsedRule.success;
@@ -518,6 +555,7 @@ namespace RCParsing
 				throw new InvalidOperationException("Main rule is not set.");
 
 			var context = new ParserContext(this, input, paratemeter);
+			EmitBarriers(ref context);
 			var parsedRule = ParseRule(_mainRuleId, context);
 			return new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule);
 		}
@@ -535,6 +573,7 @@ namespace RCParsing
 				throw new InvalidOperationException("Main rule is not set.");
 
 			var context = new ParserContext(this, input, paratemeter);
+			EmitBarriers(ref context);
 			var parsedRule = ParseRule(_mainRuleId, context);
 			return new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule).GetValue<T>();
 		}
@@ -551,6 +590,7 @@ namespace RCParsing
 				throw new InvalidOperationException("Main rule is not set.");
 
 			var context = new ParserContext(this, input, null);
+			EmitBarriers(ref context);
 			var parsedRule = TryParseRule(_mainRuleId, context);
 			result = new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule);
 			return parsedRule.success;
@@ -569,6 +609,7 @@ namespace RCParsing
 				throw new InvalidOperationException("Main rule is not set.");
 
 			var context = new ParserContext(this, input, paratemeter);
+			EmitBarriers(ref context);
 			var parsedRule = TryParseRule(_mainRuleId, context);
 			result = new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule);
 			return parsedRule.success;
@@ -587,6 +628,7 @@ namespace RCParsing
 				throw new InvalidOperationException("Main rule is not set.");
 
 			var context = new ParserContext(this, input, null);
+			EmitBarriers(ref context);
 			var parsedRule = TryParseRule(_mainRuleId, context);
 			var parsedResult = new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule);
 			if (parsedRule.success)
@@ -612,6 +654,7 @@ namespace RCParsing
 				throw new InvalidOperationException("Main rule is not set.");
 
 			var context = new ParserContext(this, input, paratemeter);
+			EmitBarriers(ref context);
 			var parsedRule = TryParseRule(_mainRuleId, context);
 			var parsedResult = new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule);
 			if (parsedRule.success)

@@ -60,6 +60,11 @@ namespace RCParsing
 		public readonly List<ParsedRule> skippedRules;
 
 		/// <summary>
+		/// A list of barrier tokens that are used to prevent parsing at certain positions.
+		/// </summary>
+		public readonly BarrierTokenCollection barrierTokens;
+
+		/// <summary>
 		/// Initializes a new instance of the <see cref="SharedParserContext"/> class.
 		/// </summary>
 		/// <param name="parser">The parser object that is performing the parsing.</param>
@@ -75,6 +80,7 @@ namespace RCParsing
 			this.positionsToAvoidSkipping = new BitArray(str.Length);
 			this.errors = new List<ParsingError>();
 			this.skippedRules = new List<ParsedRule>();
+			this.barrierTokens = new BarrierTokenCollection();
 		}
 	}
 
@@ -127,6 +133,11 @@ namespace RCParsing
 		public int position;
 
 		/// <summary>
+		/// The count of passed barrier tokens.
+		/// </summary>
+		public int passedBarriers;
+
+		/// <summary>
 		/// The inherited settings that control the behavior of the parser during parsing operations.
 		/// </summary>
 		public ParserSettings settings;
@@ -171,6 +182,11 @@ namespace RCParsing
 		public readonly BitArray successPositions => shared.successPositions;
 
 		/// <summary>
+		/// A set of positions that should be avoided when skipping rules and tokens.
+		/// </summary>
+		public readonly BitArray positionsToAvoidSkipping => shared.positionsToAvoidSkipping;
+
+		/// <summary>
 		/// A list to store any parsing errors encountered during the process.
 		/// </summary>
 		public readonly List<ParsingError> errors => shared.errors;
@@ -179,6 +195,11 @@ namespace RCParsing
 		/// A list to store any rules that were skipped during the parsing process.
 		/// </summary>
 		public readonly List<ParsedRule> skippedRules => shared.skippedRules;
+
+		/// <summary>
+		/// A list of barrier tokens that are used to prevent parsing at certain positions.
+		/// </summary>
+		public readonly BarrierTokenCollection barrierTokens => shared.barrierTokens;
 
 		/// <summary>
 		/// Gets a summary of first 10 parsing errors encountered during the process.
@@ -214,7 +235,8 @@ namespace RCParsing
 		internal ParserContext(Parser parser, string str, object? parserParameter)
 		{
 			position = 0;
-			settings = parser.Settings;
+			passedBarriers = 0;
+			settings = parser.GlobalSettings;
 			topStackFrame = null;
 			shared = new SharedParserContext(parser, str, parserParameter);
 		}
@@ -235,11 +257,18 @@ namespace RCParsing
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public readonly void RecordError(ParsingError error)
 		{
-			if (!settings.errorHandling.HasFlag(ParserErrorHandlingMode.NoRecord))
-				errors.Add(error);
+			switch (settings.errorHandling)
+			{
+				case ParserErrorHandlingMode.Default:
+					errors.Add(error);
+					break;
 
-			if (settings.errorHandling.HasFlag(ParserErrorHandlingMode.Throw))
-				throw error.ToException(this);
+				case ParserErrorHandlingMode.NoRecord:
+					break;
+
+				case ParserErrorHandlingMode.Throw:
+					throw error.ToException(this);
+			}
 		}
 
 		/// <summary>
@@ -251,7 +280,7 @@ namespace RCParsing
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public readonly void RecordError(string? message = null, int elementId = -1, bool isToken = false)
 		{
-			RecordError(new ParsingError(position, recursionDepth, message, elementId, isToken, topStackFrame));
+			RecordError(new ParsingError(position, message, elementId, isToken, topStackFrame));
 		}
 
 		/// <summary>
@@ -264,7 +293,7 @@ namespace RCParsing
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public readonly void RecordError(int position, string? message = null, int elementId = -1, bool isToken = false)
 		{
-			RecordError(new ParsingError(position, recursionDepth, message, elementId, isToken, topStackFrame));
+			RecordError(new ParsingError(position, message, elementId, isToken, topStackFrame));
 		}
 
 		/// <summary>

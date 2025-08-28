@@ -51,7 +51,7 @@ namespace RCParsing
 
 			if (!Settings.isDefault)
 			{
-				context.settings.Resolve(Settings, Parser.Settings, out var forLocal, out var forChildren);
+				context.settings.Resolve(Settings, Parser.GlobalSettings, out var forLocal, out var forChildren);
 				context.settings = forLocal;
 
 				childContext.settings = forChildren;

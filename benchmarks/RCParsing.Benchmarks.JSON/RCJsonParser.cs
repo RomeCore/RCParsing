@@ -11,23 +11,20 @@ namespace RCParsing.Benchmarks.JSON
 {
 	public static class RCJsonParser
 	{
-		static Parser parser;
+		static Parser optimizedParser, defaultParser, debugParser, slowParser;
 
-		static RCJsonParser()
+		private static void FillWithRules(ParserBuilder builder)
 		{
-			var builder = new ParserBuilder();
-
 			builder.Settings
-				.Skip(r => r.Whitespaces().ConfigureForSkip(), ParserSkippingStrategy.SkipBeforeParsing)
-				.UseInitFlags(ParserInitFlags.InlineRules);
+				.Skip(r => r.Whitespaces().ConfigureForSkip(), ParserSkippingStrategy.SkipBeforeParsing);
 
 			builder.CreateToken("string")
-				.Literal("\"")
-				.TextUntil("\"")
-				.Literal("\"")
+				.Literal('"')
+				.TextUntil('"')
+				.Literal('"')
 				.Pass(v => v[1])
 				.Transform(v => v.IntermediateValue);
-			
+
 			builder.CreateToken("number")
 				.OneOrMoreChars(char.IsAsciiDigit, v => double.Parse(v.Text));
 
@@ -72,13 +69,53 @@ namespace RCParsing.Benchmarks.JSON
 				.Rule("value")
 				.EOF()
 				.Transform(v => v.GetValue(0));
+		}
 
-			parser = builder.Build();
+		static RCJsonParser()
+		{
+			var builder = new ParserBuilder();
+			builder.Settings.UseInlining().IgnoreErrors();
+			FillWithRules(builder);
+			optimizedParser = builder.Build();
+
+			builder = new ParserBuilder();
+			FillWithRules(builder);
+			defaultParser = builder.Build();
+
+			builder = new ParserBuilder();
+			builder.Settings.DetailedErrors().WriteStackTrace();
+			FillWithRules(builder);
+			debugParser = builder.Build();
+
+			builder = new ParserBuilder();
+			builder.Settings.DetailedErrors().WriteStackTrace().UseCaching();
+			FillWithRules(builder);
+			slowParser = builder.Build();
+		}
+
+		public static object ParseInlinedNoValue(string text)
+		{
+			return optimizedParser.Parse(text); // Just AST
+		}
+
+		public static object ParseInlined(string text)
+		{
+			return optimizedParser.Parse<object>(text);
 		}
 
 		public static object Parse(string text)
 		{
-			return parser.Parse<object>(text);
+			return defaultParser.Parse<object>(text);
+		}
+
+		public static object ParseDebug(string text)
+		{
+			return debugParser.Parse<object>(text);
+		}
+
+		public static object ParseDebugMemoized(string text)
+		{
+			return slowParser.Parse<object>(text);
 		}
 	}
 }

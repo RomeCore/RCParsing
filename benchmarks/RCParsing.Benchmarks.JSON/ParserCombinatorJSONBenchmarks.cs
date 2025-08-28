@@ -5,50 +5,68 @@ using System.Text;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Jobs;
 
 namespace RCParsing.Benchmarks.JSON
 {
 	[MemoryDiagnoser]
 	[SimpleJob(RuntimeMoniker.Net80, iterationCount: 3, warmupCount: 2)]
+	[GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory)]
 	public class ParserCombinatorJSONBenchmarks
 	{
 		public ParserCombinatorJSONBenchmarks()
 		{
 		}
 
-		[Benchmark]
-		public void RCParseJsonShort()
+		// ====== Short JSON (~20 lines) ======
+
+		[Benchmark(Baseline = true), BenchmarkCategory("short")]
+		public void JsonShort_RCParsing()
 		{
-			var value = RCJsonParser.Parse(TestJSONs.shortJson);
+			var value = RCJsonParser.ParseInlined(TestJSONs.shortJson);
 		}
 
-		[Benchmark]
-		public void PidginParseJsonShort()
+		//[Benchmark, BenchmarkCategory("short")]
+		public void JsonShort_Parlot()
+		{
+			var value = ParlotJsonParser.Parse(TestJSONs.shortJson);
+		}
+
+		[Benchmark, BenchmarkCategory("short")]
+		public void JsonShort_Pidgin()
 		{
 			var value = PidginJsonParser.Parse(TestJSONs.shortJson);
 		}
 
-		[Benchmark]
-		public void SuperpowerParseJsonShort()
+		[Benchmark, BenchmarkCategory("short")]
+		public void JsonShort_Superpower()
 		{
 			var value = SuperpowerJsonParser.ParseJson(TestJSONs.shortJson);
 		}
 
-		[Benchmark]
-		public void RCParseJsonBig()
+		// ====== Big JSON (~200 lines) ======
+
+		[Benchmark(Baseline = true), BenchmarkCategory("big")]
+		public void JsonBig_RCParsing()
 		{
-			var value = RCJsonParser.Parse(TestJSONs.bigJson);
+			var value = RCJsonParser.ParseInlined(TestJSONs.bigJson);
 		}
 
-		[Benchmark]
-		public void PidginParseJsonBig()
+		//[Benchmark, BenchmarkCategory("big")]
+		public void JsonBig_Parlot()
+		{
+			var value = ParlotJsonParser.Parse(TestJSONs.bigJson);
+		}
+
+		[Benchmark, BenchmarkCategory("big")]
+		public void JsonBig_Pidgin()
 		{
 			var value = PidginJsonParser.Parse(TestJSONs.bigJson);
 		}
 
-		[Benchmark]
-		public void SuperpowerParseJsonBig()
+		[Benchmark, BenchmarkCategory("big")]
+		public void JsonBig_Superpower()
 		{
 			var value = SuperpowerJsonParser.ParseJson(TestJSONs.bigJson);
 		}

@@ -40,46 +40,119 @@ namespace RCParsing.ParserRules
 			}
 		}
 
+
+
 		#region Optimization
 
 		private Func<ParserContext, ParserContext, ParsedRule> parseFunction;
-		private Func<ParserContext, ParsedRule>[] parseFunctions;
 
 		protected override void Initialize(ParserInitFlags initFlags)
 		{
-			parseFunctions = new Func<ParserContext, ParsedRule>[Choices.Length];
-
-			for (int i = 0; i < Choices.Length; i++)
+			if (!initFlags.HasFlag(ParserInitFlags.FirstCharacterMatch))
 			{
-				var id = Choices[i];
-				var rule = GetRule(id);
+				var parseFunctions = new Func<ParserContext, ParsedRule>[Choices.Length];
 
-				if (initFlags.HasFlag(ParserInitFlags.InlineRules) && rule.CanBeInlined)
-					parseFunctions[i] = chCtx => rule.Parse(chCtx, chCtx);
-				else
-					parseFunctions[i] = chCtx => TryParseRule(id, chCtx);
-			}
-
-			parseFunction = (ctx, chCtx) =>
-			{
-				for (int i = 0; i < parseFunctions.Length; i++)
+				for (int i = 0; i < Choices.Length; i++)
 				{
-					var parsedRule = parseFunctions[i](chCtx);
+					var id = Choices[i];
+					var rule = GetRule(id);
 
-					if (parsedRule.success)
+					if (initFlags.HasFlag(ParserInitFlags.InlineRules) && rule.CanBeInlined)
 					{
-						parsedRule.occurency = i;
-						return ParsedRule.Rule(Id,
-							parsedRule.startIndex,
-							parsedRule.length,
-							ParsedRuleChildUtils.Single(ref parsedRule),
-							parsedRule.intermediateValue);
+						parseFunctions[i] = chCtx => rule.Parse(chCtx, chCtx);
+					}
+					else
+					{
+						parseFunctions[i] = chCtx => TryParseRule(id, chCtx);
 					}
 				}
 
-				RecordError(ref ctx, "Found no matching choice.");
-				return ParsedRule.Fail;
-			};
+				parseFunction = (ctx, chCtx) =>
+				{
+					for (int i = 0; i < parseFunctions.Length; i++)
+					{
+						var parsedRule = parseFunctions[i](chCtx);
+
+						if (parsedRule.success)
+						{
+							parsedRule.occurency = i;
+							return ParsedRule.Rule(Id,
+								parsedRule.startIndex,
+								parsedRule.length,
+								parsedRule.passedBarriers,
+								ParsedRuleChildUtils.Single(ref parsedRule),
+								parsedRule.intermediateValue);
+						}
+					}
+
+					RecordError(ref ctx, "Found no matching choice.");
+					return ParsedRule.Fail;
+				};
+			}
+			else
+			{
+				var candidatesByFirstChar = new Dictionary<char, Func<ParserContext, ParsedRule>[]>();
+				var _nonDeterministicCandidates = new List<Func<ParserContext, ParsedRule>>();
+
+				if (FirstChars != null)
+					foreach (var ch in FirstChars)
+					{
+						var rules = new List<Func<ParserContext, ParsedRule>>();
+						foreach (var choice in Choices)
+						{
+							int id = choice;
+							var rule = GetRule(id);
+							if (rule.FirstChars == null || rule.FirstChars.Contains(ch))
+							{
+								if (initFlags.HasFlag(ParserInitFlags.InlineRules) && rule.CanBeInlined)
+									rules.Add(chCtx => rule.Parse(chCtx, chCtx));
+								else
+									rules.Add(chCtx => TryParseRule(id, chCtx));
+							}
+							candidatesByFirstChar[ch] = rules.ToArray();
+						}
+					}
+
+				foreach (var choice in Choices)
+				{
+					int id = choice;
+					var rule = GetRule(id);
+					if (rule.FirstChars == null)
+					{
+						if (initFlags.HasFlag(ParserInitFlags.InlineRules) && rule.CanBeInlined)
+							_nonDeterministicCandidates.Add(chCtx => rule.Parse(chCtx, chCtx));
+						else
+							_nonDeterministicCandidates.Add(chCtx => TryParseRule(id, chCtx));
+					}
+				}
+
+				var nonDeterministicCandidates = _nonDeterministicCandidates.ToArray();
+
+				parseFunction = (ctx, chCtx) =>
+				{
+					if (!candidatesByFirstChar.TryGetValue(ctx.str[ctx.position], out var candidates))
+						candidates = nonDeterministicCandidates;
+
+					for (int i = 0; i < candidates.Length; i++)
+					{
+						var parsedRule = candidates[i](chCtx);
+
+						if (parsedRule.success)
+						{
+							parsedRule.occurency = i;
+							return ParsedRule.Rule(Id,
+								parsedRule.startIndex,
+								parsedRule.length,
+								parsedRule.passedBarriers,
+								ParsedRuleChildUtils.Single(ref parsedRule),
+								parsedRule.intermediateValue);
+						}
+					}
+
+					RecordError(ref ctx, "Found no matching choice.");
+					return ParsedRule.Fail;
+				};
+			}
 
 			if (initFlags.HasFlag(ParserInitFlags.EnableMemoization))
 			{

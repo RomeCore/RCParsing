@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 using RCParsing.ParserRules;
@@ -11,8 +12,10 @@ namespace RCParsing.Building
 	/// </summary>
 	public class ParserSettingsBuilder
 	{
-		private ParserSettings _settings = new ParserSettings();
+		private ParserMainSettings _mainSettings = default;
+		private ParserSettings _settings = default;
 		private Func<ParserElement, ParserInitFlags> _initFlagsFactory = e => ParserInitFlags.None;
+
 		private Or<string, BuildableParserRule>? _skipRule = null;
 
 		/// <summary>
@@ -26,11 +29,11 @@ namespace RCParsing.Building
 		/// </summary>
 		/// <param name="ruleChildren">The list of child elements.</param>
 		/// <returns>The built settings for parser.</returns>
-		public (ParserSettings, Func<ParserElement, ParserInitFlags>) Build(List<int> ruleChildren)
+		public (ParserMainSettings, ParserSettings, Func<ParserElement, ParserInitFlags>) Build(List<int> ruleChildren)
 		{
 			var result = _settings;
 			result.skipRule = ruleChildren[0];
-			return (result, _initFlagsFactory);
+			return (_mainSettings, result, _initFlagsFactory);
 		}
 
 		public override bool Equals(object? obj)
@@ -135,6 +138,19 @@ namespace RCParsing.Building
 		}
 
 		/// <summary>
+		/// Sets the error formatting flags that control how parsing errors are formatted when throwing exceptions.
+		/// </summary>
+		/// <remarks>
+		/// Useful for debugging purposes.
+		/// </remarks>
+		/// <returns>This instance for method chaining.</returns>
+		public ParserSettingsBuilder ErrorFormatting(ErrorFormattingFlags flags)
+		{
+			_mainSettings.errorFormattingFlags = flags;
+			return this;
+		}
+
+		/// <summary>
 		/// Sets the detailed error messages mode when throwing exceptions.
 		/// </summary>
 		/// <remarks>
@@ -143,8 +159,39 @@ namespace RCParsing.Building
 		/// <returns>This instance for method chaining.</returns>
 		public ParserSettingsBuilder DetailedErrors()
 		{
-			return ErrorHandling(_settings.errorHandling | ParserErrorHandlingMode.DisplayRules |
-				ParserErrorHandlingMode.DisplayMessages | ParserErrorHandlingMode.DisplayExtended);
+			return ErrorFormatting(ErrorFormattingFlags.DisplayRules |
+				ErrorFormattingFlags.DisplayMessages | ErrorFormattingFlags.MoreGroups);
+		}
+
+		/// <summary>
+		/// Sets the barrier tokens to be ignored while parsing.
+		/// </summary>
+		/// <param name="ignore">Whether to ignore barrier tokens or not.</param>
+		/// <returns>This instance for method chaining.</returns>
+		public ParserSettingsBuilder IgnoreBarriers(bool ignore)
+		{
+			_settings.ignoreBarriers = ignore;
+			return this;
+		}
+
+		/// <summary>
+		/// Ignores barrier tokens while parsing.
+		/// </summary>
+		/// <returns>This instance for method chaining.</returns>
+		public ParserSettingsBuilder IgnoreBarriers()
+		{
+			_settings.ignoreBarriers = true;
+			return this;
+		}
+
+		/// <summary>
+		/// Enables barrier tokens while parsing.
+		/// </summary>
+		/// <returns>This instance for method chaining.</returns>
+		public ParserSettingsBuilder RestoreBarriers()
+		{
+			_settings.ignoreBarriers = false;
+			return this;
 		}
 
 		/// <summary>
@@ -164,6 +211,46 @@ namespace RCParsing.Building
 		}
 
 		/// <summary>
+		/// Uses the specified initialization flags for specific elements.
+		/// </summary>
+		/// <param name="flags">The initialization flags to use.</param>
+		/// <param name="predicate">The predicate to determine whether a parser element should be cached.</param>
+		/// <returns>This instance for method chaining.</returns>
+		public ParserSettingsBuilder UseInitFlagsOn(ParserInitFlags flags, Predicate<ParserElement> predicate)
+		{
+			var prevFactory = _initFlagsFactory;
+			_initFlagsFactory = e =>
+			{
+				var _flags = prevFactory(e);
+				if (predicate(e))
+					_flags |= flags;
+				return _flags;
+			};
+			return this;
+		}
+
+		/// <summary>
+		/// Uses the specified initialization flags for specific elements and negates for others.
+		/// </summary>
+		/// <param name="flags">The initialization flags to use.</param>
+		/// <param name="predicate">The predicate to determine whether a parser element should be cached.</param>
+		/// <returns>This instance for method chaining.</returns>
+		public ParserSettingsBuilder UseInitFlagsOnOnly(ParserInitFlags flags, Predicate<ParserElement> predicate)
+		{
+			var prevFactory = _initFlagsFactory;
+			_initFlagsFactory = e =>
+			{
+				var _flags = prevFactory(e);
+				if (predicate(e))
+					_flags |= flags;
+				else
+					_flags &= ~flags;
+				return _flags;
+			};
+			return this;
+		}
+
+		/// <summary>
 		/// Sets the token and rule caching mode.
 		/// </summary>
 		/// <remarks>
@@ -172,14 +259,7 @@ namespace RCParsing.Building
 		/// <returns>This instance for method chaining.</returns>
 		public ParserSettingsBuilder UseCaching()
 		{
-			var prevFactory = _initFlagsFactory;
-			_initFlagsFactory = e =>
-			{
-				var flags = prevFactory(e);
-				flags |= ParserInitFlags.EnableMemoization;
-				return flags;
-			};
-			return this;
+			return UseInitFlags(ParserInitFlags.EnableMemoization);
 		}
 
 		/// <summary>
@@ -213,15 +293,7 @@ namespace RCParsing.Building
 		/// <returns>This instance for method chaining.</returns>
 		public ParserSettingsBuilder UseCachingOn(Predicate<ParserElement> predicate)
 		{
-			var prevFactory = _initFlagsFactory;
-			_initFlagsFactory = e =>
-			{
-				var flags = prevFactory(e);
-				if (predicate(e))
-					flags |= ParserInitFlags.EnableMemoization;
-				return flags;
-			};
-			return this;
+			return UseInitFlagsOn(ParserInitFlags.EnableMemoization, predicate);
 		}
 
 		/// <summary>
@@ -234,17 +306,7 @@ namespace RCParsing.Building
 		/// <returns>This instance for method chaining.</returns>
 		public ParserSettingsBuilder UseCachingOnOnly(Predicate<ParserElement> predicate)
 		{
-			var prevFactory = _initFlagsFactory;
-			_initFlagsFactory = e =>
-			{
-				var flags = prevFactory(e);
-				if (predicate(e))
-					flags |= ParserInitFlags.EnableMemoization;
-				else
-					flags &= ~ParserInitFlags.EnableMemoization;
-				return flags;
-			};
-			return this;
+			return UseInitFlagsOnOnly(ParserInitFlags.EnableMemoization, predicate);
 		}
 
 		/// <summary>
@@ -299,6 +361,18 @@ namespace RCParsing.Building
 				return flags;
 			};
 			return this;
+		}
+
+		/// <summary>
+		/// Sets the stack trace writing mode and detailed errors mode to enabled.
+		/// </summary>
+		/// <remarks>
+		/// Useful for debuggings grammars.
+		/// </remarks>
+		/// <returns>This instance for method chaining.</returns>
+		public ParserSettingsBuilder UseDebug()
+		{
+			return this.WriteStackTrace().DetailedErrors();
 		}
 	}
 }

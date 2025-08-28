@@ -13,13 +13,12 @@ namespace RCParsing.Building
 	/// <summary>
 	/// Represents a builder for constructing rules that are used in parsing processes.
 	/// </summary>
-	public class RuleBuilder : ParserElementBuilder<RuleBuilder>
+	public partial class RuleBuilder : ParserElementBuilder<RuleBuilder>
 	{
 		private object? DefaultFactory_Optional(ParsedRuleResult r) => r.Children.Length > 0 ? r.Children[0].Value : null;
 		private object? DefaultFactory_Repeat(ParsedRuleResult r) => r.SelectArray();
 		private object? DefaultFactory_Choice(ParsedRuleResult r) => r.Children[0].Value;
 		private object? DefaultFactory_RepeatSeparated(ParsedRuleResult r) => r.SelectArray();
-		private object? DefaultFactory_Token(ParsedRuleResult r) => r.IntermediateValue;
 
 		private Or<string, BuildableParserRule>? _rule;
 
@@ -227,6 +226,29 @@ namespace RCParsing.Building
 		public RuleBuilder Transform(Func<ParsedRuleResult, object?>? factory)
 		{
 			if (_rule?.AsT2() is BuildableParserRule rule)
+				rule.ParsedValueFactory = factory;
+			else
+				throw new ParserBuildingException("Parser rule is not set or it is a direct reference to named rule.");
+			return this;
+		}
+
+		/// <summary>
+		/// Sets the transformation function to the last rule in sequence or for the current rule.
+		/// </summary>
+		/// <param name="factory">The transformation function (parsed value factory) to set.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if the parser rule is not set or it is a direct reference to a named rule.</exception>
+		public RuleBuilder TransformLast(Func<ParsedRuleResult, object?>? factory)
+		{
+			if (_rule?.AsT2() is BuildableSequenceParserRule sequenceRule)
+			{
+				if (sequenceRule.Elements.LastOrDefault().AsT2() is BuildableParserRule rule)
+					rule.ParsedValueFactory = factory;
+				else
+					throw new ParserBuildingException("Last rule in the sequence is not set or it is a direct reference to named rule.");
+				return this;
+			}
+			else if (_rule?.AsT2() is BuildableParserRule rule)
 				rule.ParsedValueFactory = factory;
 			else
 				throw new ParserBuildingException("Parser rule is not set or it is a direct reference to named rule.");

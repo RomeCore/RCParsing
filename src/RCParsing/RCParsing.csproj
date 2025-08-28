@@ -1,19 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>netstandard2.0;net8.0</TargetFrameworks>
+		<TargetFrameworks>netstandard2.0;net6.0;net8.0</TargetFrameworks>
 		<LangVersion>9.0</LangVersion>
 		<Nullable>annotations</Nullable>
 	</PropertyGroup>
 
 	<PropertyGroup>
 		<PackageId>RCParsing</PackageId>
-		<Version>1.1.0</Version>
+		<Version>2.0.0</Version>
 		<Authors>Roman K.</Authors>
 		<Company>RomeCore</Company>
 		<Product>RCParsing</Product>
 		<Description>A very flexible and readable .NET parser building library.</Description>
-		<PackageTags>parser</PackageTags>
+		<PackageTags>parser, grammar, lexerless, syntax, ast, bnf, dsl, compiler</PackageTags>
 		<RepositoryUrl>https://github.com/RomeCore/RCParsing</RepositoryUrl>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<GenerateDocumentationFile>True</GenerateDocumentationFile>
