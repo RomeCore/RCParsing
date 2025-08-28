@@ -74,6 +74,7 @@ namespace RCParsing
 		public SharedParserContext(Parser parser, string str, object? parserParameter = null)
 		{
 			this.str = str;
+			this.parserParameter = parserParameter;
 			this.parser = parser ?? throw new ArgumentNullException(nameof(parser));
 			this.cache = new ParserCache();
 			this.successPositions = new BitArray(str.Length);
