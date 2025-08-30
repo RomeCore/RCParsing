@@ -70,7 +70,7 @@ namespace RCParsing
 	/// <remarks>
 	/// This is a entirely lazy wrapper around <see cref="ParsedRule"/>.
 	/// </remarks>
-	public class ParsedRuleResult : IEnumerable<ParsedRuleResult>
+	public class ParsedRuleResult : IReadOnlyList<ParsedRuleResult>
 	{
 		/// <summary>
 		/// Gets the optimization flags that used to optimize the parse tree.
@@ -121,7 +121,7 @@ namespace RCParsing
 		/// <summary>
 		/// Gets the alias for the parser rule that was parsed. May be null if no alias is defined.
 		/// </summary>
-		public string RuleAlias => Rule.Aliases.Count > 0 ? Rule.Aliases[0] : null;
+		public string RuleAlias => Rule.Aliases.Count > 0 ? Rule.Aliases[Rule.Aliases.Count - 1] : null;
 
 		/// <summary>
 		/// Gets the aliases for the parser rule that was parsed.
@@ -190,6 +190,9 @@ namespace RCParsing
 		{
 			return new ParsedRuleResult(Optimization, this, Context, Result.children[i]);
 		});
+
+		public int Count => Result.children.Count;
+		public ParsedRuleResult this[int index] => Children[index];
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="ParsedRuleResult"/> class.
@@ -306,6 +309,20 @@ namespace RCParsing
 			=> Children.Length > index ? Children[index].IntermediateValue as T : null;
 
 		/// <summary>
+		/// Gets the intermediate value associated with this rule converted to type <typeparamref name="T"/>.
+		/// </summary>
+		/// <typeparam name="T">The type of value to retrieve.</typeparam>
+		/// <returns>The intermediate value associated with this rule.</returns>
+		public T ConvertIntermediateValue<T>() => (T)Convert.ChangeType(IntermediateValue, typeof(T));
+
+		/// <summary>
+		/// Gets the intermediate value associated with child rule at the specific index converted to type <typeparamref name="T"/>.
+		/// </summary>
+		/// <typeparam name="T">The type of value to retrieve.</typeparam>
+		/// <returns>The intermediate value associated with child rule.</returns>
+		public T ConvertIntermediateValue<T>(int index) => (T)Convert.ChangeType(Children[index].IntermediateValue, typeof(T));
+
+		/// <summary>
 		/// Gets the value associated with this rule as not-null object. If the value is null, throws an exception.
 		/// </summary>
 		/// <returns>The value associated with this rule.</returns>
@@ -345,6 +362,20 @@ namespace RCParsing
 		/// <returns>The value associated with child rule.</returns>
 		public T? TryGetValue<T>(int index) where T : class
 			=> Children.Length > index ? Children[index].Value as T : null;
+
+		/// <summary>
+		/// Gets the value associated with this rule converted to type <typeparamref name="T"/>.
+		/// </summary>
+		/// <typeparam name="T">The type of value to retrieve.</typeparam>
+		/// <returns>The value associated with this rule.</returns>
+		public T ConvertValue<T>() => (T)Convert.ChangeType(Value, typeof(T));
+
+		/// <summary>
+		/// Gets the value associated with child rule at the specific index converted to type <typeparamref name="T"/>.
+		/// </summary>
+		/// <typeparam name="T">The type of value to retrieve.</typeparam>
+		/// <returns>The value associated with child rule.</returns>
+		public T ConvertValue<T>(int index) => (T)Convert.ChangeType(Children[index].Value, typeof(T));
 
 		/// <summary>
 		/// Gets the parsing parameter associated with this rule as an instance of type <typeparamref name="T"/>.
@@ -445,12 +476,11 @@ namespace RCParsing
 
 		public IEnumerator<ParsedRuleResult> GetEnumerator()
 		{
-			return ((IEnumerable<ParsedRuleResult>)Children).GetEnumerator();
+			return Children.GetEnumerator();
 		}
-
 		IEnumerator IEnumerable.GetEnumerator()
 		{
-			return ((IEnumerable)Children).GetEnumerator();
+			return Children.GetEnumerator();
 		}
 
 		public string Dump(int maxDepth)

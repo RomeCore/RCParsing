@@ -1,10 +1,8 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using RCParsing.ParserRules;
 
 namespace RCParsing
 {
@@ -376,15 +374,15 @@ namespace RCParsing
 		/// </summary>
 		/// <param name="tokenPatternAlias">The alias for the token pattern to use.</param>
 		/// <param name="input">The input text to parse.</param>
-		/// <param name="paratemeter">Optional parameter to pass to the parser. Can be used to pass additional information to the custom token patterns.</param>
+		/// <param name="parameter">Optional parameter to pass to the parser. Can be used to pass additional information to the custom token patterns.</param>
 		/// <returns>A parsed token pattern containing the result of the parse.</returns>
-		public ParsedTokenResult MatchToken(string tokenPatternAlias, string input, object? paratemeter = null)
+		public ParsedTokenResult MatchToken(string tokenPatternAlias, string input, object? parameter = null)
 		{
 			if (!_tokenPatternsAliases.TryGetValue(tokenPatternAlias, out var tokenPatternId))
 				throw new ArgumentException("Invalid token pattern alias", nameof(tokenPatternAlias));
 
-			var context = new ParserContext(this, input, paratemeter);
-			var parsedToken = MatchToken(tokenPatternId, context.str, context.position, context.str.Length, paratemeter);
+			var context = new ParserContext(this, input, parameter);
+			var parsedToken = MatchToken(tokenPatternId, context.str, context.position, context.str.Length, parameter);
 			return new ParsedTokenResult(null, context, parsedToken);
 		}
 
@@ -411,16 +409,16 @@ namespace RCParsing
 		/// </summary>
 		/// <param name="tokenPatternAlias">The alias for the token pattern to use.</param>
 		/// <param name="input">The input text to parse.</param>
-		/// <param name="paratemeter">Optional parameter to pass to the parser. Can be used to pass additional information to the custom token patterns.</param>
+		/// <param name="parameter">Optional parameter to pass to the parser. Can be used to pass additional information to the custom token patterns.</param>
 		/// <param name="result">The parsed token containing the result of the parse.</param>
 		/// <returns><see langword="true"/> if a token was matched, <see langword="false"/> otherwise.</returns>
-		public bool TryMatchToken(string tokenPatternAlias, string input, object? paratemeter, out ParsedTokenResult result)
+		public bool TryMatchToken(string tokenPatternAlias, string input, object? parameter, out ParsedTokenResult result)
 		{
 			if (!_tokenPatternsAliases.TryGetValue(tokenPatternAlias, out var tokenPatternId))
 				throw new ArgumentException("Invalid token pattern alias", nameof(tokenPatternAlias));
 
-			var context = new ParserContext(this, input, paratemeter);
-			var parsedToken = MatchToken(tokenPatternId, context.str, context.position, context.str.Length, paratemeter);
+			var context = new ParserContext(this, input, parameter);
+			var parsedToken = MatchToken(tokenPatternId, context.str, context.position, context.str.Length, parameter);
 			result = new ParsedTokenResult(null, context, parsedToken);
 			return parsedToken.success;
 		}
@@ -432,14 +430,14 @@ namespace RCParsing
 		/// </summary>
 		/// <param name="ruleAlias">The alias for the parser rule to use.</param>
 		/// <param name="input">The input text to parse.</param>
-		/// <param name="paratemeter">Optional parameter to pass to the parser. Can be used to pass additional information to the transformation functions.</param>
+		/// <param name="parameter">Optional parameter to pass to the parser. Can be used to pass additional information to the transformation functions.</param>
 		/// <returns>A parsed rule containing the result of the parse.</returns>
-		public ParsedRuleResult ParseRule(string ruleAlias, string input, object? paratemeter = null)
+		public ParsedRuleResult ParseRule(string ruleAlias, string input, object? parameter = null)
 		{
 			if (!_rulesAliases.TryGetValue(ruleAlias, out var ruleId))
 				throw new ArgumentException("Invalid rule alias", nameof(ruleAlias));
 
-			var context = new ParserContext(this, input, paratemeter);
+			var context = new ParserContext(this, input, parameter);
 			EmitBarriers(ref context);
 			var parsedRule = ParseRule(ruleId, context);
 			return new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule);
@@ -450,14 +448,14 @@ namespace RCParsing
 		/// </summary>
 		/// <param name="ruleAlias">The alias for the parser rule to use.</param>
 		/// <param name="input">The input text to parse.</param>
-		/// <param name="paratemeter">Optional parameter to pass to the parser. Can be used to pass additional information to the transformation functions.</param>
+		/// <param name="parameter">Optional parameter to pass to the parser. Can be used to pass additional information to the transformation functions.</param>
 		/// <returns>The result of the parse converted to the specified type.</returns>
-		public T ParseRule<T>(string ruleAlias, string input, object? paratemeter = null)
+		public T ParseRule<T>(string ruleAlias, string input, object? parameter = null)
 		{
 			if (!_rulesAliases.TryGetValue(ruleAlias, out var ruleId))
 				throw new ArgumentException("Invalid rule alias", nameof(ruleAlias));
 
-			var context = new ParserContext(this, input, paratemeter);
+			var context = new ParserContext(this, input, parameter);
 			EmitBarriers(ref context);
 			var parsedRule = ParseRule(ruleId, context);
 			return new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule).GetValue<T>();
@@ -507,14 +505,14 @@ namespace RCParsing
 		/// <param name="ruleAlias">The alias for the parser rule to use.</param>
 		/// <param name="input">The input text to parse.</param>
 		/// <param name="result">The parsed rule containing the result of the parse.</param>
-		/// <param name="paratemeter">Optional parameter to pass to the parser. Can be used to pass additional information to the transformation functions.</param>
+		/// <param name="parameter">Optional parameter to pass to the parser. Can be used to pass additional information to the transformation functions.</param>
 		/// <returns><see langword="true"/> if a rule was parsed successfully, false otherwise.</returns>
-		public bool TryParseRule(string ruleAlias, string input, object? paratemeter, out ParsedRuleResult result)
+		public bool TryParseRule(string ruleAlias, string input, object? parameter, out ParsedRuleResult result)
 		{
 			if (!_rulesAliases.TryGetValue(ruleAlias, out var ruleId))
 				throw new ArgumentException("Invalid rule alias", nameof(ruleAlias));
 
-			var context = new ParserContext(this, input, paratemeter);
+			var context = new ParserContext(this, input, parameter);
 			EmitBarriers(ref context);
 			var parsedRule = TryParseRule(ruleId, context);
 			result = new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule);
@@ -527,14 +525,14 @@ namespace RCParsing
 		/// <param name="ruleAlias">The alias for the parser rule to use.</param>
 		/// <param name="input">The input text to parse.</param>
 		/// <param name="result">The result of the parse converted to the specified type.</param>
-		/// <param name="paratemeter">Optional parameter to pass to the parser. Can be used to pass additional information to the transformation functions.</param>
+		/// <param name="parameter">Optional parameter to pass to the parser. Can be used to pass additional information to the transformation functions.</param>
 		/// <returns><see langword="true"/> if a rule was parsed successfully, <see langword="false"/> otherwise.</returns>
-		public bool TryParseRule<T>(string ruleAlias, string input, object? paratemeter, out T result)
+		public bool TryParseRule<T>(string ruleAlias, string input, object? parameter, out T result)
 		{
 			if (!_rulesAliases.TryGetValue(ruleAlias, out var ruleId))
 				throw new ArgumentException("Invalid rule alias", nameof(ruleAlias));
 
-			var context = new ParserContext(this, input, paratemeter);
+			var context = new ParserContext(this, input, parameter);
 			EmitBarriers(ref context);
 			var parsedRule = TryParseRule(ruleId, context);
 			result = new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule).GetValue<T>();
@@ -547,14 +545,14 @@ namespace RCParsing
 		/// Parses the given input using the main rule, input text and optional parameter.
 		/// </summary>
 		/// <param name="input">The input text to parse.</param>
-		/// <param name="paratemeter">Optional parameter to pass to the parser. Can be used to pass additional information to the transformation functions.</param>
+		/// <param name="parameter">Optional parameter to pass to the parser. Can be used to pass additional information to the transformation functions.</param>
 		/// <returns>A parsed rule containing the result of the parse.</returns>
-		public ParsedRuleResult Parse(string input, object? paratemeter = null)
+		public ParsedRuleResult Parse(string input, object? parameter = null)
 		{
 			if (_mainRuleId == -1)
 				throw new InvalidOperationException("Main rule is not set.");
 
-			var context = new ParserContext(this, input, paratemeter);
+			var context = new ParserContext(this, input, parameter);
 			EmitBarriers(ref context);
 			var parsedRule = ParseRule(_mainRuleId, context);
 			return new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule);
@@ -565,14 +563,14 @@ namespace RCParsing
 		/// </summary>
 		/// <typeparam name="T">The type of the parsed result..</typeparam>
 		/// <param name="input">The input text to parse.</param>
-		/// <param name="paratemeter">Optional parameter to pass to the parser. Can be used to pass additional information to the transformation functions.</param>
+		/// <param name="parameter">Optional parameter to pass to the parser. Can be used to pass additional information to the transformation functions.</param>
 		/// <returns>The result of the parse converted to the specified type.</returns>
-		public T Parse<T>(string input, object? paratemeter = null)
+		public T Parse<T>(string input, object? parameter = null)
 		{
 			if (_mainRuleId == -1)
 				throw new InvalidOperationException("Main rule is not set.");
 
-			var context = new ParserContext(this, input, paratemeter);
+			var context = new ParserContext(this, input, parameter);
 			EmitBarriers(ref context);
 			var parsedRule = ParseRule(_mainRuleId, context);
 			return new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule).GetValue<T>();
@@ -601,14 +599,14 @@ namespace RCParsing
 		/// </summary>
 		/// <param name="input">The input text to parse.</param>
 		/// <param name="result">The parsed rule containing the result of the parse.</param>
-		/// <param name="paratemeter">Optional parameter to pass to the parser. Can be used to pass additional information to the transformation functions.</param>
+		/// <param name="parameter">Optional parameter to pass to the parser. Can be used to pass additional information to the transformation functions.</param>
 		/// <returns><see langword="true"/> if a rule was parsed successfully, <see langword="false"/> otherwise.</returns>
-		public bool TryParse(string input, object? paratemeter, out ParsedRuleResult result)
+		public bool TryParse(string input, object? parameter, out ParsedRuleResult result)
 		{
 			if (_mainRuleId == -1)
 				throw new InvalidOperationException("Main rule is not set.");
 
-			var context = new ParserContext(this, input, paratemeter);
+			var context = new ParserContext(this, input, parameter);
 			EmitBarriers(ref context);
 			var parsedRule = TryParseRule(_mainRuleId, context);
 			result = new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule);
@@ -646,14 +644,14 @@ namespace RCParsing
 		/// <typeparam name="T">The type of the parsed result..</typeparam>
 		/// <param name="input">The input text to parse.</param>
 		/// <param name="result">The result of the parse converted to the specified type.</param>
-		/// <param name="paratemeter">Optional parameter to pass to the parser. Can be used to pass additional information to the transformation functions.</param>
+		/// <param name="parameter">Optional parameter to pass to the parser. Can be used to pass additional information to the transformation functions.</param>
 		/// <returns><see langword="true"/> if a rule was parsed successfully, <see langword="false"/> otherwise.</returns>
-		public bool TryParse<T>(string input, object? paratemeter, out T result)
+		public bool TryParse<T>(string input, object? parameter, out T result)
 		{
 			if (_mainRuleId == -1)
 				throw new InvalidOperationException("Main rule is not set.");
 
-			var context = new ParserContext(this, input, paratemeter);
+			var context = new ParserContext(this, input, parameter);
 			EmitBarriers(ref context);
 			var parsedRule = TryParseRule(_mainRuleId, context);
 			var parsedResult = new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule);

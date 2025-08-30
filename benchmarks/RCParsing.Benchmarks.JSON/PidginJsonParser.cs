@@ -7,8 +7,7 @@ namespace RCParsing.Benchmarks.JSON
 	public static class PidginJsonParser
 	{
 		private static readonly Parser<char, double> Number =
-			DecimalNum.Select(x => (double)x)
-			.Or(LongNum.Select(x => (double)x))
+			LongNum.Select(x => (double)x)
 			.Before(SkipWhitespaces);
 
 		private static readonly Parser<char, string> String =

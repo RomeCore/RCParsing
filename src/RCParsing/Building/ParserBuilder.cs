@@ -376,8 +376,8 @@ namespace RCParsing.Building
 			List<(
 				BuildableParserElement element,
 				int id,
-				List<int>? ruleChildren, 
-				List<int>? tokenChildren, 
+				List<int>? ruleChildren,
+				List<int>? tokenChildren,
 				List<int> settingsRuleChildren,
 				List<string> aliases)> finalMap = new();
 

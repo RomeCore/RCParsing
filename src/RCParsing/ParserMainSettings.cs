@@ -7,6 +7,7 @@ namespace RCParsing
 	/// <summary>
 	/// Represents flags that control how parsing errors are formatted.
 	/// </summary>
+	[Flags]
 	public enum ErrorFormattingFlags
 	{
 		/// <summary>

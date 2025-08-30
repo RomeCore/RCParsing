@@ -167,7 +167,7 @@ namespace RCParsing.Tests
 				.Pass(1); // Pass the EscapedTextPrefix's intermediate value up
 
 			builder.CreateToken("number")
-				.Regex(@"-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?", v => double.Parse(v.Text.Replace('.', ','))); // Hehe, here you can use Regex
+				.Number<double>(TokenPatterns.NumberFlags.StrictScientific);
 
 			builder.CreateToken("boolean")
 				.LiteralChoice(["true", "false"], v => v.Text == "true"); // LiteralChoice uses Trie
@@ -259,8 +259,7 @@ namespace RCParsing.Tests
 				.Transform(v => v.IntermediateValue);
 
 			builder.CreateToken("number")
-				.Regex("-?\\d+(?:\\.\\d+)?(?:[eE][+-]?\\d+)?",
-					v => double.Parse(v.Text, CultureInfo.InvariantCulture));
+				.Number<double>(TokenPatterns.NumberFlags.StrictScientific);
 
 			builder.CreateToken("boolean")
 				.LiteralChoice(["true", "false"],

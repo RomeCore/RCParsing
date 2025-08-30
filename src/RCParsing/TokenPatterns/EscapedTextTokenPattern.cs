@@ -239,7 +239,7 @@ namespace RCParsing.TokenPatterns
 					// (i.e. there are no more characters to complete that escape), then it's invalid.
 					// We only error when pos..end matches prefix-of-some-escape and there are no more characters
 					// that can arrive (we operate on the full string), so this is true incomplete escape.
-					if (pos + (input.Length - pos) >= input.Length) // redundant but explicit: we are at end-of-input suffix
+					if (pos + (barrierPosition - pos) >= barrierPosition) // redundant but explicit: we are at end-of-input suffix
 					{
 						return ParsedElement.Fail;
 					}

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using RCParsing.Building.TokenPatterns;
@@ -141,14 +142,14 @@ namespace RCParsing.Building
 		/// Adds a repeatable character predicate token to the current sequence with specified minimum occurrences.
 		/// </summary>
 		/// <param name="charPredicate">The character predicate to use.</param>
-		/// <param name="minCount">The minimum inclusive number of characters to match.</param>
+		/// <param name="min">The minimum inclusive number of characters to match.</param>
 		/// <param name="factory">The factory function to create a parsed value.</param>
 		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public T Chars(Func<char, bool> charPredicate, int minCount, Func<ParsedRuleResult, object?>? factory = null,
+		public T Chars(Func<char, bool> charPredicate, int min, Func<ParsedRuleResult, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
-			return AddToken(new RepeatCharactersTokenPattern(charPredicate, minCount, -1),
+			return AddToken(new RepeatCharactersTokenPattern(charPredicate, min, -1),
 				factory, config);
 		}
 
@@ -156,15 +157,15 @@ namespace RCParsing.Building
 		/// Adds a repeatable character predicate token to the current sequence with specified minimum and maximum occurrences.
 		/// </summary>
 		/// <param name="charPredicate">The character predicate to use.</param>
-		/// <param name="minCount">The minimum inclusive number of characters to match.</param>
-		/// <param name="maxCount">The maximum inclusive number of characters to match. -1 means no limit.</param>
+		/// <param name="min">The minimum inclusive number of characters to match.</param>
+		/// <param name="max">The maximum inclusive number of characters to match. -1 means no limit.</param>
 		/// <param name="factory">The factory function to create a parsed value.</param>
 		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public T Chars(Func<char, bool> charPredicate, int minCount, int maxCount, Func<ParsedRuleResult, object?>? factory = null,
+		public T Chars(Func<char, bool> charPredicate, int min, int max, Func<ParsedRuleResult, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
-			return AddToken(new RepeatCharactersTokenPattern(charPredicate, minCount, maxCount),
+			return AddToken(new RepeatCharactersTokenPattern(charPredicate, min, max),
 				factory, config);
 		}
 
@@ -203,6 +204,8 @@ namespace RCParsing.Building
 		/// <returns>Current instance for method chaining.</returns>
 		public T LiteralChoice(params string[] literals)
 		{
+			if (literals.Length == 1)
+				return Literal(literals[0]);
 			return AddToken(new LiteralChoiceTokenPattern(literals));
 		}
 
@@ -216,21 +219,27 @@ namespace RCParsing.Building
 		public T LiteralChoice(IEnumerable<string> literals, Func<ParsedRuleResult, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
-			return AddToken(new LiteralChoiceTokenPattern(literals), factory, config);
+			var array = literals.ToArray();
+			if (array.Length == 1)
+				return Literal(array[0]);
+			return AddToken(new LiteralChoiceTokenPattern(array), factory, config);
 		}
 
 		/// <summary>
 		/// Adds a literal choice token to the current sequence.
 		/// </summary>
 		/// <param name="literals">The literal strings set.</param>
-		/// <param name="comparer">The string comparer to use.</param>
+		/// <param name="comparer">The optional string comparer to use.</param>
 		/// <param name="factory">The factory function to create a parsed value.</param>
 		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public T LiteralChoice(IEnumerable<string> literals, StringComparer comparer, Func<ParsedRuleResult, object?>? factory = null,
+		public T LiteralChoice(IEnumerable<string> literals, StringComparer? comparer, Func<ParsedRuleResult, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
-			return AddToken(new LiteralChoiceTokenPattern(literals, comparer), factory, config);
+			var array = literals.ToArray();
+			if (array.Length == 1 && comparer == null)
+				return Literal(array[0]);
+			return AddToken(new LiteralChoiceTokenPattern(array, comparer), factory, config);
 		}
 
 		/// <summary>
@@ -410,7 +419,191 @@ namespace RCParsing.Building
 			return AddToken(new EOFTokenPattern(), factory, config);
 		}
 
-		#region EscapedText
+		private static NumberType NumberTypeFromCLR(Type type)
+		{
+			if (type == null)
+				return NumberType.PreferSimpler;
+
+			switch (Type.GetTypeCode(type))
+			{
+				case TypeCode.Byte:
+					return NumberType.Byte;
+				case TypeCode.SByte:
+					return NumberType.SignedByte;
+				case TypeCode.UInt16:
+					return NumberType.UnsignedShort;
+				case TypeCode.Int16:
+					return NumberType.Short;
+				case TypeCode.UInt32:
+					return NumberType.UnsignedInteger;
+				case TypeCode.Int32:
+					return NumberType.Integer;
+				case TypeCode.UInt64:
+					return NumberType.UnsignedLong;
+				case TypeCode.Int64:
+					return NumberType.Long;
+				case TypeCode.Single:
+					return NumberType.Float;
+				case TypeCode.Double:
+					return NumberType.Double;
+				case TypeCode.Decimal:
+					return NumberType.Decimal;
+				default:
+					throw new ArgumentException("Unsupported number type: " + type);
+			}
+		}
+
+		private static NumberFlags NumberFlagsFromCLR(Type type)
+		{
+			if (type == null)
+				return NumberFlags.None;
+
+			switch (Type.GetTypeCode(type))
+			{
+				case TypeCode.Byte:
+				case TypeCode.UInt16:
+				case TypeCode.UInt32:
+				case TypeCode.UInt64:
+					return NumberFlags.UnsignedInteger;
+				case TypeCode.SByte:
+				case TypeCode.Int16:
+				case TypeCode.Int32:
+				case TypeCode.Int64:
+					return NumberFlags.Integer;
+				case TypeCode.Single:
+				case TypeCode.Double:
+				case TypeCode.Decimal:
+					return NumberFlags.StrictFloat;
+				default:
+					throw new ArgumentException("Unsupported number type: " + type);
+			}
+		}
+
+		private static NumberFlags NumberFlagsFromCLR(Type type, bool signed)
+		{
+			if (type == null)
+				return NumberFlags.None;
+
+			switch (Type.GetTypeCode(type))
+			{
+				case TypeCode.Byte:
+				case TypeCode.UInt16:
+				case TypeCode.UInt32:
+				case TypeCode.UInt64:
+				case TypeCode.SByte:
+				case TypeCode.Int16:
+				case TypeCode.Int32:
+				case TypeCode.Int64:
+					return signed ? NumberFlags.Integer : NumberFlags.UnsignedInteger;
+				case TypeCode.Single:
+				case TypeCode.Double:
+				case TypeCode.Decimal:
+					return signed ? NumberFlags.StrictFloat : NumberFlags.StrictUnsignedFloat;
+				default:
+					throw new ArgumentException("Unsupported number type: " + type);
+			}
+		}
+
+		/// <summary>
+		/// Adds a number token to the current sequence.
+		/// </summary>
+		/// <remarks>
+		/// <see cref="NumberFlags.Integer"/> or
+		/// <see cref="NumberFlags.UnsignedInteger"/>, based on <paramref name="signed"/>
+		/// will be used here, intermediate value will be converted to <see cref="int"/>.
+		/// </remarks>
+		/// <param name="signed">Whether the number can have a sign.</param>
+		/// <param name="factory">The factory function to create a parsed value.</param>
+		/// <param name="config">The action to configure the local settings for this token.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T Number(bool signed = false, Func<ParsedRuleResult, object?>? factory = null,
+			Action<ParserLocalSettingsBuilder>? config = null)
+		{
+			return AddToken(new NumberTokenPattern(NumberType.Integer,
+				signed ? NumberFlags.Integer : NumberFlags.UnsignedInteger), factory, config);
+		}
+
+		/// <summary>
+		/// Adds a number token to the current sequence.
+		/// </summary>
+		/// <remarks>
+		/// Intemediate value will be converted to <see cref="float"/> if original string has decimal point, otherwise to <see cref="int"/>.
+		/// </remarks>
+		/// <param name="flags">The number flags to use.</param>
+		/// <param name="factory">The factory function to create a parsed value.</param>
+		/// <param name="config">The action to configure the local settings for this token.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T Number(NumberFlags flags, Func<ParsedRuleResult, object?>? factory = null,
+			Action<ParserLocalSettingsBuilder>? config = null)
+		{
+			return AddToken(new NumberTokenPattern(NumberType.PreferSimpler, flags), factory, config);
+		}
+
+		/// <summary>
+		/// Adds a number token to the current sequence.
+		/// </summary>
+		/// <param name="flags">The number flags to use.</param>
+		/// <param name="type">The number type to use.</param>
+		/// <param name="factory">The factory function to create a parsed value.</param>
+		/// <param name="config">The action to configure the local settings for this token.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T Number(NumberType type, NumberFlags flags, Func<ParsedRuleResult, object?>? factory = null,
+			Action<ParserLocalSettingsBuilder>? config = null)
+		{
+			return AddToken(new NumberTokenPattern(type, flags), factory, config);
+		}
+
+		/// <summary>
+		/// Adds a number token to the current sequence.
+		/// </summary>
+		/// <remarks>
+		/// Flags and intermediate value conversion type will be inferred from <typeparamref name="TNum"/> type.
+		/// </remarks>
+		/// <param name="factory">The factory function to create a parsed value.</param>
+		/// <param name="config">The action to configure the local settings for this token.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T Number<TNum>(Func<ParsedRuleResult, object?>? factory = null,
+			Action<ParserLocalSettingsBuilder>? config = null)
+		{
+			var type = NumberTypeFromCLR(typeof(TNum));
+			var flags = NumberFlagsFromCLR(typeof(TNum));
+			return AddToken(new NumberTokenPattern(type, flags), factory, config);
+		}
+
+		/// <summary>
+		/// Adds a number token to the current sequence.
+		/// </summary>
+		/// <remarks>
+		/// Flags and intermediate value conversion type will be inferred from <typeparamref name="TNum"/> type.
+		/// </remarks>
+		/// <param name="signed">Whether the number can have a sign.</param>
+		/// <param name="factory">The factory function to create a parsed value.</param>
+		/// <param name="config">The action to configure the local settings for this token.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T Number<TNum>(bool signed, Func<ParsedRuleResult, object?>? factory = null,
+			Action<ParserLocalSettingsBuilder>? config = null)
+		{
+			var type = NumberTypeFromCLR(typeof(TNum));
+			var flags = NumberFlagsFromCLR(typeof(TNum), signed);
+			return AddToken(new NumberTokenPattern(type, flags), factory, config);
+		}
+
+		/// <summary>
+		/// Adds a number token to the current sequence.
+		/// </summary>
+		/// <remarks>
+		/// Intermediate value conversion type will be inferred from <typeparamref name="TNum"/> type.
+		/// </remarks>
+		/// <param name="flags">The number flags to use.</param>
+		/// <param name="factory">The factory function to create a parsed value.</param>
+		/// <param name="config">The action to configure the local settings for this token.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T Number<TNum>(NumberFlags flags, Func<ParsedRuleResult, object?>? factory = null,
+			Action<ParserLocalSettingsBuilder>? config = null)
+		{
+			var type = NumberTypeFromCLR(typeof(TNum));
+			return AddToken(new NumberTokenPattern(type, flags), factory, config);
+		}
 
 		/// <summary>
 		/// Adds an escaped text token to the current sequence with custom escape mappings, forbidden sequences, and string comparer.
@@ -585,7 +778,5 @@ namespace RCParsing.Building
 		{
 			return AddToken(EscapedTextTokenPattern.CreateUntil(forbidden), null, null);
 		}
-
-		#endregion
 	}
 }

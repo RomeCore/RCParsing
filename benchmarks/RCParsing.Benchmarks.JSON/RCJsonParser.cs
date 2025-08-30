@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using RCParsing;
 using RCParsing.Building;
+using RCParsing.TokenPatterns;
 
 namespace RCParsing.Benchmarks.JSON
 {
@@ -22,14 +23,13 @@ namespace RCParsing.Benchmarks.JSON
 				.Literal('"')
 				.TextUntil('"')
 				.Literal('"')
-				.Pass(v => v[1])
-				.Transform(v => v.IntermediateValue);
+				.Pass(1);
 
 			builder.CreateToken("number")
-				.OneOrMoreChars(char.IsAsciiDigit, v => double.Parse(v.Text));
+				.Number<double>(NumberFlags.Integer);
 
 			builder.CreateToken("boolean")
-				.LiteralChoice(["true", "false"], v => v.Text == "true");
+				.LiteralChoice(["true", "false"], v => v.GetIntermediateValue<string>() == "true");
 
 			builder.CreateToken("null")
 				.Literal("null", _ => null);
@@ -37,9 +37,9 @@ namespace RCParsing.Benchmarks.JSON
 			builder.CreateRule("value")
 				.Choice(
 					c => c.Token("string"),
+					c => c.Token("number"),
 					c => c.Token("boolean"),
 					c => c.Token("null"),
-					c => c.Token("number"),
 					c => c.Rule("array"),
 					c => c.Rule("object")
 				);
@@ -48,14 +48,14 @@ namespace RCParsing.Benchmarks.JSON
 				.Literal("[")
 				.ZeroOrMoreSeparated(v => v.Rule("value"), s => s.Literal(","),
 					allowTrailingSeparator: true, includeSeparatorsInResult: false,
-					factory: v => v.Children.Select(a => a.Value).ToArray())
+					factory: v => v.SelectArray())
 				.Literal("]")
 				.Transform(v => v.GetValue(1));
 
 			builder.CreateRule("object")
 				.Literal("{")
 				.ZeroOrMoreSeparated(v => v.Rule("pair"), s => s.Literal(","), allowTrailingSeparator: true,
-					factory: v => v.SelectValues<KeyValuePair<string, object>>().ToDictionary(k => k.Key, v => v.Value))
+					factory: v => v.SelectValues<KeyValuePair<string, object>>().ToDictionary())
 				.Literal("}")
 				.Transform(v => v.GetValue(1));
 

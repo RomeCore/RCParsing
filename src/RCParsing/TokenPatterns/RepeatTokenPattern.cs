@@ -58,6 +58,13 @@ namespace RCParsing.TokenPatterns
 
 
 
+		private TokenPattern _pattern;
+
+		protected override void Initialize(ParserInitFlags initFlags)
+		{
+			_pattern = GetTokenPattern(TokenPattern);
+		}
+
 		public override ParsedElement Match(string input, int position, int barrierPosition, object? parserParameter)
 		{
 			var tokens = new List<ParsedElement>();
@@ -65,7 +72,7 @@ namespace RCParsing.TokenPatterns
 
 			for (int i = 0; i < MaxCount || MaxCount == -1; i++)
 			{
-				ParsedElement matchedToken = Parser.TokenPatterns[TokenPattern].Match(input, position, barrierPosition, parserParameter);
+				ParsedElement matchedToken = _pattern.Match(input, position, barrierPosition, parserParameter);
 				if (!matchedToken.success || matchedToken.startIndex + matchedToken.length == position)
 				{
 					break;

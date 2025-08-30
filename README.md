@@ -1,20 +1,27 @@
 # RCParsing
 
 [![NuGet](https://img.shields.io/nuget/v/RCParsing.svg?style=flat&label=NuGet:%20RCParsing)](https://www.nuget.org/packages/RCParsing/)
+[![License](https://img.shields.io/github/license/RomeCore/RCParsing.svg)](https://github.com/RomeCore/RCParsing/blob/main/LICENSE)
+[![Star me on GitHub](https://img.shields.io/github/stars/RomeCore/RCParsing.svg?style=social&label=Star%20Me)](https://github.com/RomeCore/RCParsing)
 
-**A Fluent, Lexerless Parser Builder for .NET — Define both complex and simple grammars with the elegance of BNF and the power of C#.**
+**A Fluent, Lexerless Parser Builder for .NET — Define ANY grammars with the elegance of BNF and the power of C#.**
+
+This library focuses on **Delevoper-experience (DX)** first, providing best toolkit for creating your programming languages or file formats with declarative API, debugging tools, and more. This allows you to design your parser directly in code and easily fix it using *rule stack traces* and detailed error messages.
 
 It provides a Fluent API to fully construct your own parser from grammar to usable object creation. Since this parsing library is lexerless, you don't need to prioritize your tokens and you can mix code with text that contains keywords, just using this library!
 
+It has a brand new feature for parser combinators, the **barrier tokens** that cannot be missed and **must** be parsed, this allows to parse indent-sensitive languages like Python.
+
 ## Why RCParsing?
 
-- 🚫 **Lexerless**: No token priority headaches. Parse directly from raw text, even with keywords embedded in strings.
 - 🐍 **Hybrid**: Unique support for **barrier tokens** to parse indent-sensitive languages like Python and YAML flawlessly.
-- ⚡ **Fast**: Performance is now on par with the fastest .NET parsing libraries (see benchmarks below).
-- 🎯 **Fluent API**: Write parsers in C# that read like clean BNF grammars, boosting readability and maintainability.
+- 🚫 **Lexerless**: No token priority headaches. Parse directly from raw text, even with keywords embedded in sources using tokens just as primitives.
+- 🎯 **Fluent API**: Write parsers in C# that read like clean BNF grammars, boosting readability and maintainability without that imperative functional approach.
 - 🐛 **Debug-Friendly**: Get detailed, actionable error messages with stack traces and precise source locations.
+- ⚡ **Fast**: Performance is now on par with the fastest .NET parsing libraries (see benchmarks below).
+- 🌳 **Rich AST**: Parser makes an AST (Abstract Syntax Tree) from raw text, with ability to optimize, fully analyze and calculate the result value entirely lazy, reducing unneccesary allocations.
 - 🔧 **Configurable Skipping**: Advanced strategies for whitespace and comments, allowing you to use conflicting tokens in your main rules.
-- 📦 **Batteries Included**: Useful built-in tokens and rules (regex, identifiers, escaped strings, separated lists, custom tokens, and more...).
+- 📦 **Batteries Included**: Useful built-in tokens and rules (regex, identifiers, numbers, escaped strings, separated lists, custom tokens, and more...).
 - 🖥️ **Broad Compatibility**: Targets `.NET Standard 2.0` (runs on `.NET Framework 4.6.1+`), `.NET 6.0`, and `.NET 8.0`.
 
 # Table of contents
@@ -46,7 +53,7 @@ Or do it manually by cloning this repository.
 
 # Tutorials, docs and examples
 
-- [Main tutorials and concepts](https://github.com/RomeCore/RCParsing/tree/main/docs/tutorials.md) - recommended to read!
+- [Tutorials](https://github.com/RomeCore/RCParsing/tree/main/docs/tutorials.md) - detailed tutorials, explaining features and mechanics of this library, highly recommended to read!
 
 # Simple examples
 
@@ -61,24 +68,23 @@ using RCParsing;
 var builder = new ParserBuilder();
 
 // Enable and configure the auto-skip (you can replace `Whitespaces` with any parser rule)
-builder.Settings()
+builder.Settings
     .Skip(b => b.Whitespaces().ConfigureForSkip());
 
-// Create the number token from regular expression that transforms to double
+// Create the number token that transforms to double
 builder.CreateToken("number")
-    .Regex(@"\d(?:\.\d+)?")
-    .Transform(v => double.Parse(v.Text, CultureInfo.InvariantCulture));
+	.Number<double>();
 
 // Create a main sequential expression rule
 builder.CreateMainRule("expression")
-    .Rule("number")
+    .Token("number")
     .LiteralChoice("+", "-")
-    .Rule("number")
+    .Token("number")
     .Transform(v => {
         var value1 = v.GetValue<double>(0);
         var op = v.Children[1].Text;
         var value2 = v.GetValue<double>(2);
-        return op == "+" ? value1 + value2 : value1 - value;
+        return op == "+" ? value1 + value2 : value1 - value2;
     });
 
 // Build the parser
@@ -100,7 +106,7 @@ And here is JSON example:
 var builder = new ParserBuilder();
 
 // Configure whitespace and comment skip-rule
-builder.Settings()
+builder.Settings
 	.Skip(r => r.Rule("skip"), ParserSkippingStrategy.SkipBeforeParsingGreedy);
 
 builder.CreateRule("skip")
@@ -113,10 +119,10 @@ builder.CreateToken("string")
 	.Literal("\"")
 	.EscapedTextPrefix(prefix: '\\', '\\', '\"') // This sub-token automatically escapes the source string and puts it into intermediate value
 	.Literal("\"")
-	.Pass(v => v[1]); // Pass the EscapedTextPrefix's intermediate value up (it will be used as token's result value)
+	.Pass(index: 1); // Pass the EscapedTextPrefix's intermediate value up (it will be used as token's result value)
 
 builder.CreateToken("number")
-	.Regex(@"-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?", v => double.Parse(v.Text, CultureInfo.InvariantCulture));
+	.Number<double>();
 
 builder.CreateToken("boolean")
 	.LiteralChoice(["true", "false"], v => v.Text == "true");
@@ -276,35 +282,35 @@ foreach (var statement in ast.Children)
 | Library        | Speed (Relative to RCParsing) | Memory Efficiency |
 | :------------- | :---------------------------- | :---------------- |
 | **RCParsing**  | 1.00x (baseline)              | High              |
-| **Pidgin**     | **~1.04x faster**             | **Excellent**     |
-| **Superpower** | ~4.79x slower                 | Medium            |
+| **Pidgin**     | **~1.10x faster**             | **Excellent**     |
+| **Superpower** | ~5.10x slower                 | Medium            |
 
 ### Feature Comparison
 
 This table highlights the unique architectural and usability features of each library.
 
-| Feature                    | RCParsing                     | Pidgin              | Parlot                 | Superpower          | ANTLR4             |
+| Feature                    | **RCParsing**                 | Pidgin              | Parlot                 | Superpower          | ANTLR4             |
 | :------------------------- | :---------------------------- | :------------------ | :--------------------- | :------------------ | :----------------- |
 | **Architecture**           | **Scannerless hybrid**        | Scannerless         | Scannerless            | Lexer-based         | Lexer-based        |
 | **API**                    | **High-readable Fluent**      | Functional          | Fluent/functional      | Fluent/functional   | Grammar Files      |
-| **Barrier/complex Tokens** | **Yes, prebuilt or manual**   | None                | None                   | Yes, manual         | Yes, manual        |
+| **Barrier/complex Tokens** | **Yes, built-in or manual**   | None                | None                   | Yes, manual         | Yes, manual        |
 | **Skipping**               | **6 strategies, globally**    | Manual              | Global or manual       | Tokenizer-based     | Tokenizer-based    |
-| **Error Messages**         | **Extremely Detailed**        | Postion/expected    | None?                  | Postion/expected    | Postion/expected   |
+| **Error Messages**         | **Extremely Detailed**        | Position/expected   | None?                  | Position/expected   | Position/expected  |
 | **Minimum .NET Target**    | **.NET Standard 2.0**         | .NET 7.0            | .NET Standard 2.0      | .NET Standard 2.0   | .NET Framework 4.5 |
 
 ### The Verdict: Why RCParsing?
 
-The performance gap has been closed in `v2.0.0`. The choice now comes down to what you value most:
+The performance gap has been nearly closed in `v2.0.0`. The choice now comes down to what you value most:
 
 - **Choose `RCParsing` when you need:**
   - **Rapid Development:** A fluent API that reads like a grammar definition
   - **Maximum Flexibility:** To parse complex syntax (Python-like indentation, mixed data/code formats) with **barrier tokens**
   - **Superior Debugging:** Detailed errors with stack traces to quickly pinpoint problems
-  - **Modern Features:** Built-in ruleset (`EscapedText`, `SeparatedRepeat`) for common patterns
+  - **Modern Features:** Built-in ruleset (`EscapedText`, `SeparatedRepeat`, `Number`) for common patterns
 
 - **Consider other libraries only for:**
   - **Specialized ultra-low-memory scenarios** where every byte counts (Pidgin, Parlot)
-  - **When already invested** in a different ecosystem (ANTLR for multi-language support)
+  - **When already invested** in a different ecosystem (ANTLR)
 
 The performance is now near-optimal, but the developer experience advantage is **significant and enduring**.
 
@@ -327,13 +333,13 @@ Runtime=.NET 8.0  IterationCount=3  WarmupCount=2
 
 | Method               | Mean        | Error     | StdDev   | Ratio | RatioSD | Gen0    | Gen1    | Allocated | Alloc Ratio |
 |--------------------- |------------:|----------:|---------:|------:|--------:|--------:|--------:|----------:|------------:|
-| JsonBig_RCParsing    |   249.70 us | 30.130 us | 1.652 us |  1.00 |    0.01 | 26.8555 | 15.1367 | 446.66 KB |        1.00 |
-| JsonBig_Pidgin       |   239.82 us |  8.808 us | 0.483 us |  0.96 |    0.01 |  3.9063 |  0.2441 |  65.25 KB |        0.15 |
-| JsonBig_Superpower   | 1,216.86 us | 71.864 us | 3.939 us |  4.87 |    0.03 | 39.0625 |  5.8594 | 638.31 KB |        1.43 |
+| JsonBig_RCParsing    |   231.87 us | 10.672 us | 0.585 us |  1.00 |    0.00 | 26.8555 | 13.4277 | 442.37 KB |        1.00 |
+| JsonBig_Pidgin       |   218.32 us |  3.429 us | 0.188 us |  0.94 |    0.00 |  3.9063 |  0.2441 |  65.25 KB |        0.15 |
+| JsonBig_Superpower   | 1,188.05 us | 56.929 us | 3.120 us |  5.12 |    0.02 | 39.0625 |  5.8594 | 638.31 KB |        1.44 |
 |                      |             |           |          |       |         |         |         |           |             |
-| JsonShort_RCParsing  |    13.80 us | 10.007 us | 0.549 us |  1.00 |    0.05 |  1.5869 |  0.1068 |  26.05 KB |        1.00 |
-| JsonShort_Pidgin     |    13.42 us |  0.282 us | 0.015 us |  0.97 |    0.03 |  0.2136 |       - |   3.58 KB |        0.14 |
-| JsonShort_Superpower |    64.76 us | 17.088 us | 0.937 us |  4.70 |    0.17 |  1.9531 |       - |  33.32 KB |        1.28 |
+| JsonShort_RCParsing  |    12.82 us |  2.196 us | 0.120 us |  1.00 |    0.01 |  1.5717 |  0.0763 |  25.86 KB |        1.00 |
+| JsonShort_Pidgin     |    10.98 us |  0.242 us | 0.013 us |  0.86 |    0.01 |  0.2136 |       - |   3.58 KB |        0.14 |
+| JsonShort_Superpower |    65.12 us |  2.230 us | 0.122 us |  5.08 |    0.04 |  1.9531 |       - |  33.32 KB |        1.29 |
 
 Notes:
 
@@ -358,6 +364,11 @@ The future development of `RCParsing` is focused on:
 - **New Built-in Rules:** Adding common patterns (e.g., number with wide range of notations) out of the box.
 - **Visualization Tooling:** Exploring tools for debugging and visualizing grammar rules.
 - **API for analyzing errors:** The API that will allow users to analyze errors more effectively.
+- **Error recovery:** Ability to re-parse the content when encountering an error using the anchor token. Applicable to `Repeat` and `SeparatedRepeat` rules.
+- **Transformation sugars:** Ignorance flags of AST childs, more automatic transformation factories.
+- ***Incremental parsing:*** Parsing only changed parts in the middle of text that will be good for IDE and LSP (Language Server Protocol).
+- ***Streaming incremental parsing:*** The stateful approach for parsing chunked streaming content. For example, *Markdown* or structured *JSON* output from LLM.
+- ***Cosmic levels of debug:*** Very detailed parse walk traces, showing the order of what was parsed with success/fail status.
 
 # Contributing
 

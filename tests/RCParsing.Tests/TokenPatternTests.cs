@@ -176,8 +176,7 @@ namespace RCParsing.Tests
 					b => b.Regex("[a-z]+"));
 
 			var parser = builder.Build();
-			var ok = parser.TryMatchToken("ch", "abz", out var res);
-			Assert.True(ok);
+			parser.TryMatchToken("ch", "abz", out var res);
 			Assert.True(res.Success);
 			// expected that first choice "ab" matches (or, if precedence/longest, "ab" still chosen)
 			Assert.Equal("ab", res.Text);

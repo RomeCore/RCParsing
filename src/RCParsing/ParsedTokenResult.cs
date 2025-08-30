@@ -44,7 +44,7 @@ namespace RCParsing
 		/// <summary>
 		/// Gets the alias for the token pattern that was parsed. May be null if no alias is defined.
 		/// </summary>
-		public string TokenAlias => Token.Aliases.Count > 0 ? Token.Aliases[0] : null;
+		public string TokenAlias => Token.Aliases.Count > 0 ? Token.Aliases[Token.Aliases.Count - 1] : null;
 
 		/// <summary>
 		/// Gets the aliases for the token pattern that was parsed.

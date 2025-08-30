@@ -190,8 +190,7 @@ namespace RCParsing.Tests
 			builder.CreateRule("messages_template_block")
 				.Literal('{')
 				.Rule("message_statements")
-				.Literal('}')
-				.Transform(v => v.GetValue(1));
+				.Literal('}');
 
 			builder.CreateRule("message_statements")
 				.ZeroOrMore(b => b
@@ -202,8 +201,7 @@ namespace RCParsing.Tests
 						c => c.Rule("messages_foreach"),
 						c => c.Rule("messages_while"),
 						c => c.Rule("messages_render"),
-						c => c.Rule("messages_var_assignment"))
-					.Transform(v => v.GetValue(1)));
+						c => c.Rule("messages_var_assignment")));
 
 			builder.CreateRule("message_block")
 				.Choice(
@@ -519,7 +517,6 @@ namespace RCParsing.Tests
 			        }
 			    }
 			}
-			
 			""";
 
 			_parser.Parse(templateStr);

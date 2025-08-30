@@ -50,7 +50,7 @@ namespace RCParsing.TokenPatterns
 			Literals = ImmutableHashSet.CreateRange(Comparer, literals);
 
 			_comparerWasSet = comparer != null;
-			_root = new Trie(literals.Select(l => new KeyValuePair<string, object?>(l, l)), _comparerWasSet ? CharComparer : null);
+			_root = new Trie(Literals.Select(l => new KeyValuePair<string, object?>(l, l)), _comparerWasSet ? CharComparer : null);
 		}
 
 		protected override HashSet<char>? FirstCharsCore => _comparerWasSet ? null :
