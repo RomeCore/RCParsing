@@ -70,6 +70,20 @@ namespace RCParsing.Building
 		}
 
 		/// <summary>
+		/// Sets the 'Whitespaces' skip rule that will be skipped before parsing rules.
+		/// </summary>
+		/// <param name="skippingStrategy">The skipping strategy to use.</param>
+		/// <returns>This instance for method chaining.</returns>
+		public ParserSettingsBuilder SkipWhitespaces(ParserSkippingStrategy skippingStrategy = ParserSkippingStrategy.SkipBeforeParsing)
+		{
+			var builder = new RuleBuilder();
+			builder.Whitespaces().ConfigureForSkip();
+			_skipRule = builder.BuildingRule;
+			_settings.skippingStrategy = skippingStrategy;
+			return this;
+		}
+
+		/// <summary>
 		/// Sets the skipping strategy.
 		/// </summary>
 		/// <param name="skippingStrategy">The skipping strategy to use.</param>

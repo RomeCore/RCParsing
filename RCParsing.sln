@@ -16,6 +16,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RCParsing.Benchmarks.JSON",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RCParsing.Benchmarks.DifferentConfigurations", "benchmarks\RCParsing.Benchmarks.DifferentConfigurations\RCParsing.Benchmarks.DifferentConfigurations.csproj", "{68F9B945-70DC-496C-A257-960CE18AAF1C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RCParsing.Benchmarks.Expressions", "benchmarks\RCParsing.Benchmarks.Expressions\RCParsing.Benchmarks.Expressions.csproj", "{BA4678F0-6205-425D-905A-9B0A22958CB1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -38,6 +40,10 @@ Global
 		{68F9B945-70DC-496C-A257-960CE18AAF1C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{68F9B945-70DC-496C-A257-960CE18AAF1C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{68F9B945-70DC-496C-A257-960CE18AAF1C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BA4678F0-6205-425D-905A-9B0A22958CB1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BA4678F0-6205-425D-905A-9B0A22958CB1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BA4678F0-6205-425D-905A-9B0A22958CB1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BA4678F0-6205-425D-905A-9B0A22958CB1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

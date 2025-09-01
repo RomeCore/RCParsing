@@ -366,5 +366,99 @@ namespace RCParsing.Building
 				typeof(T9), typeof(T10), typeof(T11), typeof(T12),
 				typeof(T13), typeof(T14), typeof(T15)
 			));
+
+		/// <summary>
+		/// Applies a left-associative fold transformation on the rule's children.
+		/// For sequences: [a, b, c] -> fold(fold(a, b), c)
+		/// </summary>
+		/// <typeparam name="TAcc">Accumulator and return type</typeparam>
+		/// <typeparam name="T1">Type of subsequent values</typeparam>
+		/// <param name="foldFunction">Fold function: (accumulator, nextValue) -> newAccumulator</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public RuleBuilder TransformFoldLeft<TAcc, T1>(Func<TAcc, T1, TAcc> foldFunction)
+		{
+			return Transform(v =>
+			{
+				var accumulator = v.GetValue<TAcc>(0);
+				for (int i = 1; i < v.Count; i++)
+				{
+					var value1 = v.GetValue<T1>(i);
+					accumulator = foldFunction(accumulator, value1);
+				}
+				return accumulator;
+			});
+		}
+
+		/// <summary>
+		/// Applies a left-associative fold transformation on interleaved operator-value pairs.
+		/// For sequences: [a, op1, b, op2, c] -> fold(fold(a, op1, b), op2, c)
+		/// </summary>
+		/// <typeparam name="TAcc">Accumulator and return type</typeparam>
+		/// <typeparam name="T1">Operator type</typeparam>
+		/// <typeparam name="T2">Operand type</typeparam>
+		/// <param name="foldFunction">Fold function: (accumulator, operator, operand) -> newAccumulator</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public RuleBuilder TransformFoldLeft<TAcc, T1, T2>(Func<TAcc, T1, T2, TAcc> foldFunction)
+		{
+			return Transform(v =>
+			{
+				var accumulator = v.GetValue<TAcc>(0);
+				for (int i = 1; i < v.Count - 1; i += 2)
+				{
+					var value1 = v.GetValue<T1>(i);
+					var value2 = v.GetValue<T2>(i + 1);
+					accumulator = foldFunction(accumulator, value1, value2);
+				}
+				return accumulator;
+			});
+		}
+
+		/// <summary>
+		/// Applies a right-associative fold transformation on the rule's children.
+		/// For sequences: [a, b, c] -> fold(a, fold(c, b))
+		/// </summary>
+		/// <typeparam name="TAcc">Accumulator and return type</typeparam>
+		/// <typeparam name="T1">Type of previous values</typeparam>
+		/// <param name="foldFunction">Fold function: (accumulator, previousValue) -> newAccumulator</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public RuleBuilder TransformFoldRight<TAcc, T1>(Func<TAcc, T1, TAcc> foldFunction)
+		{
+			return Transform(v =>
+			{
+				var last = v.Count - 1;
+				var accumulator = v.GetValue<TAcc>(last);
+				for (int i = last - 1; i >= 0; i--)
+				{
+					var value1 = v.GetValue<T1>(i);
+					accumulator = foldFunction(accumulator, value1);
+				}
+				return accumulator;
+			});
+		}
+
+		/// <summary>
+		/// Applies a right-associative fold transformation on interleaved value-operator pairs.
+		/// For sequences: [a, op1, b, op2, c] -> fold(a, op1, fold(c, op2, b))
+		/// </summary>
+		/// <typeparam name="TAcc">Accumulator and return type</typeparam>
+		/// <typeparam name="T1">Operator type</typeparam>
+		/// <typeparam name="T2">Operand type</typeparam>
+		/// <param name="foldFunction">Fold function: (accumulator, operator, operand) -> newAccumulator</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public RuleBuilder TransformFoldRight<TAcc, T1, T2>(Func<TAcc, T1, T2, TAcc> foldFunction)
+		{
+			return Transform(v =>
+			{
+				var last = v.Count - 1;
+				var accumulator = v.GetValue<TAcc>(last);
+				for (int i = last - 1; i > 0; i -= 2)
+				{
+					var value1 = v.GetValue<T1>(i);
+					var value2 = v.GetValue<T2>(i - 1);
+					accumulator = foldFunction(accumulator, value1, value2);
+				}
+				return accumulator;
+			});
+		}
 	}
 }

@@ -184,7 +184,7 @@ namespace RCParsing.Tests
 			builder.CreateToken("uint")
 				.Number<int>(NumberFlags.UnsignedInteger);
 			builder.CreateToken("ufloat")
-				.Number<float>(NumberFlags.UnsignedFloat);
+				.Number<float>(NumberFlags.UnsignedScientific);
 
 			var parser = builder.Build();
 

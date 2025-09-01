@@ -28,8 +28,8 @@ It has a brand new feature for parser combinators, the **barrier tokens** that c
 
 - [Installation](#installation)
 - [Tutorials, docs and examples](#tutorials-docs-and-examples)
-- [Simple examples](#simple-examples)
-	- [A + B](#a--b) - Basic arithmetic expression parser
+- [Simple examples](#simple-examples) - The examples that you can copy, paste and run!
+	- [A + B](#a--b) - Basic arithmetic expression parser.
 	- [JSON](#json) - A complete JSON parser with comments and skipping.
 	- [Python-like](#python-like) - Demonstrating barrier tokens for indentation.
 - [Comparison with other parsing libraries](#comparison-with-other-parsing-libraries)
@@ -40,6 +40,7 @@ It has a brand new feature for parser combinators, the **barrier tokens** that c
 - [Contributing](#contributing)
 
 # Installation
+
 You can install the package via NuGet Package Manager or console window, using one of these commands:
 
 ```shell
@@ -53,7 +54,7 @@ Or do it manually by cloning this repository.
 
 # Tutorials, docs and examples
 
-- [Tutorials](https://github.com/RomeCore/RCParsing/tree/main/docs/tutorials.md) - detailed tutorials, explaining features and mechanics of this library, highly recommended to read!
+- [Tutorials](./docs/tutorials.md) - detailed tutorials, explaining features and mechanics of this library, highly recommended to read!
 
 # Simple examples
 
@@ -63,6 +64,7 @@ Here is simple example how to make simple parser that parses "a + b" string with
 
 ```csharp
 using RCParsing;
+using RCParsing.Building;
 
 // First, you need to create a builder
 var builder = new ParserBuilder();
@@ -90,7 +92,7 @@ builder.CreateMainRule("expression")
 // Build the parser
 var parser = builder.Build();
 
-// Parse a string using 'expression' rule and get the raw AST (value currently not calculated)
+// Parse a string using 'expression' rule and get the raw AST (value will be calculated lazily)
 var parsedRule = parser.Parse("10 + 15");
 
 // We can now get the value from our 'Transform' functions (value calculates now)
@@ -103,6 +105,9 @@ Console.WriteLine(transformedValue); // 25
 And here is JSON example:
 
 ```csharp
+using RCParsing;
+using RCParsing.Building;
+
 var builder = new ParserBuilder();
 
 // Configure whitespace and comment skip-rule
@@ -113,11 +118,11 @@ builder.CreateRule("skip")
 	.Choice(
 		b => b.Whitespaces(),
 		b => b.Literal("//").TextUntil('\n', '\r'))
-	.ConfigureForSkip();
+	.ConfigureForSkip(); // Prevents from error recording
 
 builder.CreateToken("string")
 	.Literal("\"")
-	.EscapedTextPrefix(prefix: '\\', '\\', '\"') // This sub-token automatically escapes the source string and puts it into intermediate value
+	.EscapedTextPrefix(prefix: '\\', '\\', '\"') // This sub-token automaticaly escapes the source string and puts it into intermediate value
 	.Literal("\"")
 	.Pass(index: 1); // Pass the EscapedTextPrefix's intermediate value up (it will be used as token's result value)
 
@@ -194,6 +199,9 @@ Console.WriteLine(result["name"]); // Output: Sample Data
 This example involves our killer-feature, **barrier tokens** that allows to parse indentations without missing them:
 
 ```csharp
+using RCParsing;
+using RCParsing.Building;
+
 var builder = new ParserBuilder();
 
 builder.Settings

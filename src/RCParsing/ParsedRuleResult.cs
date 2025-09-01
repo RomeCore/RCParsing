@@ -280,6 +280,12 @@ namespace RCParsing
 		}
 
 		/// <summary>
+		/// Gets the text captured by child rule at the specific index.
+		/// </summary>
+		/// <returns>The text captured by child rule.</returns>
+		public string GetText(int index) => Children[index].Text;
+
+		/// <summary>
 		/// Gets the intermediate value associated with this rule as an instance of type <typeparamref name="T"/>.
 		/// </summary>
 		/// <typeparam name="T">The type of value to retrieve.</typeparam>
@@ -392,7 +398,7 @@ namespace RCParsing
 		public T? TryGetParsingParameter<T>() where T : class => ParsingParameter as T;
 
 		/// <summary>
-		/// Selects the children values of this rule.
+		/// Selects the children values array of this rule.
 		/// </summary>
 		/// <returns>The values from the children.</returns>
 		public object?[] SelectArray()
@@ -408,12 +414,30 @@ namespace RCParsing
 		}
 
 		/// <summary>
+		/// Selects the children values array of child rule at the specified index.
+		/// </summary>
+		/// <returns>The values from the children.</returns>
+		public object?[] SelectArray(int index)
+		{
+			return Children[index].SelectArray();
+		}
+
+		/// <summary>
 		/// Selects the children values of this rule.
 		/// </summary>
 		/// <returns>The values from the children.</returns>
 		public IEnumerable<object> SelectValues()
 		{
 			return Children.Select(child => child.GetValue());
+		}
+
+		/// <summary>
+		/// Selects the children values of child rule at the specified index.
+		/// </summary>
+		/// <returns>The values from the children.</returns>
+		public IEnumerable<object> SelectValues(int index)
+		{
+			return Children[index].SelectValues();
 		}
 
 		/// <summary>
@@ -434,6 +458,16 @@ namespace RCParsing
 		}
 
 		/// <summary>
+		/// Selects the casted children values array of child rule at the specified index.
+		/// </summary>
+		/// <typeparam name="T">The type of value to retrieve from the children.</typeparam>
+		/// <returns>The casted values from the children.</returns>
+		public T[] SelectArray<T>(int index)
+		{
+			return Children[index].SelectArray<T>();
+		}
+
+		/// <summary>
 		/// Selects the casted children values of this rule.
 		/// </summary>
 		/// <typeparam name="T">The type of value to retrieve from the children.</typeparam>
@@ -441,6 +475,16 @@ namespace RCParsing
 		public IEnumerable<T> SelectValues<T>()
 		{
 			return Children.Select(child => child.GetValue<T>());
+		}
+
+		/// <summary>
+		/// Selects the casted children values of child rule at the specified index.
+		/// </summary>
+		/// <typeparam name="T">The type of value to retrieve from the children.</typeparam>
+		/// <returns>The casted values from the children.</returns>
+		public IEnumerable<T> SelectValues<T>(int index)
+		{
+			return Children[index].SelectValues<T>();
 		}
 
 		/// <summary>
@@ -459,6 +503,16 @@ namespace RCParsing
 			foreach (var child in Children)
 				result[i++] = selector(child);
 			return result;
+		}
+
+		/// <summary>
+		/// Selects the children of child rule at the specified index using a selector function.
+		/// </summary>
+		/// <typeparam name="T">The type of value to retrieve from the children.</typeparam>
+		/// <returns>The selected values from the children.</returns>
+		public T[] SelectArray<T>(int index, Func<ParsedRuleResult, T> selector)
+		{
+			return Children[index].SelectArray(selector);
 		}
 
 		/// <summary>

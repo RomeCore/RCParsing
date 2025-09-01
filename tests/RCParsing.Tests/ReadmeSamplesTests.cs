@@ -146,7 +146,7 @@ namespace RCParsing.Tests
 			var builder = new ParserBuilder();
 
 			builder.Settings
-				.Skip(b => b.Whitespaces().ConfigureForSkip());
+				.SkipWhitespaces();
 
 			// Add the 'INDENT' and 'DEDENT' barrier tokenizer
 			// 'INDENT' is emmited when indentation grows
