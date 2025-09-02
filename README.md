@@ -354,7 +354,25 @@ Notes:
 - `RCParsing` uses `UseInlining()` and `IgnoreErrors()` settings.
 - `JsonShort` methods uses ~20 lines of hardcoded (not generated) JSON with simple content.
 - `JsonBig` methods uses ~180 lines of hardcoded (not generated) JSON with various content (deep, long objects/arrays).
-- `Parlot` was excluded from this benchmark because it fails on `JsonBig` and i don't know why (it does not throws any error messages).
+- `Parlot` was excluded from this benchmark temporarily.
+
+## Expressions
+
+| Method                    | Mean         | Error       | StdDev    | Ratio | RatioSD | Gen0     | Gen1     | Allocated | Alloc Ratio |
+|-------------------------- |-------------:|------------:|----------:|------:|--------:|---------:|---------:|----------:|------------:|
+| ExpressionBig_RCParsing   |   842.038 us | 100.0838 us | 5.4859 us |  1.00 |    0.01 | 182.6172 | 109.3750 |  807240 B |        1.00 |
+| ExpressionBig_Pidgin      | 1,256.770 us |  39.4414 us | 2.1619 us |  1.49 |    0.01 |  21.4844 |        - |   23536 B |        0.03 |
+| ExpressionBig_Parlot      |   135.672 us |  56.1815 us | 3.0795 us |  0.16 |    0.00 |  53.9551 |        - |   56608 B |        0.07 |
+|                           |              |             |           |       |         |          |          |           |             |
+| ExpressionShort_RCParsing |     6.079 us |   1.7968 us | 0.0985 us |  1.00 |    0.02 |   7.6065 |        - |    7960 B |        1.00 |
+| ExpressionShort_Pidgin    |    12.174 us |   3.6439 us | 0.1997 us |  2.00 |    0.04 |   0.3204 |        - |     344 B |        0.04 |
+| ExpressionShort_Parlot    |     1.191 us |   0.1990 us | 0.0109 us |  0.20 |    0.00 |   0.8564 |        - |     896 B |        0.11 |
+
+Notes:
+
+- `RCParsing` uses `UseInlining()` and `IgnoreErrors()` settings.
+- `ExpressionShort` methods uses line with 4 operators of hardcoded (not generated) expression with +- and */ operators.
+- `ExpressionBig` methods uses line with ~400 operators of hardcoded (not generated) expression with +- and */ operators with nesting.
 
 *More benchmarks will be later here...*
 
