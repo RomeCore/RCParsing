@@ -28,7 +28,7 @@ namespace RCParsing.ParserRules
 
 
 
-		delegate ParsedRule ParseDelegate(ref ParserContext ctx, ref ParserContext chCtx);
+		delegate ParsedRule ParseDelegate(ref ParserContext ctx, ref ParserSettings settings, ref ParserSettings childSettings);
 
 		private bool parseIgnoringBarriers = false;
 		private TokenPattern _pattern;
@@ -41,23 +41,23 @@ namespace RCParsing.ParserRules
 
 		protected override void Initialize(ParserInitFlags initFlags)
 		{
-			ParsedRule ParseIgnoringBarriers(ref ParserContext ctx, ref ParserContext chCtx)
+			ParsedRule ParseIgnoringBarriers(ref ParserContext ctx, ref ParserSettings stng, ref ParserSettings chStng)
 			{
 				var match = _pattern.Match(ctx.str, ctx.position, ctx.str.Length, ctx.parserParameter);
 				if (!match.success)
 				{
-					RecordError(ref ctx, "Failed to parse token");
+					RecordError(ref ctx, ref stng, "Failed to parse token");
 					return ParsedRule.Fail;
 				}
 
 				return ParsedRule.Token(Id, TokenPattern, match.startIndex, match.length, ctx.passedBarriers, match.intermediateValue);
 			}
 
-			ParsedRule ParseUsingBarriers(ref ParserContext ctx, ref ParserContext chCtx)
+			ParsedRule ParseUsingBarriers(ref ParserContext ctx, ref ParserSettings stng, ref ParserSettings chStng)
 			{
-				if (ctx.settings.ignoreBarriers)
+				if (stng.ignoreBarriers)
 				{
-					return ParseIgnoringBarriers(ref ctx, ref chCtx);
+					return ParseIgnoringBarriers(ref ctx, ref stng, ref chStng);
 				}
 
 				if (ctx.barrierTokens.TryGetBarrierToken(ctx.position, ctx.passedBarriers, out var barrierToken))
@@ -69,14 +69,14 @@ namespace RCParsing.ParserRules
 					}
 					else
 					{
-						RecordError(ref ctx, "Failed to match virtual token.");
+						RecordError(ref ctx, ref stng, "Failed to match virtual token.");
 						return ParsedRule.Fail;
 					}
 				}
 
 				if (_pattern is BarrierTokenPattern)
 				{
-					RecordError(ref ctx, "Failed to match virtual token.");
+					RecordError(ref ctx, ref stng, "Failed to match virtual token.");
 					return ParsedRule.Fail;
 				}
 
@@ -85,7 +85,7 @@ namespace RCParsing.ParserRules
 				var match = _pattern.Match(ctx.str, ctx.position, maxPos, ctx.parserParameter);
 				if (!match.success)
 				{
-					RecordError(ref ctx, "Failed to parse token.");
+					RecordError(ref ctx, ref stng, "Failed to parse token.");
 					return ParsedRule.Fail;
 				}
 
@@ -102,12 +102,12 @@ namespace RCParsing.ParserRules
 			{
 				var prev = parseFunction;
 
-				ParsedRule ParseMemoized(ref ParserContext ctx, ref ParserContext chCtx)
+				ParsedRule ParseMemoized(ref ParserContext ctx, ref ParserSettings stng, ref ParserSettings chStng)
 				{
 					if (ctx.cache.TryGetRule(Id, ctx.position, out var cachedResult))
 						return cachedResult;
 
-					cachedResult = prev(ref ctx, ref chCtx);
+					cachedResult = prev(ref ctx, ref stng, ref chStng);
 					ctx.cache.AddRule(Id, ctx.position, cachedResult);
 					return cachedResult;
 				}
@@ -118,21 +118,21 @@ namespace RCParsing.ParserRules
 			parseIgnoringBarriers = parseFunction == ParseIgnoringBarriers;
 		}
 
-		public override ParsedRule Parse(ParserContext context, ParserContext childContext)
+		public override ParsedRule Parse(ParserContext context, ParserSettings settings, ParserSettings childSettings)
 		{
 			if (parseIgnoringBarriers)
 			{
 				var match = _pattern.Match(context.str, context.position, context.str.Length, context.parserParameter);
 				if (!match.success)
 				{
-					RecordError(ref context, "Failed to parse token");
+					RecordError(ref context, ref settings, "Failed to parse token");
 					return ParsedRule.Fail;
 				}
 
 				return ParsedRule.Token(Id, TokenPattern, match.startIndex, match.length, context.passedBarriers, match.intermediateValue);
 			}
 
-			return parseFunction(ref context, ref childContext);
+			return parseFunction(ref context, ref settings, ref childSettings);
 		}
 
 

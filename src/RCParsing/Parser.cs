@@ -194,10 +194,11 @@ namespace RCParsing
 		/// </remarks>
 		/// <param name="ruleId">The unique identifier for the parser rule to use.</param>
 		/// <param name="context">The parser context to use for parsing.</param>
+		/// <param name="settings">The settings to use for parsing.</param>
 		/// <returns>A parsed rule object containing the result of the parse.</returns>
-		internal ParsedRule ParseRule(int ruleId, ParserContext context)
+		internal ParsedRule ParseRule(int ruleId, ParserContext context, ParserSettings settings)
 		{
-			var parsedRule = TryParseRule(ruleId, context);
+			var parsedRule = TryParseRule(ruleId, context, settings);
 			if (parsedRule.success)
 				return parsedRule;
 
@@ -209,16 +210,17 @@ namespace RCParsing
 		/// </summary>
 		/// <param name="ruleId">The unique identifier for the parser rule to use.</param>
 		/// <param name="context">The parser context to use for parsing.</param>
+		/// <param name="settings">The settings to use for parsing.</param>
 		/// <returns>A parsed rule object containing the result of the parse.</returns>
-		internal ParsedRule TryParseRule(int ruleId, ParserContext context)
+		internal ParsedRule TryParseRule(int ruleId, ParserContext context, ParserSettings settings)
 		{
 			var rule = Rules[ruleId];
-			rule.AdvanceContext(ref context, out var childContext);
+			rule.AdvanceContext(ref context, ref settings, out var childSettings);
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			ParsedRule Parse()
 			{
-				var parsedRule = rule.Parse(context, childContext);
+				var parsedRule = rule.Parse(context, settings, childSettings);
 				if (parsedRule.success && parsedRule.startIndex < context.str.Length)
 					context.successPositions[parsedRule.startIndex] = true;
 				return parsedRule;
@@ -227,23 +229,24 @@ namespace RCParsing
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			bool TryParse(out ParsedRule result)
 			{
-				var parsedRule = rule.Parse(context, childContext);
+				var parsedRule = rule.Parse(context, settings, childSettings);
 				if (parsedRule.success && parsedRule.startIndex < context.str.Length)
 					context.successPositions[parsedRule.startIndex] = true;
 				result = parsedRule;
 				return parsedRule.success;
 			}
 
-			if (context.settings.skipRule == -1 || context.settings.skippingStrategy == ParserSkippingStrategy.Default)
+			if (settings.skipRule == -1 || settings.skippingStrategy == ParserSkippingStrategy.Default)
 				return Parse();
 
 			// Skip rule preparation
 
-			var skipRule = Rules[context.settings.skipRule];
+			var skipRule = Rules[settings.skipRule];
 			var skipContext = context;
-			skipRule.AdvanceContext(ref skipContext, out var childSkipContext);
-			skipContext.settings.skipRule = -1;
-			childSkipContext.settings.skipRule = -1;
+			var skipSettings = settings;
+			skipRule.AdvanceContext(ref skipContext, ref skipSettings, out var childSkipSettings);
+			skipSettings.skipRule = -1;
+			childSkipSettings.skipRule = -1;
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			bool TrySkip()
@@ -253,20 +256,19 @@ namespace RCParsing
 				if (skipContext.shared.positionsToAvoidSkipping[skipContext.position])
 					return false;
 
-				var parsedSkipRule = skipRule.Parse(skipContext, childSkipContext);
+				var parsedSkipRule = skipRule.Parse(skipContext, skipSettings, childSkipSettings);
 				int newPosition = parsedSkipRule.startIndex + parsedSkipRule.length;
 
 				if (parsedSkipRule.success && newPosition != context.position)
 				{
-					context.position = childContext.position = skipContext.position =
-						childSkipContext.position = newPosition;
+					context.position = skipContext.position = newPosition;
 					context.skippedRules.Add(parsedSkipRule);
 					return true;
 				}
 				return false;
 			}
 
-			switch (context.settings.skippingStrategy)
+			switch (settings.skippingStrategy)
 			{
 				case ParserSkippingStrategy.SkipBeforeParsing:
 
@@ -439,7 +441,7 @@ namespace RCParsing
 
 			var context = new ParserContext(this, input, parameter);
 			EmitBarriers(ref context);
-			var parsedRule = ParseRule(ruleId, context);
+			var parsedRule = ParseRule(ruleId, context, GlobalSettings);
 			return new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule);
 		}
 
@@ -457,7 +459,7 @@ namespace RCParsing
 
 			var context = new ParserContext(this, input, parameter);
 			EmitBarriers(ref context);
-			var parsedRule = ParseRule(ruleId, context);
+			var parsedRule = ParseRule(ruleId, context, GlobalSettings);
 			return new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule).GetValue<T>();
 		}
 
@@ -475,7 +477,7 @@ namespace RCParsing
 
 			var context = new ParserContext(this, input, null);
 			EmitBarriers(ref context);
-			var parsedRule = TryParseRule(ruleId, context);
+			var parsedRule = TryParseRule(ruleId, context, GlobalSettings);
 			result = new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule);
 			return parsedRule.success;
 		}
@@ -494,7 +496,7 @@ namespace RCParsing
 
 			var context = new ParserContext(this, input, null);
 			EmitBarriers(ref context);
-			var parsedRule = TryParseRule(ruleId, context);
+			var parsedRule = TryParseRule(ruleId, context, GlobalSettings);
 			result = new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule).GetValue<T>();
 			return parsedRule.success;
 		}
@@ -514,7 +516,7 @@ namespace RCParsing
 
 			var context = new ParserContext(this, input, parameter);
 			EmitBarriers(ref context);
-			var parsedRule = TryParseRule(ruleId, context);
+			var parsedRule = TryParseRule(ruleId, context, GlobalSettings);
 			result = new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule);
 			return parsedRule.success;
 		}
@@ -534,7 +536,7 @@ namespace RCParsing
 
 			var context = new ParserContext(this, input, parameter);
 			EmitBarriers(ref context);
-			var parsedRule = TryParseRule(ruleId, context);
+			var parsedRule = TryParseRule(ruleId, context, GlobalSettings);
 			result = new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule).GetValue<T>();
 			return parsedRule.success;
 		}
@@ -554,7 +556,7 @@ namespace RCParsing
 
 			var context = new ParserContext(this, input, parameter);
 			EmitBarriers(ref context);
-			var parsedRule = ParseRule(_mainRuleId, context);
+			var parsedRule = ParseRule(_mainRuleId, context, GlobalSettings);
 			return new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule);
 		}
 
@@ -572,7 +574,7 @@ namespace RCParsing
 
 			var context = new ParserContext(this, input, parameter);
 			EmitBarriers(ref context);
-			var parsedRule = ParseRule(_mainRuleId, context);
+			var parsedRule = ParseRule(_mainRuleId, context, GlobalSettings);
 			return new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule).GetValue<T>();
 		}
 
@@ -589,7 +591,7 @@ namespace RCParsing
 
 			var context = new ParserContext(this, input, null);
 			EmitBarriers(ref context);
-			var parsedRule = TryParseRule(_mainRuleId, context);
+			var parsedRule = TryParseRule(_mainRuleId, context, GlobalSettings);
 			result = new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule);
 			return parsedRule.success;
 		}
@@ -608,7 +610,7 @@ namespace RCParsing
 
 			var context = new ParserContext(this, input, parameter);
 			EmitBarriers(ref context);
-			var parsedRule = TryParseRule(_mainRuleId, context);
+			var parsedRule = TryParseRule(_mainRuleId, context, GlobalSettings);
 			result = new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule);
 			return parsedRule.success;
 		}
@@ -627,7 +629,7 @@ namespace RCParsing
 
 			var context = new ParserContext(this, input, null);
 			EmitBarriers(ref context);
-			var parsedRule = TryParseRule(_mainRuleId, context);
+			var parsedRule = TryParseRule(_mainRuleId, context, GlobalSettings);
 			var parsedResult = new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule);
 			if (parsedRule.success)
 			{
@@ -653,7 +655,7 @@ namespace RCParsing
 
 			var context = new ParserContext(this, input, parameter);
 			EmitBarriers(ref context);
-			var parsedRule = TryParseRule(_mainRuleId, context);
+			var parsedRule = TryParseRule(_mainRuleId, context, GlobalSettings);
 			var parsedResult = new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule);
 			if (parsedRule.success)
 			{

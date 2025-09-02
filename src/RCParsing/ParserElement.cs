@@ -132,40 +132,44 @@ namespace RCParsing
 		/// Records an error associated with this element in the provided parser context.
 		/// </summary>
 		/// <param name="context">The parser context to record the error in.</param>
-		protected void RecordError(ref ParserContext context)
+		/// <param name="settings">The settings that affects the recording behavior.</param>
+		protected void RecordError(ref ParserContext context, ref ParserSettings settings)
 		{
-			context.RecordError(null, Id, this is TokenPattern);
+			context.RecordError(settings, null, Id, this is TokenPattern);
 		}
 
 		/// <summary>
 		/// Records an error associated with this element and the specific message in the provided parser context.
 		/// </summary>
 		/// <param name="context">The parser context to record the error in.</param>
+		/// <param name="settings">The settings that affects the recording behavior.</param>
 		/// <param name="position">The position in the input string where the error occurred.</param>
-		protected void RecordError(ref ParserContext context, int position)
+		protected void RecordError(ref ParserContext context, ref ParserSettings settings, int position)
 		{
-			context.RecordError(position, null, Id, this is TokenPattern);
+			context.RecordError(settings, position, null, Id, this is TokenPattern);
 		}
 
 		/// <summary>
 		/// Records an error associated with this element and the specific message in the provided parser context.
 		/// </summary>
 		/// <param name="context">The parser context to record the error in.</param>
+		/// <param name="settings">The settings that affects the recording behavior.</param>
 		/// <param name="message">The error message to record.</param>
-		protected void RecordError(ref ParserContext context, string? message)
+		protected void RecordError(ref ParserContext context, ref ParserSettings settings, string? message)
 		{
-			context.RecordError(message, Id, this is TokenPattern);
+			context.RecordError(settings, message, Id, this is TokenPattern);
 		}
 
 		/// <summary>
 		/// Records an error associated with this element and the specific message in the provided parser context.
 		/// </summary>
 		/// <param name="context">The parser context to record the error in.</param>
+		/// <param name="settings">The settings that affects the recording behavior.</param>
 		/// <param name="position">The position in the input string where the error occurred.</param>
 		/// <param name="message">The error message to record.</param>
-		protected void RecordError(ref ParserContext context, int position, string? message)
+		protected void RecordError(ref ParserContext context, ref ParserSettings settings, int position, string? message)
 		{
-			context.RecordError(position, message, Id, this is TokenPattern);
+			context.RecordError(settings, position, message, Id, this is TokenPattern);
 		}
 
 		/// <summary>
@@ -173,10 +177,11 @@ namespace RCParsing
 		/// </summary>
 		/// <param name="ruleId">The ID of the rule to parse.</param>
 		/// <param name="context">The parsing context to use for the parse operation.</param>
+		/// <param name="settings">The settings to use for parsing.</param>
 		/// <returns>The results of rule parsing operation if parsing was successful; otherwise, <see cref="ParsedRule.Fail"/> if parsing failed.</returns>
-		protected ParsedRule TryParseRule(int ruleId, ParserContext context)
+		protected ParsedRule TryParseRule(int ruleId, ParserContext context, ParserSettings settings)
 		{
-			return Parser.TryParseRule(ruleId, context);
+			return Parser.TryParseRule(ruleId, context, settings);
 		}
 
 		/// <summary>
