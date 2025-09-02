@@ -345,16 +345,17 @@ namespace RCParsing.Tests
 					.Rule("prefix_operator"));
 
 			builder.CreateRule("text_var_assignment")
-				.Choice(b => b
-					.Literal("let")
-					.Whitespaces()
-					.Token("identifier")
-					.Literal("=")
-					.Rule("nop_expression"),
+				.Choice(
 					b => b
-					.Token("identifier")
-					.Literal("=")
-					.Rule("nop_expression"));
+						.Literal("let")
+						.Whitespaces()
+						.Token("identifier")
+						.Literal("=")
+						.Rule("nop_expression"),
+					b => b
+						.Token("identifier")
+						.Literal("=")
+						.Rule("nop_expression"));
 		}
 
 		private static void DeclareMainRules(ParserBuilder builder)

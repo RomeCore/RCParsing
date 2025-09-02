@@ -17,19 +17,20 @@ namespace RCParsing.Benchmarks.JSON
 		private static void FillWithRules(ParserBuilder builder)
 		{
 			builder.Settings
-				.Skip(r => r.Whitespaces().ConfigureForSkip(), ParserSkippingStrategy.SkipBeforeParsing);
+				.SkipWhitespaces();
 
 			builder.CreateToken("string")
 				.Literal('"')
-				.TextUntil('"')
+				.TextUntil('"') // 1
 				.Literal('"')
 				.Pass(1);
 
 			builder.CreateToken("number")
-				.Number<double>(NumberFlags.Integer);
+				.Number<double>(NumberFlags.Integer); // Match integer, convert to double
 
 			builder.CreateToken("boolean")
-				.LiteralChoice(["true", "false"], v => v.GetIntermediateValue<string>() == "true");
+				.LiteralChoice(["true", "false"],
+				v => v.GetIntermediateValue<string>() == "true"); // Intermediate value is matched string in choice
 
 			builder.CreateToken("null")
 				.Literal("null", _ => null);
@@ -47,28 +48,27 @@ namespace RCParsing.Benchmarks.JSON
 			builder.CreateRule("array")
 				.Literal("[")
 				.ZeroOrMoreSeparated(v => v.Rule("value"), s => s.Literal(","),
-					allowTrailingSeparator: true, includeSeparatorsInResult: false,
-					factory: v => v.SelectArray())
+					allowTrailingSeparator: true, includeSeparatorsInResult: false) // 1
 				.Literal("]")
-				.Transform(v => v.GetValue(1));
+				.TransformSelect(index: 1);
 
 			builder.CreateRule("object")
 				.Literal("{")
 				.ZeroOrMoreSeparated(v => v.Rule("pair"), s => s.Literal(","), allowTrailingSeparator: true,
 					factory: v => v.SelectValues<KeyValuePair<string, object>>().ToDictionary())
 				.Literal("}")
-				.Transform(v => v.GetValue(1));
+				.TransformSelect(index: 1);
 
 			builder.CreateRule("pair")
 				.Token("string")
 				.Literal(":")
 				.Rule("value")
-				.Transform(v => new KeyValuePair<string, object>(v.GetValue<string>(0), v.GetValue(2)));
+				.Transform<string, Ignored, object>((k, _, v) => new KeyValuePair<string, object>(k, v));
 
 			builder.CreateMainRule("content")
-				.Rule("value")
+				.Rule("value") // 0
 				.EOF()
-				.Transform(v => v.GetValue(0));
+				.TransformSelect(index: 0);
 		}
 
 		static RCJsonParser()

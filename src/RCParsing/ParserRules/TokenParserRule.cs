@@ -30,6 +30,7 @@ namespace RCParsing.ParserRules
 
 		delegate ParsedRule ParseDelegate(ref ParserContext ctx, ref ParserContext chCtx);
 
+		private bool parseIgnoringBarriers = false;
 		private TokenPattern _pattern;
 		private ParseDelegate parseFunction;
 
@@ -113,10 +114,24 @@ namespace RCParsing.ParserRules
 
 				parseFunction = ParseMemoized;
 			}
+
+			parseIgnoringBarriers = parseFunction == ParseIgnoringBarriers;
 		}
 
 		public override ParsedRule Parse(ParserContext context, ParserContext childContext)
 		{
+			if (parseIgnoringBarriers)
+			{
+				var match = _pattern.Match(context.str, context.position, context.str.Length, context.parserParameter);
+				if (!match.success)
+				{
+					RecordError(ref context, "Failed to parse token");
+					return ParsedRule.Fail;
+				}
+
+				return ParsedRule.Token(Id, TokenPattern, match.startIndex, match.length, context.passedBarriers, match.intermediateValue);
+			}
+
 			return parseFunction(ref context, ref childContext);
 		}
 

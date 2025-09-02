@@ -73,6 +73,18 @@ namespace RCParsing
 	public class ParsedRuleResult : IReadOnlyList<ParsedRuleResult>
 	{
 		/// <summary>
+		/// Link wrapper for context to reduce allocations.
+		/// </summary>
+		private class ParserContextLink
+		{
+			public ParserContext Context { get; }
+			public ParserContextLink(ParserContext context)
+			{
+				Context = context;
+			}
+		}
+
+		/// <summary>
 		/// Gets the optimization flags that used to optimize the parse tree.
 		/// </summary>
 		public ParseTreeOptimization Optimization { get; }
@@ -82,10 +94,11 @@ namespace RCParsing
 		/// </summary>
 		public ParsedRuleResult? Parent { get; }
 
+		private readonly ParserContextLink _ctx;
 		/// <summary>
 		/// Gets the parser context used for parsing.
 		/// </summary>
-		public ParserContext Context { get; }
+		public ParserContext Context => _ctx.Context;
 
 		/// <summary>
 		/// Gets the parsed rule object containing the result of the parse.
@@ -188,7 +201,7 @@ namespace RCParsing
 		/// </summary>
 		public LazyArray<ParsedRuleResult> Children => _childrenLazy ??= new LazyArray<ParsedRuleResult>(Result.children?.Count ?? 0, i =>
 		{
-			return new ParsedRuleResult(Optimization, this, Context, Result.children[i]);
+			return new ParsedRuleResult(Optimization, this, _ctx, Result.children[i]);
 		});
 
 		public int Count => Result.children.Count;
@@ -203,18 +216,25 @@ namespace RCParsing
 		/// <param name="result">The parsed rule object containing the result of the parse.</param>
 		public ParsedRuleResult(ParseTreeOptimization treeOptimization,
 			ParsedRuleResult? parent, ParserContext context, ParsedRule result)
+			: this (treeOptimization, parent, new ParserContextLink(context), result)
+		{
+		}
+		
+		private ParsedRuleResult(ParseTreeOptimization treeOptimization,
+			ParsedRuleResult? parent, ParserContextLink context, ParsedRule result)
 		{
 			Optimization = treeOptimization;
 			Parent = parent;
-			Context = context;
-			Result = treeOptimization == ParseTreeOptimization.None ? result : Optimized(result, context, Optimization);
+			_ctx = context;
+			Result = treeOptimization == ParseTreeOptimization.None ? result : Optimized(result, _ctx, Optimization);
 		}
 
-		private static ParsedRule Optimized(ParsedRule rule, ParserContext context, ParseTreeOptimization optimization)
+		private static ParsedRule Optimized(ParsedRule rule, ParserContextLink link, ParseTreeOptimization optimization)
 		{
 			if (rule.children == null || rule.children.Count == 0 || optimization == ParseTreeOptimization.None)
 				return rule;
 
+			var context = link.Context;
 			IEnumerable<ParsedRule> rawChildren = rule.children;
 
 			if (optimization.HasFlag(ParseTreeOptimization.RemoveEmptyNodes))
@@ -233,7 +253,7 @@ namespace RCParsing
 				var children = rawChildren.ToList();
 				if (children.Count == 1)
 				{
-					return Optimized(children[0], context, optimization);
+					return Optimized(children[0], link, optimization);
 				}
 			}
 
@@ -276,7 +296,7 @@ namespace RCParsing
 		/// <returns>An optimized version of this parsed rule result.</returns>
 		public ParsedRuleResult Optimized(ParseTreeOptimization optimization = ParseTreeOptimization.Default)
 		{
-			return new ParsedRuleResult(optimization, Parent, Context, Result);
+			return new ParsedRuleResult(optimization, Parent, _ctx, Result);
 		}
 
 		/// <summary>

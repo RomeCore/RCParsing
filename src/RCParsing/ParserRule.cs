@@ -39,10 +39,6 @@ namespace RCParsing
 		/// <summary>
 		/// Advances the parser context to use for this and child elements.
 		/// </summary>
-		/// <remarks>
-		/// For <paramref name="context"/> it updates the settings to use as local element. <br/>
-		/// It makes a <paramref name="childContext"/> that have advanced recursion depth and settings for child elements.
-		/// </remarks>
 		public void AdvanceContext(ref ParserContext context, out ParserContext childContext)
 		{
 			if (_writeStackTrace)
