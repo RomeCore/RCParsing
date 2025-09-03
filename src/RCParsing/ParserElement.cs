@@ -173,6 +173,20 @@ namespace RCParsing
 		}
 
 		/// <summary>
+		/// Tries to match a token with the given ID using the specified parsing context.
+		/// </summary>
+		/// <param name="tokenId">The ID of the token to match.</param>
+		/// <param name="input">The input string to match against.</param>
+		/// <param name="position">The starting position in the input string to match against.</param>
+		/// <param name="barrierPosition">The position in the input string to stop matching at.</param>
+		/// <param name="parserParameter">The optional parameter to pass to the token pattern. Can be used to pass additional information to the custom token patterns.</param>
+		/// <returns>The parsed token containing the result of the match operation or <see cref="ParsedElement.Fail"/> if the match failed.</returns>
+		protected ParsedElement TryMatchToken(int tokenId, string input, int position, int barrierPosition, object? parserParameter)
+		{
+			return Parser.MatchToken(tokenId, input, position, barrierPosition, parserParameter);
+		}
+
+		/// <summary>
 		/// Tries to parse a rule with the given ID using the specified parsing context.
 		/// </summary>
 		/// <param name="ruleId">The ID of the rule to parse.</param>
@@ -185,17 +199,15 @@ namespace RCParsing
 		}
 
 		/// <summary>
-		/// Tries to match a token with the given ID using the specified parsing context.
+		/// Tries to find all matches in the given input using the specified rule identifier and parser context.
 		/// </summary>
-		/// <param name="tokenId">The ID of the token to match.</param>
-		/// <param name="input">The input string to match against.</param>
-		/// <param name="position">The starting position in the input string to match against.</param>
-		/// <param name="barrierPosition">The position in the input string to stop matching at.</param>
-		/// <param name="parserParameter">The optional parameter to pass to the token pattern. Can be used to pass additional information to the custom token patterns.</param>
-		/// <returns>The parsed token containing the result of the match operation or <see cref="ParsedElement.Fail"/> if the match failed.</returns>
-		protected ParsedElement TryMatchToken(int tokenId, string input, int position, int barrierPosition, object? parserParameter)
+		/// <param name="ruleId">The ID of the rule to parse.</param>
+		/// <param name="context">The parser context to use for parsing.</param>
+		/// <param name="settings">The settings to use for parsing.</param>
+		/// <returns>The all matches found in the input.</returns>
+		protected IEnumerable<ParsedRule> FindAllMatches(int ruleId, ParserContext context, ParserSettings settings)
 		{
-			return Parser.MatchToken(tokenId, input, position, barrierPosition, parserParameter);
+			return Parser.FindAllMatches(ruleId, context, settings);
 		}
 
 		/// <summary>

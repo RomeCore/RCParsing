@@ -206,7 +206,7 @@ namespace RCParsing.Tests
 				.Rule("value")
 				.Transform<string, Ignored, object>((k, _, v) => KeyValuePair.Create(k, v));
 
-			builder.CreateMainRule("content")
+			builder.CreateMainRule()
 				.Rule("value")
 				.EOF() // Sure that we captured all the input
 				.TransformSelect(0);
@@ -230,7 +230,7 @@ namespace RCParsing.Tests
 			var invalidJson = "{ \"name\": \"Test\", \"age\": }";
 
 			var result = jsonParser.Parse<Dictionary<string, object>>(json);
-			Assert.Throws<ParsingException>(() => jsonParser.ParseRule("content", invalidJson));
+			Assert.Throws<ParsingException>(() => jsonParser.Parse(invalidJson));
 		}
 
 		[Fact]
@@ -314,7 +314,7 @@ namespace RCParsing.Tests
 			builder.CreateRule("expression")
 				.Rule("additive_operator");
 
-			builder.CreateMainRule("content")
+			builder.CreateMainRule()
 				.Rule("expression")
 				.EOF();
 

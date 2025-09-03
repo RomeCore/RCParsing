@@ -134,6 +134,11 @@ namespace RCParsing
 		public int position;
 
 		/// <summary>
+		/// Maximum position in the input string. Used to limit parsing.
+		/// </summary>
+		public int maxPosition;
+
+		/// <summary>
 		/// The count of passed barrier tokens.
 		/// </summary>
 		public int passedBarriers;
@@ -231,6 +236,7 @@ namespace RCParsing
 		internal ParserContext(Parser parser, string str, object? parserParameter)
 		{
 			position = 0;
+			maxPosition = str.Length;
 			passedBarriers = 0;
 			topStackFrame = null;
 			shared = new SharedParserContext(parser, str, parserParameter);

@@ -1,11 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Data;
+using System.Data.Common;
 using System.Linq;
 using System.Runtime.CompilerServices;
 
 namespace RCParsing
 {
+	// Ooofff... So much code... 1200 lines of code...
+
 	/// <summary>
 	/// Represents a parser for parsing text data into AST.
 	/// </summary>
@@ -36,7 +40,7 @@ namespace RCParsing
 		public ParserMainSettings MainSettings { get; }
 
 		/// <summary>
-		/// Gets the global settings used by this parser for configuring rules parsing processes.
+		/// Gets the global settings used by this parser for configuring rules.
 		/// </summary>
 		public ParserSettings GlobalSettings { get; }
 
@@ -48,13 +52,13 @@ namespace RCParsing
 		/// <param name="tokenizers">The barrier tokenizers to use.</param>
 		/// <param name="mainSettings">The main settings to use for the parser itself.</param>
 		/// <param name="globalSettings">The global settings to use.</param>
-		/// <param name="mainRuleAlias">The optional alias of the main rule to use.</param>
+		/// <param name="mainRuleId">The ID of the main rule to use.</param>
 		/// <param name="initFlags">The initialization flags to use. Default is <see cref="ParserInitFlags.None"/>.</param>
 		public Parser(ImmutableArray<TokenPattern> tokenPatterns, ImmutableArray<ParserRule> rules,
 			ImmutableArray<BarrierTokenizer> tokenizers, ParserMainSettings mainSettings, ParserSettings globalSettings,
-			string? mainRuleAlias = null, ParserInitFlags initFlags = ParserInitFlags.None)
+			int mainRuleId = -1, ParserInitFlags initFlags = ParserInitFlags.None)
 
-			: this(tokenPatterns, rules, tokenizers, mainSettings, globalSettings, mainRuleAlias, e => initFlags)
+			: this(tokenPatterns, rules, tokenizers, mainSettings, globalSettings, mainRuleId, e => initFlags)
 
 		{
 		}
@@ -67,11 +71,11 @@ namespace RCParsing
 		/// <param name="tokenizers">The barrier tokenizers to use.</param>
 		/// <param name="mainSettings">The main settings to use for the parser itself.</param>
 		/// <param name="globalSettings">The global settings to use.</param>
-		/// <param name="mainRuleAlias">The optional alias of the main rule to use.</param>
+		/// <param name="mainRuleId">The ID of the main rule to use.</param>
 		/// <param name="initFlagsFactory">The initialization flags factory to use.</param>
 		public Parser(ImmutableArray<TokenPattern> tokenPatterns, ImmutableArray<ParserRule> rules,
 			ImmutableArray<BarrierTokenizer> tokenizers, ParserMainSettings mainSettings, ParserSettings globalSettings,
-			string? mainRuleAlias = null, Func<ParserElement, ParserInitFlags>? initFlagsFactory = null)
+			int mainRuleId = -1, Func<ParserElement, ParserInitFlags>? initFlagsFactory = null)
 		{
 			Rules = rules;
 			TokenPatterns = tokenPatterns;
@@ -93,15 +97,7 @@ namespace RCParsing
 				}
 			}
 
-			if (mainRuleAlias != null)
-			{
-				if (!_rulesAliases.TryGetValue(mainRuleAlias, out _mainRuleId))
-					throw new InvalidOperationException("Main rule alias not found.");
-			}
-			else
-			{
-				_mainRuleId = -1;
-			}
+			_mainRuleId = mainRuleId;
 
 			foreach (var pattern in tokenPatterns)
 			{
@@ -221,7 +217,7 @@ namespace RCParsing
 			ParsedRule Parse()
 			{
 				var parsedRule = rule.Parse(context, settings, childSettings);
-				if (parsedRule.success && parsedRule.startIndex < context.str.Length)
+				if (parsedRule.success && parsedRule.startIndex < context.maxPosition)
 					context.successPositions[parsedRule.startIndex] = true;
 				return parsedRule;
 			}
@@ -230,7 +226,7 @@ namespace RCParsing
 			bool TryParse(out ParsedRule result)
 			{
 				var parsedRule = rule.Parse(context, settings, childSettings);
-				if (parsedRule.success && parsedRule.startIndex < context.str.Length)
+				if (parsedRule.success && parsedRule.startIndex < context.maxPosition)
 					context.successPositions[parsedRule.startIndex] = true;
 				result = parsedRule;
 				return parsedRule.success;
@@ -242,26 +238,25 @@ namespace RCParsing
 			// Skip rule preparation
 
 			var skipRule = Rules[settings.skipRule];
-			var skipContext = context;
 			var skipSettings = settings;
-			skipRule.AdvanceContext(ref skipContext, ref skipSettings, out var childSkipSettings);
+			skipRule.AdvanceContext(ref context, ref skipSettings, out var childSkipSettings);
 			skipSettings.skipRule = -1;
 			childSkipSettings.skipRule = -1;
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			bool TrySkip()
 			{
-				if (context.position >= context.str.Length)
+				if (context.position >= context.maxPosition)
 					return false;
-				if (skipContext.shared.positionsToAvoidSkipping[skipContext.position])
+				if (context.shared.positionsToAvoidSkipping[context.position])
 					return false;
 
-				var parsedSkipRule = skipRule.Parse(skipContext, skipSettings, childSkipSettings);
+				var parsedSkipRule = skipRule.Parse(context, skipSettings, childSkipSettings);
 				int newPosition = parsedSkipRule.startIndex + parsedSkipRule.length;
 
 				if (parsedSkipRule.success && newPosition != context.position)
 				{
-					context.position = skipContext.position = newPosition;
+					context.position = newPosition;
 					context.skippedRules.Add(parsedSkipRule);
 					return true;
 				}
@@ -274,7 +269,7 @@ namespace RCParsing
 
 					if (TrySkip())
 					{
-						if (context.position < context.str.Length)
+						if (context.position < context.maxPosition)
 							context.shared.positionsToAvoidSkipping[context.position] = true;
 					}
 					return Parse();
@@ -292,14 +287,14 @@ namespace RCParsing
 							}
 							continue;
 						}
-						Parse();
+						return Parse();
 					}
 
 				case ParserSkippingStrategy.SkipBeforeParsingGreedy:
 
 					int c = 0;
 					while (TrySkip()) { c++; }
-					if (c > 0 && context.position < context.str.Length)
+					if (c > 0 && context.position < context.maxPosition)
 						context.shared.positionsToAvoidSkipping[context.position] = true;
 					return Parse();
 
@@ -310,7 +305,7 @@ namespace RCParsing
 
 					if (TrySkip())
 					{
-						if (context.position < context.str.Length)
+						if (context.position < context.maxPosition)
 							context.shared.positionsToAvoidSkipping[context.position] = true;
 						return Parse();
 					}
@@ -336,7 +331,7 @@ namespace RCParsing
 							}
 							continue;
 						}
-						if (context.position < context.str.Length)
+						if (context.position < context.maxPosition)
 							context.shared.positionsToAvoidSkipping[context.position] = true;
 						return ParsedRule.Fail;
 					}
@@ -348,10 +343,257 @@ namespace RCParsing
 						return firstRes;
 
 					while (TrySkip()) { }
-					if (context.position < context.str.Length)
+					if (context.position < context.maxPosition)
 						context.shared.positionsToAvoidSkipping[context.position] = true;
 
 					return Parse();
+
+				default:
+					throw new ParsingException(context, "Invalid skipping strategy.");
+			}
+		}
+
+		/// <summary>
+		/// Tries to find all matches in the given input using the specified rule identifier and parser context.
+		/// </summary>
+		/// <param name="ruleId">The unique identifier for the parser rule to use.</param>
+		/// <param name="context">The parser context to use for parsing.</param>
+		/// <param name="settings">The settings to use for parsing.</param>
+		/// <returns>The all matches found in the input.</returns>
+		internal IEnumerable<ParsedRule> FindAllMatches(int ruleId, ParserContext context, ParserSettings settings)
+		{
+			var rule = Rules[ruleId];
+			rule.AdvanceContext(ref context, ref settings, out var childSettings);
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			ParsedRule Parse()
+			{
+				var parsedRule = rule.Parse(context, settings, childSettings);
+				if (parsedRule.success && parsedRule.startIndex < context.maxPosition)
+					context.successPositions[parsedRule.startIndex] = true;
+				return parsedRule;
+			}
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			bool TryParse(out ParsedRule result)
+			{
+				var parsedRule = rule.Parse(context, settings, childSettings);
+				if (parsedRule.success && parsedRule.startIndex < context.maxPosition)
+					context.successPositions[parsedRule.startIndex] = true;
+				result = parsedRule;
+				return parsedRule.success;
+			}
+
+			if (settings.skipRule == -1 || settings.skippingStrategy == ParserSkippingStrategy.Default)
+			{
+				while (context.position < context.maxPosition)
+				{
+					var parsed = Parse();
+
+					if (parsed.success)
+					{
+						yield return parsed;
+						context.position = parsed.startIndex + parsed.length;
+					}
+					else
+					{
+						context.position++;
+					}
+				}
+				yield break;
+			}
+
+			var skipRule = Rules[settings.skipRule];
+			var skipSettings = settings;
+			skipRule.AdvanceContext(ref context, ref skipSettings, out var childSkipSettings);
+			skipSettings.skipRule = -1;
+			childSkipSettings.skipRule = -1;
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			bool TrySkip()
+			{
+				if (context.position >= context.maxPosition)
+					return false;
+				if (context.shared.positionsToAvoidSkipping[context.position])
+					return false;
+
+				var parsedSkipRule = skipRule.Parse(context, skipSettings, childSkipSettings);
+				int newPosition = parsedSkipRule.startIndex + parsedSkipRule.length;
+
+				if (parsedSkipRule.success && newPosition != context.position)
+				{
+					context.position = newPosition;
+					context.skippedRules.Add(parsedSkipRule);
+					return true;
+				}
+				return false;
+			}
+
+			switch (settings.skippingStrategy)
+			{
+				case ParserSkippingStrategy.SkipBeforeParsing:
+
+					while (context.position < context.maxPosition)
+					{
+						// Skip -> Parse
+						if (TrySkip())
+						{
+							if (context.position < context.maxPosition)
+								context.shared.positionsToAvoidSkipping[context.position] = true;
+						}
+						var parsed = Parse();
+
+						if (parsed.success)
+						{
+							yield return parsed;
+							context.position = parsed.startIndex + parsed.length;
+						}
+						else
+						{
+							context.position++;
+						}
+					}
+					yield break;
+
+				case ParserSkippingStrategy.SkipBeforeParsingLazy:
+
+					while (context.position < context.maxPosition)
+					{
+						// Alternate: Skip -> TryParse -> Skip -> TryParse ... until TryParse succeeds
+						if (TrySkip())
+						{
+							if (TryParse(out var parsed))
+							{
+								yield return parsed;
+								context.position = parsed.startIndex + parsed.length;
+								continue;
+							}
+						}
+
+						if (TryParse(out var parsed1))
+						{
+							if (context.position < context.maxPosition)
+								context.shared.positionsToAvoidSkipping[context.position] = true;
+
+							yield return parsed1;
+							context.position = parsed1.startIndex + parsed1.length;
+							continue;
+						}
+
+						if (context.position < context.maxPosition)
+							context.shared.positionsToAvoidSkipping[context.position] = true;
+						context.position++;
+					}
+					yield break;
+
+				case ParserSkippingStrategy.SkipBeforeParsingGreedy:
+
+					while (context.position < context.maxPosition)
+					{
+						// Skip ->  Skip -> Skip ... until Skip fails
+						while (TrySkip())
+						{
+						}
+						if (context.position < context.maxPosition)
+							context.shared.positionsToAvoidSkipping[context.position] = true;
+
+						if (TryParse(out var parsed))
+						{
+							yield return parsed;
+							context.position = parsed.startIndex + parsed.length;
+							continue;
+						}
+						context.position++;
+					}
+					yield break;
+
+				case ParserSkippingStrategy.TryParseThenSkip:
+
+					// Parse -> Skip -> Parse
+					while (context.position < context.maxPosition)
+					{
+						if (TryParse(out var parsed))
+						{
+							yield return parsed;
+							context.position = parsed.startIndex + parsed.length;
+							continue;
+						}
+
+						if (TrySkip())
+						{
+							if (context.position < context.maxPosition)
+								context.shared.positionsToAvoidSkipping[context.position] = true;
+
+							if (TryParse(out parsed))
+							{
+								yield return parsed;
+								context.position = parsed.startIndex + parsed.length;
+								continue;
+							}
+						}
+
+						if (context.position < context.maxPosition)
+							context.shared.positionsToAvoidSkipping[context.position] = true;
+						context.position++;
+					}
+					yield break;
+
+				case ParserSkippingStrategy.TryParseThenSkipLazy:
+
+					// First try parse (handled above in TryParseThenSkip pattern),
+					// then alternate Skip -> TryParse -> Skip -> TryParse ... until success or nothing consumes
+					while (context.position < context.maxPosition)
+					{
+						if (TryParse(out var parsed))
+						{
+							yield return parsed;
+							context.position = parsed.startIndex + parsed.length;
+							continue;
+						}
+
+						while (TrySkip())
+						{
+							if (TryParse(out parsed))
+							{
+								yield return parsed;
+								context.position = parsed.startIndex + parsed.length;
+								continue;
+							}
+						}
+
+						if (context.position < context.maxPosition)
+							context.shared.positionsToAvoidSkipping[context.position] = true;
+						context.position++;
+					}
+					yield break;
+
+				case ParserSkippingStrategy.TryParseThenSkipGreedy:
+
+					// Try parse; if failed, greedily skip then parse once
+					while (context.position < context.maxPosition)
+					{
+						if (TryParse(out var parsed))
+						{
+							yield return parsed;
+							context.position = parsed.startIndex + parsed.length;
+							continue;
+						}
+
+						while (TrySkip())
+						{
+						}
+						if (context.position < context.maxPosition)
+							context.shared.positionsToAvoidSkipping[context.position] = true;
+
+						if (TryParse(out parsed))
+						{
+							yield return parsed;
+							context.position = parsed.startIndex + parsed.length;
+							continue;
+						}
+						context.position++;
+					}
+					yield break;
 
 				default:
 					throw new ParsingException(context, "Invalid skipping strategy.");
@@ -372,8 +614,75 @@ namespace RCParsing
 
 
 		/// <summary>
+		/// Creates a parser context for the given input string.
+		/// </summary>
+		/// <param name="input">The input string to parse.</param>
+		/// <param name="parameter">The optional parameter to pass to the token patterns. Can be used to pass additional information to the custom token patterns.</param>
+		/// <returns>A new parser context initialized with the provided input string.</returns>
+		public ParserContext CreateContext(string input, object? parameter = null)
+		{
+			return new ParserContext(this, input, parameter);
+		}
+
+		/// <summary>
+		/// Creates a parser context for the given input string.
+		/// </summary>
+		/// <param name="input">The input string to parse.</param>
+		/// <param name="startIndex">The starting index in the input string to parse.</param>
+		/// <param name="parameter">The optional parameter to pass to the token patterns. Can be used to pass additional information to the custom token patterns.</param>
+		/// <returns>A new parser context initialized with the provided input string.</returns>
+		public ParserContext CreateContext(string input, int startIndex, object? parameter = null)
+		{
+			return new ParserContext(this, input, parameter)
+			{
+				position = startIndex
+			};
+		}
+
+		/// <summary>
+		/// Creates a parser context for the given input string.
+		/// </summary>
+		/// <param name="input">The input string to parse.</param>
+		/// <param name="startIndex">The starting index in the input string to parse.</param>
+		/// <param name="length">The number of characters to parse from the input string.</param>
+		/// <param name="parameter">The optional parameter to pass to the token patterns. Can be used to pass additional information to the custom token patterns.</param>
+		/// <returns>A new parser context initialized with the provided input string.</returns>
+		public ParserContext CreateContext(string input, int startIndex, int length, object? parameter = null)
+		{
+			return new ParserContext(this, input, parameter)
+			{
+				position = startIndex,
+				maxPosition = startIndex + length
+			};
+		}
+
+
+
+		/// <summary>
 		/// Parses the given input using the specified token pattern alias and input text.
 		/// </summary>
+		/// <remarks>
+		/// Does not throw an exception if parsing fails.
+		/// </remarks>
+		/// <param name="tokenPatternAlias">The alias for the token pattern to use.</param>
+		/// <param name="context">The parser context to use for matching.</param>
+		/// <param name="parameter">Optional parameter to pass to the parser. Can be used to pass additional information to the custom token patterns.</param>
+		/// <returns>A parsed token pattern containing the result of the parse.</returns>
+		public ParsedTokenResult MatchToken(string tokenPatternAlias, ParserContext context, object? parameter = null)
+		{
+			if (!_tokenPatternsAliases.TryGetValue(tokenPatternAlias, out var tokenPatternId))
+				throw new ArgumentException("Invalid token pattern alias", nameof(tokenPatternAlias));
+
+			var parsedToken = MatchToken(tokenPatternId, context.str, context.position, context.maxPosition, parameter);
+			return new ParsedTokenResult(null, context, parsedToken);
+		}
+
+		/// <summary>
+		/// Parses the given input using the specified token pattern alias and input text.
+		/// </summary>
+		/// <remarks>
+		/// Does not throw an exception if parsing fails.
+		/// </remarks>
 		/// <param name="tokenPatternAlias">The alias for the token pattern to use.</param>
 		/// <param name="input">The input text to parse.</param>
 		/// <param name="parameter">Optional parameter to pass to the parser. Can be used to pass additional information to the custom token patterns.</param>
@@ -383,49 +692,73 @@ namespace RCParsing
 			if (!_tokenPatternsAliases.TryGetValue(tokenPatternAlias, out var tokenPatternId))
 				throw new ArgumentException("Invalid token pattern alias", nameof(tokenPatternAlias));
 
-			var context = new ParserContext(this, input, parameter);
-			var parsedToken = MatchToken(tokenPatternId, context.str, context.position, context.str.Length, parameter);
+			var context = CreateContext(input, parameter);
+			var parsedToken = MatchToken(tokenPatternId, context.str, context.position, context.maxPosition, parameter);
 			return new ParsedTokenResult(null, context, parsedToken);
 		}
 
 		/// <summary>
 		/// Parses the given input using the specified token pattern alias and input text.
 		/// </summary>
+		/// <remarks>
+		/// Does not throw an exception if parsing fails.
+		/// </remarks>
 		/// <param name="tokenPatternAlias">The alias for the token pattern to use.</param>
 		/// <param name="input">The input text to parse.</param>
-		/// <param name="result">The parsed token containing the result of the parse.</param>
-		/// <returns><see langword="true"/> if a token was matched, <see langword="false"/> otherwise.</returns>
-		public bool TryMatchToken(string tokenPatternAlias, string input, out ParsedTokenResult result)
+		/// <param name="startIndex">Starting index in the input text to parse.</param>
+		/// <param name="parameter">Optional parameter to pass to the parser. Can be used to pass additional information to the custom token patterns.</param>
+		/// <returns>A parsed token pattern containing the result of the parse.</returns>
+		public ParsedTokenResult MatchToken(string tokenPatternAlias, string input, int startIndex, object? parameter = null)
 		{
 			if (!_tokenPatternsAliases.TryGetValue(tokenPatternAlias, out var tokenPatternId))
 				throw new ArgumentException("Invalid token pattern alias", nameof(tokenPatternAlias));
 
-			var context = new ParserContext(this, input, null);
-			var parsedToken = MatchToken(tokenPatternId, context.str, context.position, context.str.Length, null);
-			result = new ParsedTokenResult(null, context, parsedToken);
-			return parsedToken.success;
+			var context = CreateContext(input, startIndex, parameter);
+			var parsedToken = MatchToken(tokenPatternId, context.str, context.position, context.maxPosition, parameter);
+			return new ParsedTokenResult(null, context, parsedToken);
 		}
 
 		/// <summary>
 		/// Parses the given input using the specified token pattern alias and input text.
 		/// </summary>
+		/// <remarks>
+		/// Does not throw an exception if parsing fails.
+		/// </remarks>
 		/// <param name="tokenPatternAlias">The alias for the token pattern to use.</param>
 		/// <param name="input">The input text to parse.</param>
+		/// <param name="startIndex">Starting index in the input text to parse.</param>
+		/// <param name="length">Number of characters to parse from the input text.</param>
 		/// <param name="parameter">Optional parameter to pass to the parser. Can be used to pass additional information to the custom token patterns.</param>
-		/// <param name="result">The parsed token containing the result of the parse.</param>
-		/// <returns><see langword="true"/> if a token was matched, <see langword="false"/> otherwise.</returns>
-		public bool TryMatchToken(string tokenPatternAlias, string input, object? parameter, out ParsedTokenResult result)
+		/// <returns>A parsed token pattern containing the result of the parse.</returns>
+		public ParsedTokenResult MatchToken(string tokenPatternAlias, string input, int startIndex, int length, object? parameter = null)
 		{
 			if (!_tokenPatternsAliases.TryGetValue(tokenPatternAlias, out var tokenPatternId))
 				throw new ArgumentException("Invalid token pattern alias", nameof(tokenPatternAlias));
 
-			var context = new ParserContext(this, input, parameter);
-			var parsedToken = MatchToken(tokenPatternId, context.str, context.position, context.str.Length, parameter);
-			result = new ParsedTokenResult(null, context, parsedToken);
-			return parsedToken.success;
+			var context = CreateContext(input, startIndex, length, parameter);
+			var parsedToken = MatchToken(tokenPatternId, context.str, context.position, context.maxPosition, parameter);
+			return new ParsedTokenResult(null, context, parsedToken);
 		}
 
 
+
+		/// <summary>
+		/// Parses the given input using the specified rule alias and input text.
+		/// </summary>
+		/// <param name="ruleAlias">The alias for the parser rule to use.</param>
+		/// <param name="context">The parser context to use for parsing.</param>
+		/// <returns>A parsed rule containing the result of the parse.</returns>
+		public ParsedRuleResult ParseRule(string ruleAlias, ParserContext context)
+		{
+			if (context.parser != this)
+				throw new InvalidOperationException("Parser context is not associated with this parser.");
+			if (!_rulesAliases.TryGetValue(ruleAlias, out var ruleId))
+				throw new ArgumentException("Invalid rule alias", nameof(ruleAlias));
+
+			EmitBarriers(ref context);
+			var parsedRule = ParseRule(ruleId, context, GlobalSettings);
+			return new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule);
+		}
 
 		/// <summary>
 		/// Parses the given input using the specified rule alias and input text.
@@ -449,33 +782,39 @@ namespace RCParsing
 		/// Parses the given input using the specified rule alias and input text.
 		/// </summary>
 		/// <param name="ruleAlias">The alias for the parser rule to use.</param>
+		/// <param name="context">The parser context to use for parsing.</param>
+		/// <returns>The result of the parse converted to the specified type.</returns>
+		public T ParseRule<T>(string ruleAlias, ParserContext context)
+		{
+			return ParseRule(ruleAlias, context).GetValue<T>();
+		}
+
+		/// <summary>
+		/// Parses the given input using the specified rule alias and input text.
+		/// </summary>
+		/// <param name="ruleAlias">The alias for the parser rule to use.</param>
 		/// <param name="input">The input text to parse.</param>
 		/// <param name="parameter">Optional parameter to pass to the parser. Can be used to pass additional information to the transformation functions.</param>
 		/// <returns>The result of the parse converted to the specified type.</returns>
 		public T ParseRule<T>(string ruleAlias, string input, object? parameter = null)
 		{
-			if (!_rulesAliases.TryGetValue(ruleAlias, out var ruleId))
-				throw new ArgumentException("Invalid rule alias", nameof(ruleAlias));
-
-			var context = new ParserContext(this, input, parameter);
-			EmitBarriers(ref context);
-			var parsedRule = ParseRule(ruleId, context, GlobalSettings);
-			return new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule).GetValue<T>();
+			return ParseRule(ruleAlias, input, parameter).GetValue<T>();
 		}
 
 		/// <summary>
 		/// Tries to parse a rule using the specified rule alias and input text.
 		/// </summary>
 		/// <param name="ruleAlias">The alias for the parser rule to use.</param>
-		/// <param name="input">The input text to parse.</param>
+		/// <param name="context">The parser context to use for parsing.</param>
 		/// <param name="result">The parsed rule containing the result of the parse.</param>
 		/// <returns><see langword="true"/> if a rule was parsed successfully, <see langword="false"/> otherwise.</returns>
-		public bool TryParseRule(string ruleAlias, string input, out ParsedRuleResult result)
+		public bool TryParseRule(string ruleAlias, ParserContext context, out ParsedRuleResult result)
 		{
+			if (context.parser != this)
+				throw new InvalidOperationException("Parser context is not associated with this parser.");
 			if (!_rulesAliases.TryGetValue(ruleAlias, out var ruleId))
 				throw new ArgumentException("Invalid rule alias", nameof(ruleAlias));
 
-			var context = new ParserContext(this, input, null);
 			EmitBarriers(ref context);
 			var parsedRule = TryParseRule(ruleId, context, GlobalSettings);
 			result = new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule);
@@ -487,18 +826,41 @@ namespace RCParsing
 		/// </summary>
 		/// <param name="ruleAlias">The alias for the parser rule to use.</param>
 		/// <param name="input">The input text to parse.</param>
+		/// <param name="result">The parsed rule containing the result of the parse.</param>
+		/// <returns><see langword="true"/> if a rule was parsed successfully, <see langword="false"/> otherwise.</returns>
+		public bool TryParseRule(string ruleAlias, string input, out ParsedRuleResult result)
+		{
+			return TryParseRule(ruleAlias, input, null, out result);
+		}
+
+		/// <summary>
+		/// Tries to parse a rule using the specified rule alias and input text.
+		/// </summary>
+		/// <param name="ruleAlias">The alias for the parser rule to use.</param>
+		/// <param name="context">The parser context to use for parsing.</param>
+		/// <param name="result">The result of the parse converted to the specified type.</param>
+		/// <returns><see langword="true"/> if a rule was parsed successfully, <see langword="false"/> otherwise.</returns>
+		public bool TryParseRule<T>(string ruleAlias, ParserContext context, out T result)
+		{
+			if (TryParseRule(ruleAlias, context, out var ast))
+			{
+				result = ast.GetValue<T>();
+				return true;
+			}
+			result = default!;
+			return false;
+		}
+
+		/// <summary>
+		/// Tries to parse a rule using the specified rule alias and input text.
+		/// </summary>
+		/// <param name="ruleAlias">The alias for the parser rule to use.</param>
+		/// <param name="input">The input text to parse.</param>
 		/// <param name="result">The result of the parse converted to the specified type.</param>
 		/// <returns><see langword="true"/> if a rule was parsed successfully, <see langword="false"/> otherwise.</returns>
 		public bool TryParseRule<T>(string ruleAlias, string input, out T result)
 		{
-			if (!_rulesAliases.TryGetValue(ruleAlias, out var ruleId))
-				throw new ArgumentException("Invalid rule alias", nameof(ruleAlias));
-
-			var context = new ParserContext(this, input, null);
-			EmitBarriers(ref context);
-			var parsedRule = TryParseRule(ruleId, context, GlobalSettings);
-			result = new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule).GetValue<T>();
-			return parsedRule.success;
+			return TryParseRule(ruleAlias, input, null, out result);
 		}
 
 		/// <summary>
@@ -531,17 +893,33 @@ namespace RCParsing
 		/// <returns><see langword="true"/> if a rule was parsed successfully, <see langword="false"/> otherwise.</returns>
 		public bool TryParseRule<T>(string ruleAlias, string input, object? parameter, out T result)
 		{
-			if (!_rulesAliases.TryGetValue(ruleAlias, out var ruleId))
-				throw new ArgumentException("Invalid rule alias", nameof(ruleAlias));
-
-			var context = new ParserContext(this, input, parameter);
-			EmitBarriers(ref context);
-			var parsedRule = TryParseRule(ruleId, context, GlobalSettings);
-			result = new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule).GetValue<T>();
-			return parsedRule.success;
+			if (TryParseRule(ruleAlias, input, parameter, out var ast))
+			{
+				result = ast.GetValue<T>();
+				return true;
+			}
+			result = default!;
+			return false;
 		}
 
 
+
+		/// <summary>
+		/// Parses the given input using the main rule and context.
+		/// </summary>
+		/// <param name="context">The parser context to use for parsing.</param>
+		/// <returns>A parsed rule containing the result of the parse.</returns>
+		public ParsedRuleResult Parse(ParserContext context)
+		{
+			if (context.parser != this)
+				throw new InvalidOperationException("Parser context is not associated with this parser.");
+			if (_mainRuleId == -1)
+				throw new InvalidOperationException("Main rule is not set.");
+
+			EmitBarriers(ref context);
+			var parsedRule = ParseRule(_mainRuleId, context, GlobalSettings);
+			return new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule);
+		}
 
 		/// <summary>
 		/// Parses the given input using the main rule, input text and optional parameter.
@@ -561,6 +939,17 @@ namespace RCParsing
 		}
 
 		/// <summary>
+		/// Parses the given input using the main rule and context.
+		/// </summary>
+		/// <typeparam name="T">The type of the parsed result..</typeparam>
+		/// <param name="context">The parser context to use for parsing.</param>
+		/// <returns>The result of the parse converted to the specified type.</returns>
+		public T Parse<T>(ParserContext context)
+		{
+			return Parse(context).GetValue<T>();
+		}
+
+		/// <summary>
 		/// Parses the given input using the main rule, input text and optional parameter.
 		/// </summary>
 		/// <typeparam name="T">The type of the parsed result..</typeparam>
@@ -569,13 +958,26 @@ namespace RCParsing
 		/// <returns>The result of the parse converted to the specified type.</returns>
 		public T Parse<T>(string input, object? parameter = null)
 		{
+			return Parse(input, parameter).GetValue<T>();
+		}
+
+		/// <summary>
+		/// Tries to parse the given input using the main rule, input text and optional parameter.
+		/// </summary>
+		/// <param name="context">The parser context to use for parsing.</param>
+		/// <param name="result">The parsed rule containing the result of the parse.</param>
+		/// <returns><see langword="true"/> if a rule was parsed successfully, <see langword="false"/> otherwise.</returns>
+		public bool TryParse(ParserContext context, out ParsedRuleResult result)
+		{
+			if (context.parser != this)
+				throw new InvalidOperationException("Parser context is not associated with this parser.");
 			if (_mainRuleId == -1)
 				throw new InvalidOperationException("Main rule is not set.");
 
-			var context = new ParserContext(this, input, parameter);
 			EmitBarriers(ref context);
-			var parsedRule = ParseRule(_mainRuleId, context, GlobalSettings);
-			return new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule).GetValue<T>();
+			var parsedRule = TryParseRule(_mainRuleId, context, GlobalSettings);
+			result = new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule);
+			return parsedRule.success;
 		}
 
 		/// <summary>
@@ -586,14 +988,7 @@ namespace RCParsing
 		/// <returns><see langword="true"/> if a rule was parsed successfully, <see langword="false"/> otherwise.</returns>
 		public bool TryParse(string input, out ParsedRuleResult result)
 		{
-			if (_mainRuleId == -1)
-				throw new InvalidOperationException("Main rule is not set.");
-
-			var context = new ParserContext(this, input, null);
-			EmitBarriers(ref context);
-			var parsedRule = TryParseRule(_mainRuleId, context, GlobalSettings);
-			result = new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule);
-			return parsedRule.success;
+			return TryParse(input, null, out result);
 		}
 
 		/// <summary>
@@ -616,24 +1011,17 @@ namespace RCParsing
 		}
 
 		/// <summary>
-		/// Tries to parse the given input using the main rule, input text and optional parameter.
+		/// Tries to parse the given input using the main rule and context.
 		/// </summary>
 		/// <typeparam name="T">The type of the parsed result..</typeparam>
-		/// <param name="input">The input text to parse.</param>
+		/// <param name="context">The parser context to use for parsing.</param>
 		/// <param name="result">The result of the parse converted to the specified type.</param>
 		/// <returns><see langword="true"/> if a rule was parsed successfully, <see langword="false"/> otherwise.</returns>
-		public bool TryParse<T>(string input, out T result)
+		public bool TryParse<T>(ParserContext context, out T result)
 		{
-			if (_mainRuleId == -1)
-				throw new InvalidOperationException("Main rule is not set.");
-
-			var context = new ParserContext(this, input, null);
-			EmitBarriers(ref context);
-			var parsedRule = TryParseRule(_mainRuleId, context, GlobalSettings);
-			var parsedResult = new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule);
-			if (parsedRule.success)
+			if (TryParse(context, out var res))
 			{
-				result = parsedResult.GetValue<T>();
+				result = res.GetValue<T>();
 				return true;
 			}
 			result = default!;
@@ -646,24 +1034,169 @@ namespace RCParsing
 		/// <typeparam name="T">The type of the parsed result..</typeparam>
 		/// <param name="input">The input text to parse.</param>
 		/// <param name="result">The result of the parse converted to the specified type.</param>
+		/// <returns><see langword="true"/> if a rule was parsed successfully, <see langword="false"/> otherwise.</returns>
+		public bool TryParse<T>(string input, out T result)
+		{
+			return TryParse(input, null, out result);
+		}
+
+		/// <summary>
+		/// Tries to parse the given input using the main rule, input text and optional parameter.
+		/// </summary>
+		/// <typeparam name="T">The type of the parsed result..</typeparam>
+		/// <param name="input">The input text to parse.</param>
+		/// <param name="result">The result of the parse converted to the specified type.</param>
 		/// <param name="parameter">Optional parameter to pass to the parser. Can be used to pass additional information to the transformation functions.</param>
 		/// <returns><see langword="true"/> if a rule was parsed successfully, <see langword="false"/> otherwise.</returns>
 		public bool TryParse<T>(string input, object? parameter, out T result)
+		{
+			if (TryParse(input, parameter, out var res))
+			{
+				result = res.GetValue<T>();
+				return true;
+			}
+			result = default!;
+			return false;
+		}
+
+
+
+		/// <summary>
+		/// Attempts to find all occurrences of the main rule in the input text, working similarly to regex matching.
+		/// Parsing starts at each position until the end of input is reached.
+		/// </summary>
+		/// <param name="context">The parser context to use for parsing.</param>
+		/// <returns>An enumerable collection of all successfully parsed rule results.</returns>
+		public IEnumerable<ParsedRuleResult> FindAllMatches(ParserContext context)
+		{
+			if (context.parser != this)
+				throw new InvalidOperationException("Parser context is not associated with this parser.");
+			if (_mainRuleId == -1)
+				throw new InvalidOperationException("Main rule is not set.");
+
+			EmitBarriers(ref context);
+			var parsedRules = FindAllMatches(_mainRuleId, context, GlobalSettings);
+			return parsedRules.Select(r => new ParsedRuleResult(ParseTreeOptimization.None, null, context, r));
+		}
+
+		/// <summary>
+		/// Attempts to find all occurrences of the main rule in the input text, working similarly to regex matching.
+		/// Parsing starts at each position until the end of input is reached.
+		/// </summary>
+		/// <param name="input">The input text to scan.</param>
+		/// <param name="parameter">Optional parameter to pass to the parser.</param>
+		/// <returns>An enumerable collection of all successfully parsed rule results.</returns>
+		public IEnumerable<ParsedRuleResult> FindAllMatches(string input, object? parameter = null)
 		{
 			if (_mainRuleId == -1)
 				throw new InvalidOperationException("Main rule is not set.");
 
 			var context = new ParserContext(this, input, parameter);
 			EmitBarriers(ref context);
-			var parsedRule = TryParseRule(_mainRuleId, context, GlobalSettings);
-			var parsedResult = new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule);
-			if (parsedRule.success)
+			var parsedRules = FindAllMatches(_mainRuleId, context, GlobalSettings);
+			return parsedRules.Select(r => new ParsedRuleResult(ParseTreeOptimization.None, null, context, r));
+		}
+
+		/// <summary>
+		/// Attempts to find all occurrences of the specified rule in the input text, working similarly to regex matching.
+		/// Parsing starts at each position until the end of input is reached.
+		/// </summary>
+		/// <param name="ruleAlias">The alias for the parser rule to use.</param>
+		/// <param name="context">The parser context to use for parsing.</param>
+		/// <returns>An enumerable collection of all successfully parsed rule results.</returns>
+		public IEnumerable<ParsedRuleResult> FindAllMatches(string ruleAlias, ParserContext context)
+		{
+			if (context.parser != this)
+				throw new InvalidOperationException("Parser context is not associated with this parser.");
+			if (!_rulesAliases.TryGetValue(ruleAlias, out var ruleId))
+				throw new ArgumentException("Invalid rule alias", nameof(ruleAlias));
+
+			EmitBarriers(ref context);
+			var parsedRules = FindAllMatches(ruleId, context, GlobalSettings);
+			return parsedRules.Select(r => new ParsedRuleResult(ParseTreeOptimization.None, null, context, r));
+		}
+
+		/// <summary>
+		/// Attempts to find all occurrences of the specified rule in the input text, working similarly to regex matching.
+		/// Parsing starts at each position until the end of input is reached.
+		/// </summary>
+		/// <param name="ruleAlias">The alias for the parser rule to use.</param>
+		/// <param name="input">The input text to scan.</param>
+		/// <param name="parameter">Optional parameter to pass to the parser.</param>
+		/// <returns>An enumerable collection of all successfully parsed rule results.</returns>
+		public IEnumerable<ParsedRuleResult> FindAllMatches(string ruleAlias, string input, object? parameter = null)
+		{
+			if (!_rulesAliases.TryGetValue(ruleAlias, out var ruleId))
+				throw new ArgumentException("Invalid rule alias", nameof(ruleAlias));
+
+			var context = new ParserContext(this, input, parameter);
+			EmitBarriers(ref context);
+			var parsedRules = FindAllMatches(ruleId, context, GlobalSettings);
+			return parsedRules.Select(r => new ParsedRuleResult(ParseTreeOptimization.None, null, context, r));
+		}
+
+		/// <summary>
+		/// Attempts to find all occurrences of the main rule in the input text, working similarly to regex matching.
+		/// Returns the parsed results converted to the specified type.
+		/// </summary>
+		/// <typeparam name="T">The type to convert the parsed results to.</typeparam>
+		/// <param name="context">The parser context to use for parsing.</param>
+		/// <returns>An enumerable collection of all successfully parsed and converted results.</returns>
+		public IEnumerable<T> FindAllMatches<T>(ParserContext context)
+		{
+			foreach (var result in FindAllMatches(context))
 			{
-				result = parsedResult.GetValue<T>();
-				return true;
+				yield return result.GetValue<T>();
 			}
-			result = default!;
-			return false;
+		}
+
+		/// <summary>
+		/// Attempts to find all occurrences of the main rule in the input text, working similarly to regex matching.
+		/// Returns the parsed results converted to the specified type.
+		/// </summary>
+		/// <typeparam name="T">The type to convert the parsed results to.</typeparam>
+		/// <param name="input">The input text to scan.</param>
+		/// <param name="parameter">Optional parameter to pass to the parser.</param>
+		/// <returns>An enumerable collection of all successfully parsed and converted results.</returns>
+		public IEnumerable<T> FindAllMatches<T>(string input, object? parameter = null)
+		{
+			foreach (var result in FindAllMatches(input, parameter))
+			{
+				yield return result.GetValue<T>();
+			}
+		}
+
+		/// <summary>
+		/// Attempts to find all occurrences of the specified rule in the input text, working similarly to regex matching.
+		/// Returns the parsed results converted to the specified type.
+		/// </summary>
+		/// <typeparam name="T">The type to convert the parsed results to.</typeparam>
+		/// <param name="ruleAlias">The alias for the parser rule to use.</param>
+		/// <param name="context">The parser context to use for parsing.</param>
+		/// <returns>An enumerable collection of all successfully parsed and converted results.</returns>
+		public IEnumerable<T> FindAllMatches<T>(string ruleAlias, ParserContext context)
+		{
+			foreach (var result in FindAllMatches(ruleAlias, context))
+			{
+				yield return result.GetValue<T>();
+			}
+		}
+
+		/// <summary>
+		/// Attempts to find all occurrences of the specified rule in the input text, working similarly to regex matching.
+		/// Returns the parsed results converted to the specified type.
+		/// </summary>
+		/// <typeparam name="T">The type to convert the parsed results to.</typeparam>
+		/// <param name="ruleAlias">The alias for the parser rule to use.</param>
+		/// <param name="input">The input text to scan.</param>
+		/// <param name="parameter">Optional parameter to pass to the parser.</param>
+		/// <returns>An enumerable collection of all successfully parsed and converted results.</returns>
+		public IEnumerable<T> FindAllMatches<T>(string ruleAlias, string input, object? parameter = null)
+		{
+			foreach (var result in FindAllMatches(ruleAlias, input, parameter))
+			{
+				yield return result.GetValue<T>();
+			}
 		}
 	}
 }

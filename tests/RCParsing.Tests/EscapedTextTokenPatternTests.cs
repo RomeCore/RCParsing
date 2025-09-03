@@ -45,10 +45,9 @@ namespace RCParsing.Tests
 			var input = "\"a\\\"b\\\\c\\n\"";
 
 			// act
-			var result = parser.TryMatchToken("string", input, out var tokenResult);
+			var tokenResult = parser.MatchToken("string", input);
 
 			// assert
-			Assert.True(result, "TryMatchToken should return true");
 			Assert.True(tokenResult.Success);
 			// IntermediateValue contains processed inner string
 			var inner = (string)tokenResult.IntermediateValue!;
