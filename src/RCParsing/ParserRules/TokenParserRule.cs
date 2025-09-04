@@ -15,7 +15,12 @@ namespace RCParsing.ParserRules
 		/// <summary>
 		/// The token pattern ID to match for this rule.
 		/// </summary>
-		public int TokenPattern { get; }
+		public int TokenPatternId { get; }
+
+		/// <summary>
+		/// The token pattern associated with this rule.
+		/// </summary>
+		public TokenPattern TokenPattern => _pattern ?? Parser.TokenPatterns[TokenPatternId];
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="TokenParserRule"/> class.
@@ -23,7 +28,7 @@ namespace RCParsing.ParserRules
 		/// <param name="tokenPattern">The token pattern ID to match for this rule.</param>
 		public TokenParserRule(int tokenPattern)
 		{
-			TokenPattern = tokenPattern;
+			TokenPatternId = tokenPattern;
 		}
 
 
@@ -36,7 +41,7 @@ namespace RCParsing.ParserRules
 
 		protected override void PreInitialize(ParserInitFlags initFlags)
 		{
-			_pattern = Parser.TokenPatterns[TokenPattern];
+			_pattern = Parser.TokenPatterns[TokenPatternId];
 		}
 
 		protected override void Initialize(ParserInitFlags initFlags)
@@ -50,7 +55,7 @@ namespace RCParsing.ParserRules
 					return ParsedRule.Fail;
 				}
 
-				return ParsedRule.Token(Id, TokenPattern, match.startIndex, match.length, ctx.passedBarriers, match.intermediateValue);
+				return ParsedRule.Token(Id, TokenPatternId, match.startIndex, match.length, ctx.passedBarriers, match.intermediateValue);
 			}
 
 			ParsedRule ParseUsingBarriers(ref ParserContext ctx, ref ParserSettings stng, ref ParserSettings chStng)
@@ -62,9 +67,9 @@ namespace RCParsing.ParserRules
 
 				if (ctx.barrierTokens.TryGetBarrierToken(ctx.position, ctx.passedBarriers, out var barrierToken))
 				{
-					if (barrierToken.tokenId == TokenPattern)
+					if (barrierToken.tokenId == TokenPatternId)
 					{
-						return ParsedRule.Token(Id, TokenPattern, ctx.position, barrierToken.length,
+						return ParsedRule.Token(Id, TokenPatternId, ctx.position, barrierToken.length,
 							barrierToken.index + 1, null);
 					}
 					else
@@ -90,7 +95,7 @@ namespace RCParsing.ParserRules
 					return ParsedRule.Fail;
 				}
 
-				return ParsedRule.Token(Id, TokenPattern, match.startIndex, match.length,
+				return ParsedRule.Token(Id, TokenPatternId, match.startIndex, match.length,
 					ctx.passedBarriers, match.intermediateValue);
 			}
 
@@ -130,7 +135,7 @@ namespace RCParsing.ParserRules
 					return ParsedRule.Fail;
 				}
 
-				return ParsedRule.Token(Id, TokenPattern, match.startIndex, match.length, context.passedBarriers, match.intermediateValue);
+				return ParsedRule.Token(Id, TokenPatternId, match.startIndex, match.length, context.passedBarriers, match.intermediateValue);
 			}
 
 			return parseFunction(ref context, ref settings, ref childSettings);
@@ -142,9 +147,9 @@ namespace RCParsing.ParserRules
 		{
 			string alias = Aliases.Count > 0 ? $" '{Aliases.Last()}'" : string.Empty;
 			if (!string.IsNullOrEmpty(alias))
-				return $"{alias} {GetTokenPattern(TokenPattern).ToString(remainingDepth)}";
+				return $"{alias} {GetTokenPattern(TokenPatternId).ToString(remainingDepth)}";
 
-			return GetTokenPattern(TokenPattern).ToString(remainingDepth);
+			return GetTokenPattern(TokenPatternId).ToString(remainingDepth);
 		}
 
 		public override string ToStackTraceString(int remainingDepth, int childIndex)
@@ -152,22 +157,22 @@ namespace RCParsing.ParserRules
 			string alias = Aliases.Count > 0 ? $"'{Aliases.Last()}'" : string.Empty;
 
 			if (!string.IsNullOrEmpty(alias))
-				return $"{alias} {GetTokenPattern(TokenPattern).ToString(remainingDepth)}";
+				return $"{alias} {GetTokenPattern(TokenPatternId).ToString(remainingDepth)}";
 
-			return GetTokenPattern(TokenPattern).ToString(remainingDepth);
+			return GetTokenPattern(TokenPatternId).ToString(remainingDepth);
 		}
 
 		public override bool Equals(object? obj)
 		{
 			return base.Equals(obj) &&
 				   obj is TokenParserRule rule &&
-				   TokenPattern == rule.TokenPattern;
+				   TokenPatternId == rule.TokenPatternId;
 		}
 
 		public override int GetHashCode()
 		{
 			int hashCode = base.GetHashCode();
-			hashCode = hashCode * -1521134295 + TokenPattern.GetHashCode();
+			hashCode = hashCode * -1521134295 + TokenPatternId.GetHashCode();
 			return hashCode;
 		}
 	}

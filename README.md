@@ -6,17 +6,14 @@
 
 **A Fluent, Lexerless Parser Builder for .NET — Define ANY grammars with the elegance of BNF and the power of C#.**
 
-This library focuses on **Delevoper-experience (DX)** first, providing best toolkit for creating your programming languages or file formats with declarative API, debugging tools, and more. This allows you to design your parser directly in code and easily fix it using *rule stack traces* and detailed error messages.
-
-It provides a Fluent API to fully construct your own parser from grammar to usable object creation. Since this parsing library is lexerless, you don't need to prioritize your tokens and you can mix code with text that contains keywords, just using this library!
-
-It has a brand new feature for parser combinators, the **barrier tokens** that cannot be missed and **must** be parsed, this allows to parse indent-sensitive languages like Python.
+This library focuses on **Developer-experience (DX)** first, providing best toolkit for creating your **programming languages**, **file formats** or even **data extraction tools** with declarative API, debugging tools, and more. This allows you to design your parser directly in code and easily fix it using *rule stack traces* and detailed error messages.
 
 ## Why RCParsing?
 
-- 🐍 **Hybrid**: Unique support for **barrier tokens** to parse indent-sensitive languages like Python and YAML flawlessly.
-- 🚫 **Lexerless**: No token priority headaches. Parse directly from raw text, even with keywords embedded in sources using tokens just as primitives.
-- 🎯 **Fluent API**: Write parsers in C# that read like clean BNF grammars, boosting readability and maintainability without that imperative functional approach.
+- 🐍 **Hybrid Power**: Unique support for **barrier tokens** to parse indent-sensitive languages like Python and YAML flawlessly.
+- 💪 **Regex on Steroids**: You can find all matches for target structure in the input text with detailed AST information and transformed value.
+- 🚫 **Lexerless Freedom**: No token priority headaches. Parse directly from raw text, even with keywords embedded in strings. Tokens are used just as lightweight matching primitives.
+- 🎯 **Fluent API**: Write parsers in C# that read like clean BNF grammars, boosting readability and maintainability compared to imperative or functional approaches.
 - 🐛 **Debug-Friendly**: Get detailed, actionable error messages with stack traces and precise source locations.
 - ⚡ **Fast**: Performance is now on par with the fastest .NET parsing libraries (see benchmarks below).
 - 🌳 **Rich AST**: Parser makes an AST (Abstract Syntax Tree) from raw text, with ability to optimize, fully analyze and calculate the result value entirely lazy, reducing unneccesary allocations.
@@ -29,9 +26,10 @@ It has a brand new feature for parser combinators, the **barrier tokens** that c
 - [Installation](#installation)
 - [Tutorials, docs and examples](#tutorials-docs-and-examples)
 - [Simple examples](#simple-examples) - The examples that you can copy, paste and run!
-	- [A + B](#a--b) - Basic arithmetic expression parser.
+	- [A + B](#a--b) - Basic arithmetic expression parser with result calculation.
 	- [JSON](#json) - A complete JSON parser with comments and skipping.
 	- [Python-like](#python-like) - Demonstrating barrier tokens for indentation.
+	- [Finding patterns](#finding-patterns) - How to find all occurrences of a rule in a string.
 - [Comparison with other parsing libraries](#comparison-with-other-parsing-libraries)
 - [Benchmarks](#benchmarks)
 	- [JSON](#json-1)
@@ -204,8 +202,7 @@ using RCParsing.Building;
 
 var builder = new ParserBuilder();
 
-builder.Settings
-	.Skip(b => b.Whitespaces().ConfigureForSkip());
+builder.Settings.SkipWhitespaces();
 
 // Add the 'INDENT' and 'DEDENT' barrier tokenizer
 // 'INDENT' is emmited when indentation grows
@@ -281,6 +278,47 @@ if c:
     if b:
         a = aa;
 */
+```
+
+## Finding patterns
+
+The `FindAllMatches` method allows you to extract all occurrences of a pattern from a string, even in complex inputs, while handling optional transformations. Here's an example where will will find the `Price: *PRICE* (USD|EUR)` pattern:
+
+```csharp
+var builder = new ParserBuilder();
+
+// Skip unneccesary whitespace (you can configure comments here and they will be ignored when matching)
+builder.Settings.SkipWhitespaces();
+
+// Create thee rule that we will find in text
+builder.CreateMainRule()
+	.Literal("Price:")
+	.Number<double>() // 1
+	.LiteralChoice(["USD", "EUR"]) // 2
+	.Transform(v =>
+	{
+		var number = v[1].Value; // Get the number value
+		var currency = v[2].Text; // Get the 'USD' or 'EUR' text
+		return new { Amount = number, Currency = currency };
+	});
+
+var input =
+"""
+Some log entries.
+Price: 42.99 USD
+Error: something happened.
+Price: 99.50 EUR
+Another line.
+Price: 2.50 USD
+""";
+
+// Find all transformed matches
+var prices = builder.Build().FindAllMatches<dynamic>(input).ToList();
+
+foreach (var price in prices)
+{
+	Console.WriteLine($"Price: {price.Amount}; Currency: {price.Currency}");
+}
 ```
 
 # Comparison with Other Parsing Libraries

@@ -16,25 +16,23 @@ namespace RCParsing.Building
 	{
 		private static object? DefaultFactory_Token(ParsedRuleResult r) => r.IntermediateValue;
 
-		private Or<string, BuildableTokenPattern>? _pattern;
-
 		/// <summary>
 		/// Gets the token being built.
 		/// </summary>
-		public Or<string, BuildableTokenPattern>? BuildingPattern => _pattern;
+		public Or<string, BuildableTokenPattern>? BuildingPattern { get; set; }
 
-		public override bool CanBeBuilt => _pattern.HasValue;
+		public override bool CanBeBuilt => BuildingPattern.HasValue;
 
 		protected override TokenBuilder GetThis() => this;
 
 		public TokenBuilder AddToken(Or<string, BuildableTokenPattern> childToken)
 		{
-			if (!_pattern.HasValue)
+			if (!BuildingPattern.HasValue)
 			{
-				_pattern = childToken;
+				BuildingPattern = childToken;
 			}
-			else if (_pattern.Value.VariantIndex == 1 &&
-					_pattern.Value.AsT2() is BuildableSequenceTokenPattern sequencePattern)
+			else if (BuildingPattern.Value.VariantIndex == 1 &&
+					BuildingPattern.Value.AsT2() is BuildableSequenceTokenPattern sequencePattern)
 			{
 				sequencePattern.Elements.Add(childToken);
 			}
@@ -42,9 +40,9 @@ namespace RCParsing.Building
 			{
 				var newSequence = new BuildableSequenceTokenPattern();
 				newSequence.DefaultParsedValueFactory = DefaultFactory_Token;
-				newSequence.Elements.Add(_pattern.Value);
+				newSequence.Elements.Add(BuildingPattern.Value);
 				newSequence.Elements.Add(childToken);
-				_pattern = newSequence;
+				BuildingPattern = newSequence;
 			}
 			return this;
 		}
@@ -88,17 +86,17 @@ namespace RCParsing.Building
 		/// <returns>Current instance for method chaining.</returns>
 		public TokenBuilder ToSequence()
 		{
-			if (!_pattern.HasValue)
+			if (!BuildingPattern.HasValue)
 			{
 				throw new ParserBuildingException("Cannot convert empty pattern to sequence.");
 			}
-			else if (_pattern.Value.VariantIndex != 1 ||
-					_pattern.Value.AsT2() is not BuildableSequenceTokenPattern)
+			else if (BuildingPattern.Value.VariantIndex != 1 ||
+					BuildingPattern.Value.AsT2() is not BuildableSequenceTokenPattern)
 			{
 				var newSequence = new BuildableSequenceTokenPattern();
 				newSequence.DefaultParsedValueFactory = DefaultFactory_Token;
-				newSequence.Elements.Add(_pattern.Value);
-				_pattern = newSequence;
+				newSequence.Elements.Add(BuildingPattern.Value);
+				BuildingPattern = newSequence;
 			}
 			return this;
 		}
@@ -111,7 +109,7 @@ namespace RCParsing.Building
 		/// <exception cref="ParserBuildingException">Thrown if the token pattern is not set or it is a direct reference to a named pattern.</exception>
 		public TokenBuilder Transform(Func<ParsedRuleResult, object?>? factory)
 		{
-			if (_pattern?.AsT2() is BuildableTokenPattern pattern)
+			if (BuildingPattern?.AsT2() is BuildableTokenPattern pattern)
 				pattern.DefaultParsedValueFactory = factory;
 			else
 				throw new ParserBuildingException("Token pattern is not set or it is a direct reference to a named pattern.");
@@ -126,7 +124,7 @@ namespace RCParsing.Building
 		/// <exception cref="ParserBuildingException">Thrown if the token pattern is not set or it is a direct reference to a named pattern.</exception>
 		public TokenBuilder Configure(Action<ParserLocalSettingsBuilder> configAction)
 		{
-			if (_pattern?.AsT2() is BuildableTokenPattern pattern)
+			if (BuildingPattern?.AsT2() is BuildableTokenPattern pattern)
 				pattern.DefaultConfigurationAction = configAction;
 			else
 				throw new ParserBuildingException("Token pattern is not set or it is a direct reference to a named pattern.");
@@ -144,9 +142,9 @@ namespace RCParsing.Building
 		/// <exception cref="ParserBuildingException">Thrown if the current pattern is not a sequence or repeat or has fewer than two child elements.</exception>
 		public TokenBuilder Pass(Func<IReadOnlyList<object?>, object?>? passageFunction)
 		{
-			if (_pattern?.AsT2() is BuildableSequenceTokenPattern sequence)
+			if (BuildingPattern?.AsT2() is BuildableSequenceTokenPattern sequence)
 				sequence.PassageFunction = passageFunction;
-			else if (_pattern?.AsT2() is BuildableRepeatTokenPattern repeat)
+			else if (BuildingPattern?.AsT2() is BuildableRepeatTokenPattern repeat)
 				repeat.PassageFunction = passageFunction;
 			else
 				throw new ParserBuildingException("Passage function can only be set on a sequence or repeat token pattern " +

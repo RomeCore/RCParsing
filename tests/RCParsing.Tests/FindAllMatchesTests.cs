@@ -4,9 +4,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using RCParsing.Building;
+using RCParsing.ParserRules;
+using RCParsing.TokenPatterns;
 
 namespace RCParsing.Tests
 {
+	/// <summary>
+	/// Tests for matching patterns in a string.
+	/// </summary>
 	public class FindAllMatchesTests
 	{
 		[Fact]
@@ -39,21 +44,20 @@ namespace RCParsing.Tests
 		public void Transformation()
 		{
 			var builder = new ParserBuilder();
-
 			builder.Settings.SkipWhitespaces();
 
-			builder.CreateRule("price_line")
+			builder.CreateMainRule()
+
 				.Literal("Price:")
 				.Number<double>()
 				.LiteralChoice(["USD", "EUR"], currency => currency.Text)
+
 				.Transform(v =>
 				{
 					var number = v[1].Value;
 					var currency = v[2].Value;
 					return new { Amount = number, Currency = currency };
 				});
-
-			builder.CreateMainRule().Rule("price_line");
 
 			var input =
 			"""
@@ -168,10 +172,17 @@ namespace RCParsing.Tests
 
 			var input = "abcd";
 
-			var matches = builder.Build().FindAllMatches(input).ToList();
+			var parser = builder.Build();
+			var matches = parser.FindAllMatches(input).ToList();
 
 			Assert.Single(matches);
 			Assert.Equal("abc", matches[0].Text);
+
+			var overlappingMatches = parser.FindAllMatches(input, overlap: true).ToList();
+
+			Assert.Equal(2, overlappingMatches.Count);
+			Assert.Equal("abc", overlappingMatches[0].Text);
+			Assert.Equal("bcd", overlappingMatches[1].Text);
 		}
 	}
 }

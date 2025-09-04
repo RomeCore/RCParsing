@@ -15,20 +15,19 @@ namespace RCParsing.Building
 	/// </summary>
 	public partial class RuleBuilder : ParserElementBuilder<RuleBuilder>
 	{
-		private object? DefaultFactory_Optional(ParsedRuleResult r) => r.Children.Length > 0 ? r.Children[0].Value : null;
+		private object? DefaultFactory_Sequence(ParsedRuleResult r) => r[0].Value;
+		private object? DefaultFactory_Optional(ParsedRuleResult r) => r.Count > 0 ? r[0].Value : null;
 		private object? DefaultFactory_Repeat(ParsedRuleResult r) => r.SelectArray();
-		private object? DefaultFactory_Choice(ParsedRuleResult r) => r.Children[0].Value;
+		private object? DefaultFactory_Choice(ParsedRuleResult r) => r[0].Value;
 		private object? DefaultFactory_RepeatSeparated(ParsedRuleResult r) => r.SelectArray();
 		private static object? DefaultFactory_Token(ParsedRuleResult r) => r.IntermediateValue;
-
-		private Or<string, BuildableParserRule>? _rule;
 
 		/// <summary>
 		/// Gets the rule being built.
 		/// </summary>
-		public Or<string, BuildableParserRule>? BuildingRule => _rule;
+		public Or<string, BuildableParserRule>? BuildingRule { get; set; }
 
-		public override bool CanBeBuilt => _rule.HasValue;
+		public override bool CanBeBuilt => BuildingRule.HasValue;
 
 		protected override RuleBuilder GetThis() => this;
 
@@ -78,21 +77,22 @@ namespace RCParsing.Building
 		/// <returns>Current instance for method chaining.</returns>
 		public RuleBuilder AddRule(Or<string, BuildableParserRule> childRule)
 		{
-			if (!_rule.HasValue)
+			if (!BuildingRule.HasValue)
 			{
-				_rule = childRule;
+				BuildingRule = childRule;
 			}
-			else if (_rule.Value.VariantIndex == 1 &&
-					_rule.Value.AsT2() is BuildableSequenceParserRule sequenceRule)
+			else if (BuildingRule.Value.VariantIndex == 1 &&
+					BuildingRule.Value.AsT2() is BuildableSequenceParserRule sequenceRule)
 			{
 				sequenceRule.Elements.Add(childRule);
 			}
 			else
 			{
 				var newSequence = new BuildableSequenceParserRule();
-				newSequence.Elements.Add(_rule.Value);
+				newSequence.ParsedValueFactory = DefaultFactory_Sequence;
+				newSequence.Elements.Add(BuildingRule.Value);
 				newSequence.Elements.Add(childRule);
-				_rule = newSequence;
+				BuildingRule = newSequence;
 			}
 			return this;
 		}
@@ -185,16 +185,17 @@ namespace RCParsing.Building
 		/// <returns>Current instance for method chaining.</returns>
 		public RuleBuilder ToSequence()
 		{
-			if (!_rule.HasValue)
+			if (!BuildingRule.HasValue)
 			{
 				throw new ParserBuildingException("Cannot convert empty rule to sequence.");
 			}
-			else if (_rule.Value.VariantIndex != 1 ||
-					_rule.Value.AsT2() is not BuildableSequenceParserRule)
+			else if (BuildingRule.Value.VariantIndex != 1 ||
+					BuildingRule.Value.AsT2() is not BuildableSequenceParserRule)
 			{
 				var newSequence = new BuildableSequenceParserRule();
-				newSequence.Elements.Add(_rule.Value);
-				_rule = newSequence;
+				newSequence.ParsedValueFactory = DefaultFactory_Sequence;
+				newSequence.Elements.Add(BuildingRule.Value);
+				BuildingRule = newSequence;
 			}
 			return this;
 		}
@@ -207,7 +208,7 @@ namespace RCParsing.Building
 		/// <exception cref="ParserBuildingException">Thrown if the parser rule is not set or it is a direct reference to a named rule.</exception>
 		public RuleBuilder Transform(Func<ParsedRuleResult, object?>? factory)
 		{
-			if (_rule?.AsT2() is BuildableParserRule rule)
+			if (BuildingRule?.AsT2() is BuildableParserRule rule)
 				rule.ParsedValueFactory = factory;
 			else
 				throw new ParserBuildingException("Parser rule is not set or it is a direct reference to named rule.");
@@ -222,7 +223,7 @@ namespace RCParsing.Building
 		/// <exception cref="ParserBuildingException">Thrown if the parser rule is not set or it is a direct reference to a named rule.</exception>
 		public RuleBuilder TransformLast(Func<ParsedRuleResult, object?>? factory)
 		{
-			if (_rule?.AsT2() is BuildableSequenceParserRule sequenceRule)
+			if (BuildingRule?.AsT2() is BuildableSequenceParserRule sequenceRule)
 			{
 				if (sequenceRule.Elements.LastOrDefault().AsT2() is BuildableParserRule rule)
 					rule.ParsedValueFactory = factory;
@@ -230,7 +231,7 @@ namespace RCParsing.Building
 					throw new ParserBuildingException("Last rule in the sequence is not set or it is a direct reference to named rule.");
 				return this;
 			}
-			else if (_rule?.AsT2() is BuildableParserRule rule)
+			else if (BuildingRule?.AsT2() is BuildableParserRule rule)
 				rule.ParsedValueFactory = factory;
 			else
 				throw new ParserBuildingException("Parser rule is not set or it is a direct reference to named rule.");
@@ -245,7 +246,7 @@ namespace RCParsing.Building
 		/// <exception cref="ParserBuildingException">Thrown if the parser rule is not set or it is a direct reference to a named rule.</exception>
 		public RuleBuilder Configure(Action<ParserLocalSettingsBuilder> configAction)
 		{
-			if (_rule?.AsT2() is BuildableParserRule rule)
+			if (BuildingRule?.AsT2() is BuildableParserRule rule)
 				configAction(rule.Settings);
 			else
 				throw new ParserBuildingException("Parser rule is not set or it is a direct reference to named rule.");

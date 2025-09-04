@@ -255,8 +255,7 @@ namespace RCParsing.Tests
 				.Literal('"')
 				.EscapedTextDoubleChars('"')
 				.Literal('"')
-				.Pass(v => v[1])
-				.Transform(v => v.IntermediateValue);
+				.Pass(v => v[1]);
 
 			builder.CreateToken("number")
 				.Number<double>(TokenPatterns.NumberFlags.StrictScientific);

@@ -68,7 +68,7 @@ namespace RCParsing.Building
 		}
 
 		/// <summary>
-		/// Adds a literal token to the current sequence.
+		/// Adds a literal char token to the current sequence.
 		/// </summary>
 		/// <param name="literal">The literal character.</param>
 		/// <param name="factory">The factory function to create a parsed value.</param>
@@ -104,8 +104,6 @@ namespace RCParsing.Building
 		public T Literal(string literal, Func<ParsedRuleResult, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
-			if (literal.Length == 1)
-				return Literal(literal[0], factory, config);
 			return AddToken(new LiteralTokenPattern(literal), factory, config);
 		}
 
@@ -120,8 +118,6 @@ namespace RCParsing.Building
 		public T Literal(string literal, StringComparison comparison, Func<ParsedRuleResult, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
-			if (literal.Length == 1)
-				return Literal(literal[0], comparison, factory, config);
 			return AddToken(new LiteralTokenPattern(literal, comparison), factory, config);
 		}
 
@@ -204,8 +200,6 @@ namespace RCParsing.Building
 		/// <returns>Current instance for method chaining.</returns>
 		public T LiteralChoice(params string[] literals)
 		{
-			if (literals.Length == 1)
-				return Literal(literals[0]);
 			return AddToken(new LiteralChoiceTokenPattern(literals));
 		}
 
@@ -219,10 +213,7 @@ namespace RCParsing.Building
 		public T LiteralChoice(IEnumerable<string> literals, Func<ParsedRuleResult, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
-			var array = literals.ToArray();
-			if (array.Length == 1)
-				return Literal(array[0]);
-			return AddToken(new LiteralChoiceTokenPattern(array), factory, config);
+			return AddToken(new LiteralChoiceTokenPattern(literals), factory, config);
 		}
 
 		/// <summary>
@@ -236,10 +227,7 @@ namespace RCParsing.Building
 		public T LiteralChoice(IEnumerable<string> literals, StringComparer? comparer, Func<ParsedRuleResult, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
-			var array = literals.ToArray();
-			if (array.Length == 1 && comparer == null)
-				return Literal(array[0]);
-			return AddToken(new LiteralChoiceTokenPattern(array, comparer), factory, config);
+			return AddToken(new LiteralChoiceTokenPattern(literals, comparer), factory, config);
 		}
 
 		/// <summary>
