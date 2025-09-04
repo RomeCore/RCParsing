@@ -18,7 +18,7 @@ namespace RCParsing.Building
 		/// <summary>
 		/// Gets the parsed value factory that will be used as the default parsed value factory for the parent rule.
 		/// </summary>
-		public Func<ParsedRuleResult, object?>? DefaultParsedValueFactory { get; set; } = null;
+		public Func<ParsedRuleResultBase, object?>? DefaultParsedValueFactory { get; set; } = null;
 
 		/// <summary>
 		/// Gets the local settings builder action that will be used as the default configuration action for the parent rule.

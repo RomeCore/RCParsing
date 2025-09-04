@@ -14,7 +14,7 @@ namespace RCParsing.Building
 	/// </summary>
 	public class TokenBuilder : ParserElementBuilder<TokenBuilder>
 	{
-		private static object? DefaultFactory_Token(ParsedRuleResult r) => r.IntermediateValue;
+		private static object? DefaultFactory_Token(ParsedRuleResultBase r) => r.IntermediateValue;
 
 		/// <summary>
 		/// Gets the token being built.
@@ -48,7 +48,7 @@ namespace RCParsing.Building
 		}
 
 		public override TokenBuilder AddToken(TokenPattern token,
-			Func<ParsedRuleResult, object?>? factory = null,
+			Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			var leafPattern = new BuildableLeafTokenPattern
@@ -71,7 +71,7 @@ namespace RCParsing.Building
 		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		public TokenBuilder AddToken(BuildableTokenPattern tokenPattern,
-			Func<ParsedRuleResult, object?>? factory = null,
+			Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			tokenPattern.DefaultParsedValueFactory = factory ?? DefaultFactory_Token;
@@ -107,7 +107,7 @@ namespace RCParsing.Building
 		/// <param name="factory">The transformation function (parsed value factory) to set.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		/// <exception cref="ParserBuildingException">Thrown if the token pattern is not set or it is a direct reference to a named pattern.</exception>
-		public TokenBuilder Transform(Func<ParsedRuleResult, object?>? factory)
+		public TokenBuilder Transform(Func<ParsedRuleResultBase, object?>? factory)
 		{
 			if (BuildingPattern?.AsT2() is BuildableTokenPattern pattern)
 				pattern.DefaultParsedValueFactory = factory;
@@ -175,7 +175,7 @@ namespace RCParsing.Building
 		/// <returns>Current instance for method chaining.</returns>
 		/// <exception cref="ParserBuildingException">Thrown if builder action have not added any elements.</exception>
 		public TokenBuilder Optional(Action<TokenBuilder> builderAction,
-			Func<ParsedRuleResult, object?>? factory = null,
+			Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			var builder = new TokenBuilder();
@@ -201,7 +201,7 @@ namespace RCParsing.Building
 		/// <returns>Current instance for method chaining.</returns>
 		/// <exception cref="ParserBuildingException">Thrown if builder action have not added any elements.</exception>
 		public TokenBuilder Repeat(Action<TokenBuilder> builderAction, int min, int max,
-			Func<ParsedRuleResult, object?>? factory = null,
+			Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			var builder = new TokenBuilder();
@@ -228,7 +228,7 @@ namespace RCParsing.Building
 		/// <returns>Current instance for method chaining.</returns>
 		/// <exception cref="ParserBuildingException">Thrown if builder action have not added any elements.</exception>
 		public TokenBuilder Repeat(Action<TokenBuilder> builderAction, int min,
-			Func<ParsedRuleResult, object?>? factory = null,
+			Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			return Repeat(builderAction, min, -1, factory, config);
@@ -242,7 +242,7 @@ namespace RCParsing.Building
 		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <exception cref="ParserBuildingException">Thrown if builder action have not added any elements.</exception>
 		public TokenBuilder ZeroOrMore(Action<TokenBuilder> builderAction,
-			Func<ParsedRuleResult, object?>? factory = null,
+			Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			return Repeat(builderAction, 0, -1, factory, config);
@@ -257,7 +257,7 @@ namespace RCParsing.Building
 		/// <returns>Current instance for method chaining.</returns>
 		/// <exception cref="ParserBuildingException">Thrown if builder action have not added any elements.</exception>
 		public TokenBuilder OneOrMore(Action<TokenBuilder> builderAction,
-			Func<ParsedRuleResult, object?>? factory = null,
+			Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			return Repeat(builderAction, 1, -1, factory, config);
@@ -272,7 +272,7 @@ namespace RCParsing.Building
 		/// <returns>Current instance for method chaining.</returns>
 		/// <exception cref="ParserBuildingException">Thrown if any of builder actions have not added any elements.</exception>
 		public TokenBuilder Choice(IEnumerable<Or<Action<TokenBuilder>, string>> choices,
-			Func<ParsedRuleResult, object?>? factory,
+			Func<ParsedRuleResultBase, object?>? factory,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			var builtValues = choices.Select(c =>
@@ -308,7 +308,7 @@ namespace RCParsing.Building
 		/// <returns>Current instance for method chaining.</returns>
 		/// <exception cref="ParserBuildingException">Thrown if any of builder actions have not added any elements.</exception>
 		public TokenBuilder Choice(IEnumerable<Action<TokenBuilder>> choices,
-			Func<ParsedRuleResult, object?>? factory,
+			Func<ParsedRuleResultBase, object?>? factory,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			return Choice(choices.Select(c => new Or<Action<TokenBuilder>, string>(c)).ToArray(),

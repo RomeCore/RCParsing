@@ -645,6 +645,18 @@ namespace RCParsing
 			context.barrierTokens.FillWith(tokens, context.str, this);
 		}
 
+		private ParsedRuleResultBase CreateResult(ref ParserContext context, ref ParsedRule parsedRule)
+		{
+			switch (MainSettings.astType)
+			{
+				case ParserASTType.Lazy:
+					return new ParsedRuleResultLazy(ParseTreeOptimization.None, null, context, parsedRule);
+					default:
+				case ParserASTType.OnDemand:
+					return new ParsedRuleResult(null, context, parsedRule);
+			}
+		}
+
 
 
 		/// <summary>
@@ -782,7 +794,7 @@ namespace RCParsing
 		/// <param name="ruleAlias">The alias for the parser rule to use.</param>
 		/// <param name="context">The parser context to use for parsing.</param>
 		/// <returns>A parsed rule containing the result of the parse.</returns>
-		public ParsedRuleResult ParseRule(string ruleAlias, ParserContext context)
+		public ParsedRuleResultBase ParseRule(string ruleAlias, ParserContext context)
 		{
 			if (context.parser != this)
 				throw new InvalidOperationException("Parser context is not associated with this parser.");
@@ -791,7 +803,7 @@ namespace RCParsing
 
 			EmitBarriers(ref context);
 			var parsedRule = ParseRule(ruleId, context, GlobalSettings);
-			return new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule);
+			return CreateResult(ref context, ref parsedRule);
 		}
 
 		/// <summary>
@@ -801,7 +813,7 @@ namespace RCParsing
 		/// <param name="input">The input text to parse.</param>
 		/// <param name="parameter">Optional parameter to pass to the parser. Can be used to pass additional information to the transformation functions.</param>
 		/// <returns>A parsed rule containing the result of the parse.</returns>
-		public ParsedRuleResult ParseRule(string ruleAlias, string input, object? parameter = null)
+		public ParsedRuleResultBase ParseRule(string ruleAlias, string input, object? parameter = null)
 		{
 			if (!_rulesAliases.TryGetValue(ruleAlias, out var ruleId))
 				throw new ArgumentException("Invalid rule alias", nameof(ruleAlias));
@@ -809,7 +821,7 @@ namespace RCParsing
 			var context = new ParserContext(this, input, parameter);
 			EmitBarriers(ref context);
 			var parsedRule = ParseRule(ruleId, context, GlobalSettings);
-			return new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule);
+			return CreateResult(ref context, ref parsedRule);
 		}
 
 		/// <summary>
@@ -842,7 +854,7 @@ namespace RCParsing
 		/// <param name="context">The parser context to use for parsing.</param>
 		/// <param name="result">The parsed rule containing the result of the parse.</param>
 		/// <returns><see langword="true"/> if a rule was parsed successfully, <see langword="false"/> otherwise.</returns>
-		public bool TryParseRule(string ruleAlias, ParserContext context, out ParsedRuleResult result)
+		public bool TryParseRule(string ruleAlias, ParserContext context, out ParsedRuleResultBase result)
 		{
 			if (context.parser != this)
 				throw new InvalidOperationException("Parser context is not associated with this parser.");
@@ -851,7 +863,7 @@ namespace RCParsing
 
 			EmitBarriers(ref context);
 			var parsedRule = TryParseRule(ruleId, context, GlobalSettings);
-			result = new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule);
+			result = CreateResult(ref context, ref parsedRule);
 			return parsedRule.success;
 		}
 
@@ -862,7 +874,7 @@ namespace RCParsing
 		/// <param name="input">The input text to parse.</param>
 		/// <param name="result">The parsed rule containing the result of the parse.</param>
 		/// <returns><see langword="true"/> if a rule was parsed successfully, <see langword="false"/> otherwise.</returns>
-		public bool TryParseRule(string ruleAlias, string input, out ParsedRuleResult result)
+		public bool TryParseRule(string ruleAlias, string input, out ParsedRuleResultBase result)
 		{
 			return TryParseRule(ruleAlias, input, null, out result);
 		}
@@ -905,7 +917,7 @@ namespace RCParsing
 		/// <param name="result">The parsed rule containing the result of the parse.</param>
 		/// <param name="parameter">Optional parameter to pass to the parser. Can be used to pass additional information to the transformation functions.</param>
 		/// <returns><see langword="true"/> if a rule was parsed successfully, false otherwise.</returns>
-		public bool TryParseRule(string ruleAlias, string input, object? parameter, out ParsedRuleResult result)
+		public bool TryParseRule(string ruleAlias, string input, object? parameter, out ParsedRuleResultBase result)
 		{
 			if (!_rulesAliases.TryGetValue(ruleAlias, out var ruleId))
 				throw new ArgumentException("Invalid rule alias", nameof(ruleAlias));
@@ -913,7 +925,7 @@ namespace RCParsing
 			var context = new ParserContext(this, input, parameter);
 			EmitBarriers(ref context);
 			var parsedRule = TryParseRule(ruleId, context, GlobalSettings);
-			result = new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule);
+			result = CreateResult(ref context, ref parsedRule);
 			return parsedRule.success;
 		}
 
@@ -943,7 +955,7 @@ namespace RCParsing
 		/// </summary>
 		/// <param name="context">The parser context to use for parsing.</param>
 		/// <returns>A parsed rule containing the result of the parse.</returns>
-		public ParsedRuleResult Parse(ParserContext context)
+		public ParsedRuleResultBase Parse(ParserContext context)
 		{
 			if (context.parser != this)
 				throw new InvalidOperationException("Parser context is not associated with this parser.");
@@ -952,7 +964,7 @@ namespace RCParsing
 
 			EmitBarriers(ref context);
 			var parsedRule = ParseRule(_mainRuleId, context, GlobalSettings);
-			return new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule);
+			return CreateResult(ref context, ref parsedRule);
 		}
 
 		/// <summary>
@@ -961,7 +973,7 @@ namespace RCParsing
 		/// <param name="input">The input text to parse.</param>
 		/// <param name="parameter">Optional parameter to pass to the parser. Can be used to pass additional information to the transformation functions.</param>
 		/// <returns>A parsed rule containing the result of the parse.</returns>
-		public ParsedRuleResult Parse(string input, object? parameter = null)
+		public ParsedRuleResultBase Parse(string input, object? parameter = null)
 		{
 			if (_mainRuleId == -1)
 				throw new InvalidOperationException("Main rule is not set.");
@@ -969,7 +981,7 @@ namespace RCParsing
 			var context = new ParserContext(this, input, parameter);
 			EmitBarriers(ref context);
 			var parsedRule = ParseRule(_mainRuleId, context, GlobalSettings);
-			return new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule);
+			return CreateResult(ref context, ref parsedRule);
 		}
 
 		/// <summary>
@@ -1001,7 +1013,7 @@ namespace RCParsing
 		/// <param name="context">The parser context to use for parsing.</param>
 		/// <param name="result">The parsed rule containing the result of the parse.</param>
 		/// <returns><see langword="true"/> if a rule was parsed successfully, <see langword="false"/> otherwise.</returns>
-		public bool TryParse(ParserContext context, out ParsedRuleResult result)
+		public bool TryParse(ParserContext context, out ParsedRuleResultBase result)
 		{
 			if (context.parser != this)
 				throw new InvalidOperationException("Parser context is not associated with this parser.");
@@ -1010,7 +1022,7 @@ namespace RCParsing
 
 			EmitBarriers(ref context);
 			var parsedRule = TryParseRule(_mainRuleId, context, GlobalSettings);
-			result = new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule);
+			result = CreateResult(ref context, ref parsedRule);
 			return parsedRule.success;
 		}
 
@@ -1020,7 +1032,7 @@ namespace RCParsing
 		/// <param name="input">The input text to parse.</param>
 		/// <param name="result">The parsed rule containing the result of the parse.</param>
 		/// <returns><see langword="true"/> if a rule was parsed successfully, <see langword="false"/> otherwise.</returns>
-		public bool TryParse(string input, out ParsedRuleResult result)
+		public bool TryParse(string input, out ParsedRuleResultBase result)
 		{
 			return TryParse(input, null, out result);
 		}
@@ -1032,7 +1044,7 @@ namespace RCParsing
 		/// <param name="result">The parsed rule containing the result of the parse.</param>
 		/// <param name="parameter">Optional parameter to pass to the parser. Can be used to pass additional information to the transformation functions.</param>
 		/// <returns><see langword="true"/> if a rule was parsed successfully, <see langword="false"/> otherwise.</returns>
-		public bool TryParse(string input, object? parameter, out ParsedRuleResult result)
+		public bool TryParse(string input, object? parameter, out ParsedRuleResultBase result)
 		{
 			if (_mainRuleId == -1)
 				throw new InvalidOperationException("Main rule is not set.");
@@ -1040,7 +1052,7 @@ namespace RCParsing
 			var context = new ParserContext(this, input, parameter);
 			EmitBarriers(ref context);
 			var parsedRule = TryParseRule(_mainRuleId, context, GlobalSettings);
-			result = new ParsedRuleResult(ParseTreeOptimization.None, null, context, parsedRule);
+			result = CreateResult(ref context, ref parsedRule);
 			return parsedRule.success;
 		}
 
@@ -1102,7 +1114,7 @@ namespace RCParsing
 		/// <param name="context">The parser context to use for parsing.</param>
 		/// <param name="overlap">Whether to allow overlapping matches. When <see langword="true"/>, parser will advance by 1 anyway, instead of to end position of match.</param>
 		/// <returns>An enumerable collection of all successfully parsed rule results.</returns>
-		public IEnumerable<ParsedRuleResult> FindAllMatches(ParserContext context, bool overlap = false)
+		public IEnumerable<ParsedRuleResultBase> FindAllMatches(ParserContext context, bool overlap = false)
 		{
 			if (context.parser != this)
 				throw new InvalidOperationException("Parser context is not associated with this parser.");
@@ -1111,7 +1123,7 @@ namespace RCParsing
 
 			EmitBarriers(ref context);
 			var parsedRules = FindAllMatches(_mainRuleId, context, GlobalSettings, overlap);
-			return parsedRules.Select(r => new ParsedRuleResult(ParseTreeOptimization.None, null, context, r));
+			return parsedRules.Select(r => CreateResult(ref context, ref r));
 		}
 
 		/// <summary>
@@ -1122,7 +1134,7 @@ namespace RCParsing
 		/// <param name="parameter">Optional parameter to pass to the parser.</param>
 		/// <param name="overlap">Whether to allow overlapping matches. When <see langword="true"/>, parser will advance by 1 anyway, instead of to end position of match.</param>
 		/// <returns>An enumerable collection of all successfully parsed rule results.</returns>
-		public IEnumerable<ParsedRuleResult> FindAllMatches(string input, object? parameter = null, bool overlap = false)
+		public IEnumerable<ParsedRuleResultBase> FindAllMatches(string input, object? parameter = null, bool overlap = false)
 		{
 			if (_mainRuleId == -1)
 				throw new InvalidOperationException("Main rule is not set.");
@@ -1130,7 +1142,7 @@ namespace RCParsing
 			var context = new ParserContext(this, input, parameter);
 			EmitBarriers(ref context);
 			var parsedRules = FindAllMatches(_mainRuleId, context, GlobalSettings, overlap);
-			return parsedRules.Select(r => new ParsedRuleResult(ParseTreeOptimization.None, null, context, r));
+			return parsedRules.Select(r => CreateResult(ref context, ref r));
 		}
 
 		/// <summary>
@@ -1141,7 +1153,7 @@ namespace RCParsing
 		/// <param name="context">The parser context to use for parsing.</param>
 		/// <param name="overlap">Whether to allow overlapping matches. When <see langword="true"/>, parser will advance by 1 anyway, instead of to end position of match.</param>
 		/// <returns>An enumerable collection of all successfully parsed rule results.</returns>
-		public IEnumerable<ParsedRuleResult> FindAllMatches(string ruleAlias, ParserContext context, bool overlap = false)
+		public IEnumerable<ParsedRuleResultBase> FindAllMatches(string ruleAlias, ParserContext context, bool overlap = false)
 		{
 			if (context.parser != this)
 				throw new InvalidOperationException("Parser context is not associated with this parser.");
@@ -1150,7 +1162,7 @@ namespace RCParsing
 
 			EmitBarriers(ref context);
 			var parsedRules = FindAllMatches(ruleId, context, GlobalSettings, overlap);
-			return parsedRules.Select(r => new ParsedRuleResult(ParseTreeOptimization.None, null, context, r));
+			return parsedRules.Select(r => CreateResult(ref context, ref r));
 		}
 
 		/// <summary>
@@ -1162,7 +1174,7 @@ namespace RCParsing
 		/// <param name="parameter">Optional parameter to pass to the parser.</param>
 		/// <param name="overlap">Whether to allow overlapping matches. When <see langword="true"/>, parser will advance by 1 anyway, instead of to end position of match.</param>
 		/// <returns>An enumerable collection of all successfully parsed rule results.</returns>
-		public IEnumerable<ParsedRuleResult> FindAllMatches(string ruleAlias, string input, object? parameter = null, bool overlap = false)
+		public IEnumerable<ParsedRuleResultBase> FindAllMatches(string ruleAlias, string input, object? parameter = null, bool overlap = false)
 		{
 			if (!_rulesAliases.TryGetValue(ruleAlias, out var ruleId))
 				throw new ArgumentException("Invalid rule alias", nameof(ruleAlias));
@@ -1170,7 +1182,7 @@ namespace RCParsing
 			var context = new ParserContext(this, input, parameter);
 			EmitBarriers(ref context);
 			var parsedRules = FindAllMatches(ruleId, context, GlobalSettings, overlap);
-			return parsedRules.Select(r => new ParsedRuleResult(ParseTreeOptimization.None, null, context, r));
+			return parsedRules.Select(r => CreateResult(ref context, ref r));
 		}
 
 		/// <summary>

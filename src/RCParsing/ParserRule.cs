@@ -13,7 +13,7 @@ namespace RCParsing
 		/// <summary>
 		/// Gets the parsed value factory associated with this rule.
 		/// </summary>
-		public Func<ParsedRuleResult, object?>? ParsedValueFactory { get; internal set; } = null;
+		public Func<ParsedRuleResultBase, object?>? ParsedValueFactory { get; internal set; } = null;
 
 		/// <summary>
 		/// Gets the local settings for this parser rule with each setting configurable by override modes.

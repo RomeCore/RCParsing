@@ -14,7 +14,7 @@ namespace RCParsing
 		/// <summary>
 		/// Gets the parent result of this rule, if any.
 		/// </summary>
-		public ParsedRuleResult? Parent { get; }
+		public ParsedRuleResultBase? Parent { get; }
 
 		/// <summary>
 		/// Gets the parser context used for parsing.
@@ -83,7 +83,7 @@ namespace RCParsing
 		/// <param name="parent">The parent result of this rule, if any.</param>
 		/// <param name="context">The parser context used for parsing.</param>
 		/// <param name="result">The parsed token object containing the result of the parse.</param>
-		public ParsedTokenResult(ParsedRuleResult? parent, ParserContext context, ParsedElement result)
+		public ParsedTokenResult(ParsedRuleResultBase? parent, ParserContext context, ParsedElement result)
 		{
 			Parent = parent;
 			Context = context;

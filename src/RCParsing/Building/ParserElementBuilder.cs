@@ -38,7 +38,7 @@ namespace RCParsing.Building
 		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		public abstract T AddToken(TokenPattern token,
-			Func<ParsedRuleResult, object?>? factory = null,
+			Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null);
 
 		/// <summary>
@@ -61,7 +61,7 @@ namespace RCParsing.Building
 		/// <returns>Current instance for method chaining.</returns>
 		public T Custom(Func<CustomTokenPattern, string, int, int, object?, ParsedElement> matchFunction,
 			string stringRepresentation = "custom",
-			Func<ParsedRuleResult, object?>? factory = null,
+			Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			return AddToken(new CustomTokenPattern(matchFunction, stringRepresentation), factory, config);
@@ -74,7 +74,7 @@ namespace RCParsing.Building
 		/// <param name="factory">The factory function to create a parsed value.</param>
 		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public T Literal(char literal, Func<ParsedRuleResult, object?>? factory = null,
+		public T Literal(char literal, Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			return AddToken(new LiteralCharTokenPattern(literal), factory, config);
@@ -88,7 +88,7 @@ namespace RCParsing.Building
 		/// <param name="factory">The factory function to create a parsed value.</param>
 		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public T Literal(char literal, StringComparison comparison, Func<ParsedRuleResult, object?>? factory = null,
+		public T Literal(char literal, StringComparison comparison, Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			return AddToken(new LiteralCharTokenPattern(literal, comparison), factory, config);
@@ -101,7 +101,7 @@ namespace RCParsing.Building
 		/// <param name="factory">The factory function to create a parsed value.</param>
 		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public T Literal(string literal, Func<ParsedRuleResult, object?>? factory = null,
+		public T Literal(string literal, Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			return AddToken(new LiteralTokenPattern(literal), factory, config);
@@ -115,7 +115,7 @@ namespace RCParsing.Building
 		/// <param name="factory">The factory function to create a parsed value.</param>
 		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public T Literal(string literal, StringComparison comparison, Func<ParsedRuleResult, object?>? factory = null,
+		public T Literal(string literal, StringComparison comparison, Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			return AddToken(new LiteralTokenPattern(literal, comparison), factory, config);
@@ -128,7 +128,7 @@ namespace RCParsing.Building
 		/// <param name="factory">The factory function to create a parsed value.</param>
 		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public T Char(Func<char, bool> charPredicate, Func<ParsedRuleResult, object?>? factory = null,
+		public T Char(Func<char, bool> charPredicate, Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			return AddToken(new CharacterTokenPattern(charPredicate), factory, config);
@@ -142,7 +142,7 @@ namespace RCParsing.Building
 		/// <param name="factory">The factory function to create a parsed value.</param>
 		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public T Chars(Func<char, bool> charPredicate, int min, Func<ParsedRuleResult, object?>? factory = null,
+		public T Chars(Func<char, bool> charPredicate, int min, Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			return AddToken(new RepeatCharactersTokenPattern(charPredicate, min, -1),
@@ -158,7 +158,7 @@ namespace RCParsing.Building
 		/// <param name="factory">The factory function to create a parsed value.</param>
 		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public T Chars(Func<char, bool> charPredicate, int min, int max, Func<ParsedRuleResult, object?>? factory = null,
+		public T Chars(Func<char, bool> charPredicate, int min, int max, Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			return AddToken(new RepeatCharactersTokenPattern(charPredicate, min, max),
@@ -172,7 +172,7 @@ namespace RCParsing.Building
 		/// <param name="factory">The factory function to create a parsed value.</param>
 		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public T ZeroOrMoreChars(Func<char, bool> charPredicate, Func<ParsedRuleResult, object?>? factory = null,
+		public T ZeroOrMoreChars(Func<char, bool> charPredicate, Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			return AddToken(new RepeatCharactersTokenPattern(charPredicate, 0, -1),
@@ -186,7 +186,7 @@ namespace RCParsing.Building
 		/// <param name="factory">The factory function to create a parsed value.</param>
 		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public T OneOrMoreChars(Func<char, bool> charPredicate, Func<ParsedRuleResult, object?>? factory = null,
+		public T OneOrMoreChars(Func<char, bool> charPredicate, Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			return AddToken(new RepeatCharactersTokenPattern(charPredicate, 1, -1),
@@ -210,7 +210,7 @@ namespace RCParsing.Building
 		/// <param name="factory">The factory function to create a parsed value.</param>
 		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public T LiteralChoice(IEnumerable<string> literals, Func<ParsedRuleResult, object?>? factory = null,
+		public T LiteralChoice(IEnumerable<string> literals, Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			return AddToken(new LiteralChoiceTokenPattern(literals), factory, config);
@@ -224,7 +224,7 @@ namespace RCParsing.Building
 		/// <param name="factory">The factory function to create a parsed value.</param>
 		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public T LiteralChoice(IEnumerable<string> literals, StringComparer? comparer, Func<ParsedRuleResult, object?>? factory = null,
+		public T LiteralChoice(IEnumerable<string> literals, StringComparer? comparer, Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			return AddToken(new LiteralChoiceTokenPattern(literals, comparer), factory, config);
@@ -239,7 +239,7 @@ namespace RCParsing.Building
 		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		public T Identifier(Func<char, bool> startPredicate, Func<char, bool> continuePredicate,
-			Func<ParsedRuleResult, object?>? factory = null,
+			Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			return AddToken(new IdentifierTokenPattern(startPredicate, continuePredicate), factory, config);
@@ -255,7 +255,7 @@ namespace RCParsing.Building
 		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		public T Identifier(Func<char, bool> startPredicate, Func<char, bool> continuePredicate,
-			int minLength, Func<ParsedRuleResult, object?>? factory = null,
+			int minLength, Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			return AddToken(new IdentifierTokenPattern(startPredicate, continuePredicate, minLength), factory, config);
@@ -272,7 +272,7 @@ namespace RCParsing.Building
 		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		public T Identifier(Func<char, bool> startPredicate, Func<char, bool> continuePredicate,
-			int minLength, int maxLength, Func<ParsedRuleResult, object?>? factory = null,
+			int minLength, int maxLength, Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			return AddToken(new IdentifierTokenPattern(startPredicate, continuePredicate, minLength, maxLength), factory, config);
@@ -284,7 +284,7 @@ namespace RCParsing.Building
 		/// <param name="factory">The factory function to create a parsed value.</param>
 		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public T Identifier(Func<ParsedRuleResult, object?>? factory = null,
+		public T Identifier(Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			return AddToken(IdentifierTokenPattern.AsciiIdentifier(), factory, config);
@@ -297,7 +297,7 @@ namespace RCParsing.Building
 		/// <param name="factory">The factory function to create a parsed value.</param>
 		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public T Identifier(int minLength, Func<ParsedRuleResult, object?>? factory = null,
+		public T Identifier(int minLength, Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			return AddToken(IdentifierTokenPattern.AsciiIdentifier(minLength), factory, config);
@@ -311,7 +311,7 @@ namespace RCParsing.Building
 		/// <param name="factory">The factory function to create a parsed value.</param>
 		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public T Identifier(int minLength, int maxLength, Func<ParsedRuleResult, object?>? factory = null,
+		public T Identifier(int minLength, int maxLength, Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			return AddToken(IdentifierTokenPattern.AsciiIdentifier(minLength, maxLength), factory, config);
@@ -323,7 +323,7 @@ namespace RCParsing.Building
 		/// <param name="factory">The factory function to create a parsed value.</param>
 		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public T UnicodeIdentifier(Func<ParsedRuleResult, object?>? factory = null,
+		public T UnicodeIdentifier(Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			return AddToken(IdentifierTokenPattern.UnicodeIdentifier(), factory, config);
@@ -336,7 +336,7 @@ namespace RCParsing.Building
 		/// <param name="factory">The factory function to create a parsed value.</param>
 		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public T UnicodeIdentifier(int minLength, Func<ParsedRuleResult, object?>? factory = null,
+		public T UnicodeIdentifier(int minLength, Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			return AddToken(IdentifierTokenPattern.UnicodeIdentifier(minLength), factory, config);
@@ -350,7 +350,7 @@ namespace RCParsing.Building
 		/// <param name="factory">The factory function to create a parsed value.</param>
 		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public T UnicodeIdentifier(int minLength, int maxLength, Func<ParsedRuleResult, object?>? factory = null,
+		public T UnicodeIdentifier(int minLength, int maxLength, Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			return AddToken(IdentifierTokenPattern.UnicodeIdentifier(minLength, maxLength), factory, config);
@@ -364,7 +364,7 @@ namespace RCParsing.Building
 		/// <param name="factory">The factory function to create a parsed value.</param>
 		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public T Regex(string regex, RegexOptions options = RegexOptions.Compiled, Func<ParsedRuleResult, object?>? factory = null,
+		public T Regex(string regex, RegexOptions options = RegexOptions.Compiled, Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			return AddToken(new RegexTokenPattern(regex, options), factory, config);
@@ -377,7 +377,7 @@ namespace RCParsing.Building
 		/// <param name="factory">The factory function to create a parsed value.</param>
 		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public T Regex(string regex, Func<ParsedRuleResult, object?>? factory,
+		public T Regex(string regex, Func<ParsedRuleResultBase, object?>? factory,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			return AddToken(new RegexTokenPattern(regex), factory, config);
@@ -389,7 +389,7 @@ namespace RCParsing.Building
 		/// <param name="factory">The factory function to create a parsed value.</param>
 		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public T Whitespaces(Func<ParsedRuleResult, object?>? factory = null,
+		public T Whitespaces(Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			return AddToken(new WhitespacesTokenPattern(), factory, config);
@@ -401,7 +401,7 @@ namespace RCParsing.Building
 		/// <param name="factory">The factory function to create a parsed value.</param>
 		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public T EOF(Func<ParsedRuleResult, object?>? factory = null,
+		public T EOF(Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			return AddToken(new EOFTokenPattern(), factory, config);
@@ -504,7 +504,7 @@ namespace RCParsing.Building
 		/// <param name="factory">The factory function to create a parsed value.</param>
 		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public T Number(bool signed = false, Func<ParsedRuleResult, object?>? factory = null,
+		public T Number(bool signed = false, Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			return AddToken(new NumberTokenPattern(NumberType.Integer,
@@ -521,7 +521,7 @@ namespace RCParsing.Building
 		/// <param name="factory">The factory function to create a parsed value.</param>
 		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public T Number(NumberFlags flags, Func<ParsedRuleResult, object?>? factory = null,
+		public T Number(NumberFlags flags, Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			return AddToken(new NumberTokenPattern(NumberType.PreferSimpler, flags), factory, config);
@@ -535,7 +535,7 @@ namespace RCParsing.Building
 		/// <param name="factory">The factory function to create a parsed value.</param>
 		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public T Number(NumberType type, NumberFlags flags, Func<ParsedRuleResult, object?>? factory = null,
+		public T Number(NumberType type, NumberFlags flags, Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			return AddToken(new NumberTokenPattern(type, flags), factory, config);
@@ -550,7 +550,7 @@ namespace RCParsing.Building
 		/// <param name="factory">The factory function to create a parsed value.</param>
 		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public T Number<TNum>(Func<ParsedRuleResult, object?>? factory = null,
+		public T Number<TNum>(Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			var type = NumberTypeFromCLR(typeof(TNum));
@@ -568,7 +568,7 @@ namespace RCParsing.Building
 		/// <param name="factory">The factory function to create a parsed value.</param>
 		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public T Number<TNum>(bool signed, Func<ParsedRuleResult, object?>? factory = null,
+		public T Number<TNum>(bool signed, Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			var type = NumberTypeFromCLR(typeof(TNum));
@@ -586,7 +586,7 @@ namespace RCParsing.Building
 		/// <param name="factory">The factory function to create a parsed value.</param>
 		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public T Number<TNum>(NumberFlags flags, Func<ParsedRuleResult, object?>? factory = null,
+		public T Number<TNum>(NumberFlags flags, Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			var type = NumberTypeFromCLR(typeof(TNum));
@@ -605,7 +605,7 @@ namespace RCParsing.Building
 		/// <returns>Current instance for method chaining.</returns>
 		public T EscapedText(IEnumerable<KeyValuePair<string, string>> escapeMappings, IEnumerable<string> forbidden,
 			bool allowsEmpty = true, StringComparer? comparer = null,
-			Func<ParsedRuleResult, object?>? factory = null, Action<ParserLocalSettingsBuilder>? config = null)
+			Func<ParsedRuleResultBase, object?>? factory = null, Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			return AddToken(new EscapedTextTokenPattern(escapeMappings, forbidden, allowsEmpty, comparer), factory, config);
 		}
@@ -620,7 +620,7 @@ namespace RCParsing.Building
 		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		public T EscapedTextDoubleChars(IEnumerable<char> charSource, bool allowsEmpty = true, StringComparer? comparer = null,
-			Func<ParsedRuleResult, object?>? factory = null, Action<ParserLocalSettingsBuilder>? config = null)
+			Func<ParsedRuleResultBase, object?>? factory = null, Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			return AddToken(EscapedTextTokenPattern.CreateDoubleCharacters(charSource, allowsEmpty, comparer), factory, config);
 		}
@@ -635,7 +635,7 @@ namespace RCParsing.Building
 		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		public T EscapedTextDoubleSequences(IEnumerable<string> sequences, bool allowsEmpty = true, StringComparer? comparer = null,
-			Func<ParsedRuleResult, object?>? factory = null, Action<ParserLocalSettingsBuilder>? config = null)
+			Func<ParsedRuleResultBase, object?>? factory = null, Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			return AddToken(EscapedTextTokenPattern.CreateDoubleSequences(sequences, allowsEmpty, comparer), factory, config);
 		}
@@ -671,7 +671,7 @@ namespace RCParsing.Building
 		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		public T EscapedTextPrefix(IEnumerable<char> charSource, char prefix, bool allowsEmpty = true, StringComparer? comparer = null,
-			Func<ParsedRuleResult, object?>? factory = null, Action<ParserLocalSettingsBuilder>? config = null)
+			Func<ParsedRuleResultBase, object?>? factory = null, Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			return AddToken(EscapedTextTokenPattern.CreatePrefix(charSource, prefix, allowsEmpty, comparer), factory, config);
 		}
@@ -687,7 +687,7 @@ namespace RCParsing.Building
 		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		public T EscapedTextPrefix(IEnumerable<string> sequences, string prefix, bool allowsEmpty = true, StringComparer? comparer = null,
-			Func<ParsedRuleResult, object?>? factory = null, Action<ParserLocalSettingsBuilder>? config = null)
+			Func<ParsedRuleResultBase, object?>? factory = null, Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			return AddToken(EscapedTextTokenPattern.CreatePrefix(sequences, prefix, allowsEmpty, comparer), factory, config);
 		}
@@ -724,7 +724,7 @@ namespace RCParsing.Building
 		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		public T TextUntil(IEnumerable<string> forbidden, bool allowsEmpty = true, StringComparer? comparer = null,
-			Func<ParsedRuleResult, object?>? factory = null, Action<ParserLocalSettingsBuilder>? config = null)
+			Func<ParsedRuleResultBase, object?>? factory = null, Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			return AddToken(EscapedTextTokenPattern.CreateUntil(forbidden, allowsEmpty, comparer), factory, config);
 		}
@@ -740,7 +740,7 @@ namespace RCParsing.Building
 		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		public T TextUntil(IEnumerable<char> forbiddenChars, bool allowsEmpty = true, StringComparer? comparer = null,
-			Func<ParsedRuleResult, object?>? factory = null, Action<ParserLocalSettingsBuilder>? config = null)
+			Func<ParsedRuleResultBase, object?>? factory = null, Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			return AddToken(EscapedTextTokenPattern.CreateUntil(forbiddenChars, allowsEmpty, comparer), factory, config);
 		}

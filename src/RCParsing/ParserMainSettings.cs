@@ -1,34 +1,24 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 namespace RCParsing
 {
 	/// <summary>
-	/// Represents flags that control how parsing errors are formatted.
+	/// A type of AST that will be returned from parser.
 	/// </summary>
-	[Flags]
-	public enum ErrorFormattingFlags
+	public enum ParserASTType
 	{
 		/// <summary>
-		/// Displays the brief error messages without any additional debugging information.
+		/// The default type, AST that does not store values and calulates them every time when called.
 		/// </summary>
-		Default = 0,
+		OnDemand,
 
 		/// <summary>
-		/// Displays what rules are expected when formatting errors for exceptions.
+		/// The lazy AST that store calculated values.
 		/// </summary>
-		DisplayRules = 1,
-
-		/// <summary>
-		/// Displays the hidden error messages when formatting errors for exceptions.
-		/// </summary>
-		DisplayMessages = 2,
-
-		/// <summary>
-		/// Displays more groups of errors (instead of a single group) when formatting errors for exceptions.
-		/// </summary>
-		MoreGroups = 4,
+		Lazy
 	}
 
 	/// <summary>
@@ -40,5 +30,10 @@ namespace RCParsing
 		/// The error formatting flags that control how parsing errors are formatted when throwing exceptions.
 		/// </summary>
 		public ErrorFormattingFlags errorFormattingFlags;
+
+		/// <summary>
+		/// The AST type that produces the parser on successful parsing. Can be either lazy or 
+		/// </summary>
+		public ParserASTType astType;
 	}
 }
