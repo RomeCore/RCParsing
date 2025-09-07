@@ -14,7 +14,7 @@
 		<Product>RCParsing</Product>
 		<Description>A flexible, readable, fast and powerful .NET lexerless parser building framework.</Description>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
-		<PackageIcon>icon-nuget.png</PackageIcon>
+		<PackageIcon>logo-nuget.png</PackageIcon>
 		<PackageTags>parser, grammar, lexerless, syntax, ast, bnf, dsl, compiler</PackageTags>
 		<RepositoryUrl>https://github.com/RomeCore/RCParsing</RepositoryUrl>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -23,7 +23,7 @@
 	
 	<ItemGroup>
 		<None Include="..\..\README.md" Pack="true" PackagePath="\"/>
-		<None Include="..\..assets\icon-nuget.png" Pack="true" PackagePath="\"/>
+		<None Include="..\..\assets\logo-nuget.png" Pack="true" PackagePath="\"/>
 	</ItemGroup>
 	
 	<ItemGroup>
