@@ -13,7 +13,7 @@ namespace RCParsing
 		/// <summary>
 		/// The default type, AST that does not store values and calulates them every time when called.
 		/// </summary>
-		OnDemand,
+		Lightweight,
 
 		/// <summary>
 		/// The lazy AST that store calculated values.
@@ -32,8 +32,13 @@ namespace RCParsing
 		public ErrorFormattingFlags errorFormattingFlags;
 
 		/// <summary>
-		/// The AST type that produces the parser on successful parsing. Can be either lazy or 
+		/// The AST type that produces the parser on successful parsing. Can be either lazy or lightweight.
 		/// </summary>
 		public ParserASTType astType;
+
+		/// <summary>
+		/// Whether to record skipped rules during parsing. Useful for debugging and syntax highlighting.
+		/// </summary>
+		public bool recordSkippedRules;
 	}
 }

@@ -91,7 +91,8 @@ namespace RCParsing
 		public override ParsedRule Result { get; }
 
 		private ParsedTokenResult? _token;
-		public override ParsedTokenResult? Token => Result.isToken ? _token ??= new ParsedTokenResult(this, Context, Result.element) : null;
+		public override ParsedTokenResult? Token => Result.isToken ? _token ??=
+			new ParsedTokenResult(this, Context, Result.element, Result.tokenId) : null;
 
 		private string _text;
 		public override string Text => _text ??= Context.str.Substring(Result.startIndex, Result.length);

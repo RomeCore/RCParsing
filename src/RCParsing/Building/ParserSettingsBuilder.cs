@@ -163,20 +163,20 @@ namespace RCParsing.Building
 		}
 
 		/// <summary>
-		/// Sets the creating AST type to <see cref="ParserASTType.OnDemand"/>.
+		/// Sets the creating AST type to <see cref="ParserASTType.Lightweight"/> (the <see cref="ParsedRuleResult"/>).
 		/// </summary>
 		/// <remarks>
 		/// This type of AST stores minimum amount of data, should not be used when AST nodes is reused.
 		/// </remarks>
 		/// <returns>Current instance for method chaining.</returns>
-		public ParserSettingsBuilder UseOnDemandAST()
+		public ParserSettingsBuilder UseLightAST()
 		{
-			_mainSettings.astType = ParserASTType.OnDemand;
+			_mainSettings.astType = ParserASTType.Lightweight;
 			return this;
 		}
 
 		/// <summary>
-		/// Sets the creating AST type to <see cref="ParserASTType.Lazy"/>.
+		/// Sets the creating AST type to <see cref="ParserASTType.Lazy"/> (the <see cref="ParsedRuleResultLazy"/>).
 		/// </summary>
 		/// <remarks>
 		/// Prevents from AST recalculations.
@@ -187,6 +187,40 @@ namespace RCParsing.Building
 		public ParserSettingsBuilder UseLazyAST()
 		{
 			_mainSettings.astType = ParserASTType.Lazy;
+			return this;
+		}
+
+		/// <summary>
+		/// Sets the creating AST type to the specified type.
+		/// </summary>
+		/// <returns>Current instance for method chaining.</returns>
+		public ParserSettingsBuilder UseAST(ParserASTType astType)
+		{
+			_mainSettings.astType = astType;
+			return this;
+		}
+
+		/// <summary>
+		/// Allows the parser to record skipped rules to the context.
+		/// </summary>
+		/// <remarks>
+		/// Useful for debugging purposes and syntax highlighting.
+		/// </remarks>
+		/// <param name="record">Whether to record skipped rules. Default is true.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public ParserSettingsBuilder RecordSkippedRules(bool record = true)
+		{
+			_mainSettings.recordSkippedRules = record;
+			return this;
+		}
+
+		/// <summary>
+		/// Prevents the parser from recording skipped rules to the context.
+		/// </summary>
+		/// <returns>Current instance for method chaining.</returns>
+		public ParserSettingsBuilder DoNotRecordSkippedRules()
+		{
+			_mainSettings.recordSkippedRules = false;
 			return this;
 		}
 

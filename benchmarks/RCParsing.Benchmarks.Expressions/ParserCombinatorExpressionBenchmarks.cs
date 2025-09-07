@@ -21,15 +21,15 @@ namespace RCParsing.Benchmarks.Expressions
 		}
 
 		[Benchmark, BenchmarkCategory("short")]
-		public void ExpressionShort_Pidgin()
-		{
-			var value = PidginExpressionParser.Parse(TestExpressions.shortExpression);
-		}
-
-		[Benchmark, BenchmarkCategory("short")]
 		public void ExpressionShort_Parlot()
 		{
 			var value = ParlotExpressionParser.Parse(TestExpressions.shortExpression);
+		}
+
+		[Benchmark, BenchmarkCategory("short")]
+		public void ExpressionShort_Pidgin()
+		{
+			var value = PidginExpressionParser.Parse(TestExpressions.shortExpression);
 		}
 
 		[Benchmark(Baseline = true), BenchmarkCategory("big")]
@@ -39,15 +39,15 @@ namespace RCParsing.Benchmarks.Expressions
 		}
 
 		[Benchmark, BenchmarkCategory("big")]
-		public void ExpressionBig_Pidgin()
-		{
-			var value = PidginExpressionParser.Parse(TestExpressions.bigExpression);
-		}
-
-		[Benchmark, BenchmarkCategory("big")]
 		public void ExpressionBig_Parlot()
 		{
 			var value = ParlotExpressionParser.Parse(TestExpressions.bigExpression);
+		}
+
+		[Benchmark, BenchmarkCategory("big")]
+		public void ExpressionBig_Pidgin()
+		{
+			var value = PidginExpressionParser.Parse(TestExpressions.bigExpression);
 		}
 	}
 }

@@ -13,6 +13,9 @@ namespace RCParsing.Building
 	/// <summary>
 	/// Represents a builder for constructing rules that are used in parsing processes.
 	/// </summary>
+	/// <remarks>
+	/// Also can be easily used for creating sugar methods.
+	/// </remarks>
 	public partial class RuleBuilder : ParserElementBuilder<RuleBuilder>
 	{
 		private object? DefaultFactory_Sequence(ParsedRuleResultBase r) => r[0].Value;
@@ -23,7 +26,22 @@ namespace RCParsing.Building
 		private static object? DefaultFactory_Token(ParsedRuleResultBase r) => r.IntermediateValue;
 
 		/// <summary>
-		/// Gets the rule being built.
+		/// Initializes a new instance of <see cref="RuleBuilder"/> class.
+		/// </summary>
+		public RuleBuilder()
+		{
+		}
+
+		/// <summary>
+		/// Initializes a new instance of <see cref="RuleBuilder"/> class.
+		/// </summary>
+		/// <param name="parserBuilder">The master parser builder associated with this rule builder.</param>
+		public RuleBuilder(ParserBuilder? parserBuilder) : base(parserBuilder)
+		{
+		}
+
+		/// <summary>
+		/// Gets or sets the rule being built. Or the named reference to rule.
 		/// </summary>
 		public Or<string, BuildableParserRule>? BuildingRule { get; set; }
 
@@ -38,21 +56,21 @@ namespace RCParsing.Building
 		/// <param name="factory">The factory function to create a parsed value.</param>
 		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public RuleBuilder AddToken(Or<string, BuildableTokenPattern> childToken,
+		public RuleBuilder Token(Or<string, BuildableTokenPattern> childToken,
 			Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			if (childToken.VariantIndex == 1)
 				factory ??= childToken.Value2.DefaultParsedValueFactory ?? DefaultFactory_Token;
-			return AddRule(new BuildableTokenParserRule
+			return Rule(new BuildableTokenParserRule
 			{
 				Child = childToken
 			}, factory, config);
 		}
 
-		public override RuleBuilder AddToken(TokenPattern token, Func<ParsedRuleResultBase, object?>? factory = null, Action<ParserLocalSettingsBuilder>? config = null)
+		public override RuleBuilder Token(TokenPattern token, Func<ParsedRuleResultBase, object?>? factory = null, Action<ParserLocalSettingsBuilder>? config = null)
 		{
-			return AddToken(new BuildableLeafTokenPattern
+			return Token(new BuildableLeafTokenPattern
 			{
 				TokenPattern = token
 			}, factory, config);
@@ -65,9 +83,9 @@ namespace RCParsing.Building
 		/// <param name="factory">The factory function to create a parsed value.</param>
 		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public RuleBuilder AddToken(BuildableTokenPattern token, Func<ParsedRuleResultBase, object?>? factory = null, Action<ParserLocalSettingsBuilder>? config = null)
+		public RuleBuilder Token(BuildableTokenPattern token, Func<ParsedRuleResultBase, object?>? factory = null, Action<ParserLocalSettingsBuilder>? config = null)
 		{
-			return AddToken(new Or<string, BuildableTokenPattern>(token), factory, config);
+			return Token(new Or<string, BuildableTokenPattern>(token), factory, config);
 		}
 
 		/// <summary>
@@ -75,7 +93,7 @@ namespace RCParsing.Building
 		/// </summary>
 		/// <param name="childRule">The rule to add. Can be a name or a child pattern.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public RuleBuilder AddRule(Or<string, BuildableParserRule> childRule)
+		public RuleBuilder Rule(Or<string, BuildableParserRule> childRule)
 		{
 			if (!BuildingRule.HasValue)
 			{
@@ -104,13 +122,13 @@ namespace RCParsing.Building
 		/// <param name="factory">The factory function to create a parsed value.</param>
 		/// <param name="config">The action to configure the local settings for this rule.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public RuleBuilder AddRule(BuildableParserRule childRule,
+		public RuleBuilder Rule(BuildableParserRule childRule,
 			Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			childRule.ParsedValueFactory = factory;
 			config?.Invoke(childRule.Settings);
-			return AddRule(new Or<string, BuildableParserRule>(childRule));
+			return Rule(new Or<string, BuildableParserRule>(childRule));
 		}
 
 		/// <summary>
@@ -120,7 +138,36 @@ namespace RCParsing.Building
 		/// <returns>Current instance for method chaining.</returns>
 		public RuleBuilder Rule(string ruleName)
 		{
-			return AddRule(ruleName);
+			return Rule(new Or<string, BuildableParserRule>(ruleName));
+		}
+
+		/// <summary>
+		/// Adds a rule to the current sequence.
+		/// </summary>
+		/// <param name="builderAction">The action to build the rule.</param>
+		/// <param name="factory">The factory function to create a parsed value.</param>
+		/// <param name="config">The action to configure the local settings for this rule.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public RuleBuilder Rule(Action<RuleBuilder> builderAction, Func<ParsedRuleResultBase, object?>? factory = null,
+			Action<ParserLocalSettingsBuilder>? config = null)
+		{
+			var builder = new RuleBuilder(ParserBuilder);
+			builderAction(builder);
+
+			if (!builder.CanBeBuilt)
+				throw new ParserBuildingException("Builder action did not add any rules.");
+
+			if (builder.BuildingRule.Value.VariantIndex == 0)
+			{
+				if (factory != null)
+					throw new ParserBuildingException("Cannot apply parsed value factory to a direct rule reference.");
+				if (config != null)
+					throw new ParserBuildingException("Cannot apply configuration to a direct rule reference.");
+
+				return Rule(builder.BuildingRule.Value.Value1);
+			}
+			else
+				return Rule(builder.BuildingRule.Value.Value2, factory, config);
 		}
 
 		/// <summary>
@@ -130,7 +177,7 @@ namespace RCParsing.Building
 		/// <returns>Current instance for method chaining.</returns>
 		public override RuleBuilder Token(string tokenName)
 		{
-			return AddToken(tokenName);
+			return Token(tokenName, null, null);
 		}
 
 		/// <summary>
@@ -143,20 +190,7 @@ namespace RCParsing.Building
 		public RuleBuilder Token(string tokenName, Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
-			return AddToken(tokenName, factory, config);
-		}
-
-		/// <summary>
-		/// Adds a token to the current sequence.
-		/// </summary>
-		/// <param name="token">The token pattern to add.</param>
-		/// <param name="factory">The factory function to create a parsed value.</param>
-		/// <param name="config">The action to configure the local settings for this rule.</param>
-		/// <returns>Current instance for method chaining.</returns>
-		public RuleBuilder Token(TokenPattern token, Func<ParsedRuleResultBase, object?>? factory = null,
-			Action<ParserLocalSettingsBuilder>? config = null)
-		{
-			return AddToken(token, factory, config);
+			return Token(new Or<string, BuildableTokenPattern>(tokenName), factory, config);
 		}
 
 		/// <summary>
@@ -170,13 +204,13 @@ namespace RCParsing.Building
 		public RuleBuilder Token(Action<TokenBuilder> builderAction, Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
-			var builder = new TokenBuilder();
+			var builder = new TokenBuilder(ParserBuilder);
 			builderAction(builder);
 
 			if (!builder.CanBeBuilt)
 				throw new ParserBuildingException("Builder action did not add any tokens.");
 
-			return AddToken(builder.BuildingPattern.Value, factory, config);
+			return Token(builder.BuildingPattern.Value, factory, config);
 		}
 
 		/// <summary>
@@ -274,13 +308,13 @@ namespace RCParsing.Building
 		public RuleBuilder Optional(Action<RuleBuilder> builderAction, Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
-			var builder = new RuleBuilder();
+			var builder = new RuleBuilder(ParserBuilder);
 			builderAction(builder);
 
 			if (!builder.CanBeBuilt)
 				throw new ParserBuildingException("Optional child rule cannot be empty.");
 
-			return AddRule(new BuildableOptionalParserRule
+			return Rule(new BuildableOptionalParserRule
 			{
 				Child = builder.BuildingRule.Value
 			}, factory ?? DefaultFactory_Optional, config);
@@ -299,13 +333,13 @@ namespace RCParsing.Building
 		public RuleBuilder Repeat(Action<RuleBuilder> builderAction, int min, int max, Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
-			var builder = new RuleBuilder();
+			var builder = new RuleBuilder(ParserBuilder);
 			builderAction(builder);
 
 			if (!builder.CanBeBuilt)
 				throw new ParserBuildingException("Repeated child rule cannot be empty.");
 
-			return AddRule(new BuildableRepeatParserRule
+			return Rule(new BuildableRepeatParserRule
 			{
 				MinCount = min,
 				MaxCount = max,
@@ -371,7 +405,7 @@ namespace RCParsing.Building
 			{
 				if (c.VariantIndex == 0)
 				{
-					var builder = new RuleBuilder();
+					var builder = new RuleBuilder(ParserBuilder);
 					c.AsT1().Invoke(builder);
 					if (!builder.CanBeBuilt)
 						throw new ParserBuildingException("Choice child rule cannot be empty.");
@@ -386,7 +420,7 @@ namespace RCParsing.Building
 
 			var choice = new BuildableChoiceParserRule();
 			choice.Choices.AddRange(builtValues);
-			return AddRule(choice, factory ?? DefaultFactory_Choice, config);
+			return Rule(choice, factory ?? DefaultFactory_Choice, config);
 		}
 
 		/// <summary>
@@ -432,7 +466,7 @@ namespace RCParsing.Building
 			int min, int max, bool allowTrailingSeparator = false, bool includeSeparatorsInResult = false,
 			Func<ParsedRuleResultBase, object?>? factory = null, Action<ParserLocalSettingsBuilder>? config = null)
 		{
-			RuleBuilder builder = new(), separatorBuilder = new();
+			RuleBuilder builder = new(ParserBuilder), separatorBuilder = new(ParserBuilder);
 			builderAction(builder);
 			separatorBuilderAction(separatorBuilder);
 
@@ -442,7 +476,7 @@ namespace RCParsing.Building
 			if (!separatorBuilder.CanBeBuilt)
 				throw new ParserBuildingException("Separator child rule cannot be empty.");
 
-			return AddRule(new BuildableSeparatedRepeatParserRule
+			return Rule(new BuildableSeparatedRepeatParserRule
 			{
 				MinCount = min,
 				MaxCount = max,

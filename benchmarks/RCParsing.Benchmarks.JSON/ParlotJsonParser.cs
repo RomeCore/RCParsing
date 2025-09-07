@@ -16,7 +16,7 @@ namespace RCParsing.Benchmarks.JSON
 			var jsonValue = Deferred<object>();
 
 			var jsonString = Between(Terms.Char('"'), AnyCharBefore(Terms.Char('"')), Terms.Char('"')).Then<object>(s => s.Span.ToString());
-			var jsonNumber = Terms.Number<int>().Then<object>();
+			var jsonNumber = Terms.Number<int>(NumberOptions.Integer).Then<object>();
 			var jsonTrue = Terms.Text("true").Then<object>(_ => true);
 			var jsonFalse = Terms.Text("false").Then<object>(_ => false);
 			var jsonNull = Terms.Text("null").Then<object>(_ => null);
@@ -34,7 +34,7 @@ namespace RCParsing.Benchmarks.JSON
 									 SkipWhiteSpace(Terms.Char('}')))
 							.Then<object>(pairs =>
 							{
-								var dict = new Dictionary<string, object>();
+								var dict = new Dictionary<string, object>(pairs.Count);
 								foreach (var kv in pairs)
 								{
 									dict[kv.Key] = kv.Value;
@@ -44,7 +44,7 @@ namespace RCParsing.Benchmarks.JSON
 
 			jsonValue.Parser = SkipWhiteSpace(OneOf(jsonString, jsonNumber, jsonObject, jsonArray, jsonTrue, jsonFalse, jsonNull));
 
-			Json = jsonValue;
+			Json = jsonValue.Compile();
 		}
 
 		public static object Parse(string input)

@@ -17,6 +17,21 @@ namespace RCParsing.Building
 		private static object? DefaultFactory_Token(ParsedRuleResultBase r) => r.IntermediateValue;
 
 		/// <summary>
+		/// Initializes a new instance of <see cref="TokenBuilder"/> class.
+		/// </summary>
+		public TokenBuilder()
+		{
+		}
+
+		/// <summary>
+		/// Initializes a new instance of <see cref="TokenBuilder"/> class.
+		/// </summary>
+		/// <param name="parserBuilder">The master parser builder associated with this token builder.</param>
+		public TokenBuilder(ParserBuilder? parserBuilder) : base(parserBuilder)
+		{
+		}
+
+		/// <summary>
 		/// Gets the token being built.
 		/// </summary>
 		public Or<string, BuildableTokenPattern>? BuildingPattern { get; set; }
@@ -25,7 +40,7 @@ namespace RCParsing.Building
 
 		protected override TokenBuilder GetThis() => this;
 
-		public TokenBuilder AddToken(Or<string, BuildableTokenPattern> childToken)
+		public TokenBuilder Token(Or<string, BuildableTokenPattern> childToken)
 		{
 			if (!BuildingPattern.HasValue)
 			{
@@ -47,7 +62,7 @@ namespace RCParsing.Building
 			return this;
 		}
 
-		public override TokenBuilder AddToken(TokenPattern token,
+		public override TokenBuilder Token(TokenPattern token,
 			Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
@@ -55,29 +70,59 @@ namespace RCParsing.Building
 			{
 				TokenPattern = token
 			};
-			return AddToken(leafPattern, factory, config);
+			return Token(leafPattern, factory, config);
 		}
 
 		public override TokenBuilder Token(string tokenName)
 		{
-			return AddToken(tokenName);
+			return Token(tokenName);
 		}
 
 		/// <summary>
 		/// Add a child pattern to the current sequence.
 		/// </summary>
 		/// <param name="tokenPattern">The child pattern to add.</param>
-		/// <param name="factory">The factory function to create a parsed value.</param>
-		/// <param name="config">The action to configure the local settings for this token.</param>
+		/// <param name="factory">The default factory function to create a parsed value.</param>
+		/// <param name="config">The default action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public TokenBuilder AddToken(BuildableTokenPattern tokenPattern,
+		public TokenBuilder Token(BuildableTokenPattern tokenPattern,
 			Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			tokenPattern.DefaultParsedValueFactory = factory ?? DefaultFactory_Token;
 			tokenPattern.DefaultConfigurationAction = config;
 
-			return AddToken(new Or<string, BuildableTokenPattern>(tokenPattern));
+			return Token(new Or<string, BuildableTokenPattern>(tokenPattern));
+		}
+
+		/// <summary>
+		/// Adds a token to the current sequence.
+		/// </summary>
+		/// <param name="builderAction">The token pattern builder.</param>
+		/// <param name="factory">The default factory function to create a parsed value.</param>
+		/// <param name="config">The default action to configure the local settings for this token.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if builder action have not added any elements.</exception>
+		public TokenBuilder Token(Action<TokenBuilder> builderAction, Func<ParsedRuleResultBase, object?>? factory = null,
+			Action<ParserLocalSettingsBuilder>? config = null)
+		{
+			var builder = new TokenBuilder(ParserBuilder);
+			builderAction(builder);
+
+			if (!builder.CanBeBuilt)
+				throw new ParserBuildingException("Builder action did not add any tokens.");
+
+			if (builder.BuildingPattern.Value.VariantIndex == 0)
+			{
+				if (factory != null)
+					throw new ParserBuildingException("Cannot apply parsed value factory to a direct token reference.");
+				if (config != null)
+					throw new ParserBuildingException("Cannot apply configuration to a direct token reference.");
+
+				return Token(builder.BuildingPattern.Value.Value1);
+			}
+			else
+				return Token(builder.BuildingPattern.Value.Value2, factory, config);
 		}
 
 		/// <summary>
@@ -178,13 +223,13 @@ namespace RCParsing.Building
 			Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
-			var builder = new TokenBuilder();
+			var builder = new TokenBuilder(ParserBuilder);
 			builderAction(builder);
 
 			if (!builder.CanBeBuilt)
 				throw new ParserBuildingException("Optional child token pattern cannot be empty.");
 
-			return AddToken(new BuildableOptionalTokenPattern
+			return Token(new BuildableOptionalTokenPattern
 			{
 				Child = builder.BuildingPattern.Value
 			}, factory, config);
@@ -204,13 +249,13 @@ namespace RCParsing.Building
 			Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
-			var builder = new TokenBuilder();
+			var builder = new TokenBuilder(ParserBuilder);
 			builderAction(builder);
 
 			if (!builder.CanBeBuilt)
 				throw new ParserBuildingException("Repeated child token pattern cannot be empty.");
 
-			return AddToken(new BuildableRepeatTokenPattern
+			return Token(new BuildableRepeatTokenPattern
 			{
 				MinCount = min,
 				MaxCount = max,
@@ -277,7 +322,7 @@ namespace RCParsing.Building
 		{
 			var builtValues = choices.Select(c =>
 			{
-				var builder = new TokenBuilder();
+				var builder = new TokenBuilder(ParserBuilder);
 
 				if (c.VariantIndex == 0)
 				{
@@ -296,7 +341,7 @@ namespace RCParsing.Building
 
 			var choice = new BuildableChoiceTokenPattern();
 			choice.Choices.AddRange(builtValues);
-			return AddToken(choice, factory, config);
+			return Token(choice, factory, config);
 		}
 
 		/// <summary>

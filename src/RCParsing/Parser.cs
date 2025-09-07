@@ -242,6 +242,7 @@ namespace RCParsing
 			skipRule.AdvanceContext(ref context, ref skipSettings, out var childSkipSettings);
 			skipSettings.skipRule = -1;
 			childSkipSettings.skipRule = -1;
+			bool record = MainSettings.recordSkippedRules;
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			bool TrySkip()
@@ -257,7 +258,8 @@ namespace RCParsing
 				if (parsedSkipRule.success && newPosition != context.position)
 				{
 					context.position = newPosition;
-					context.skippedRules.Add(parsedSkipRule);
+					if (record)
+						context.skippedRules.Add(parsedSkipRule);
 					return true;
 				}
 				return false;
@@ -412,6 +414,7 @@ namespace RCParsing
 			skipRule.AdvanceContext(ref context, ref skipSettings, out var childSkipSettings);
 			skipSettings.skipRule = -1;
 			childSkipSettings.skipRule = -1;
+			bool record = MainSettings.recordSkippedRules;
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			bool TrySkip()
@@ -427,7 +430,8 @@ namespace RCParsing
 				if (parsedSkipRule.success && newPosition != context.position)
 				{
 					context.position = newPosition;
-					context.skippedRules.Add(parsedSkipRule);
+					if (record)
+						context.skippedRules.Add(parsedSkipRule);
 					return true;
 				}
 				return false;
@@ -652,7 +656,7 @@ namespace RCParsing
 				case ParserASTType.Lazy:
 					return new ParsedRuleResultLazy(ParseTreeOptimization.None, null, context, parsedRule);
 					default:
-				case ParserASTType.OnDemand:
+				case ParserASTType.Lightweight:
 					return new ParsedRuleResult(null, context, parsedRule);
 			}
 		}

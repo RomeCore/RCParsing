@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Jobs;
+using Newtonsoft.Json.Linq;
 
 namespace RCParsing.Benchmarks.JSON
 {
@@ -27,7 +28,19 @@ namespace RCParsing.Benchmarks.JSON
 			var value = RCJsonParser.ParseInlined(TestJSONs.shortJson);
 		}
 
-		//[Benchmark, BenchmarkCategory("short")]
+		/*[Benchmark, BenchmarkCategory("short")]
+		public void JsonShort_SystemTextJson()
+		{
+			var value = JsonNode.Parse(TestJSONs.shortJson);
+		}
+
+		[Benchmark, BenchmarkCategory("short")]
+		public void JsonShort_NewtonsoftJson()
+		{
+			var value = JToken.Parse(TestJSONs.shortJson);
+		}*/
+
+		[Benchmark, BenchmarkCategory("short")]
 		public void JsonShort_Parlot()
 		{
 			var value = ParlotJsonParser.Parse(TestJSONs.shortJson);
@@ -45,6 +58,12 @@ namespace RCParsing.Benchmarks.JSON
 			var value = SuperpowerJsonParser.ParseJson(TestJSONs.shortJson);
 		}
 
+		[Benchmark, BenchmarkCategory("short")]
+		public void JsonShort_Sprache()
+		{
+			var value = SpracheJsonParser.ParseJson(TestJSONs.shortJson);
+		}
+
 		// ====== Big JSON (~200 lines) ======
 
 		[Benchmark(Baseline = true), BenchmarkCategory("big")]
@@ -53,7 +72,19 @@ namespace RCParsing.Benchmarks.JSON
 			var value = RCJsonParser.ParseInlined(TestJSONs.bigJson);
 		}
 
-		//[Benchmark, BenchmarkCategory("big")]
+		/*[Benchmark, BenchmarkCategory("big")]
+		public void JsonBig_SystemTextJson()
+		{
+			var value = JsonNode.Parse(TestJSONs.bigJson);
+		}
+
+		[Benchmark, BenchmarkCategory("big")]
+		public void JsonBig_NewtonsoftJson()
+		{
+			var value = JToken.Parse(TestJSONs.bigJson);
+		}*/
+
+		[Benchmark, BenchmarkCategory("big")]
 		public void JsonBig_Parlot()
 		{
 			var value = ParlotJsonParser.Parse(TestJSONs.bigJson);
@@ -69,6 +100,12 @@ namespace RCParsing.Benchmarks.JSON
 		public void JsonBig_Superpower()
 		{
 			var value = SuperpowerJsonParser.ParseJson(TestJSONs.bigJson);
+		}
+
+		[Benchmark, BenchmarkCategory("big")]
+		public void JsonBig_Sprache()
+		{
+			var value = SpracheJsonParser.ParseJson(TestJSONs.bigJson);
 		}
 	}
 }

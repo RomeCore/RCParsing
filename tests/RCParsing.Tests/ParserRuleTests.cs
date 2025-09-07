@@ -186,18 +186,9 @@ namespace RCParsing.Tests
 
 			builder.CreateRule("array")
 				.Literal("[") // The string with one character automatically converts to LiteralCharTokenPattern
-				.ZeroOrMoreSeparated(v => v.Rule("value"), s => s.Literal(","),
-					allowTrailingSeparator: true, includeSeparatorsInResult: false)
+				.ZeroOrMoreSeparated(v => v.Rule("value"), s => s.Literal(","))
 					.TransformLast(v => v.SelectArray())
 				.Literal("]")
-				.TransformSelect(1);
-
-			builder.CreateRule("object")
-				.Literal("{") // And chained calling with builder converts the rule into SequenceParserRule by default
-				.ZeroOrMoreSeparated(v => v.Rule("pair"), s => s.Literal(","),
-					allowTrailingSeparator: true, includeSeparatorsInResult: false)
-					.TransformLast(v => v.SelectValues<KeyValuePair<string, object>>().ToDictionary(k => k.Key, v => v.Value))
-				.Literal("}")
 				.TransformSelect(1);
 
 			builder.CreateRule("pair")
@@ -205,6 +196,13 @@ namespace RCParsing.Tests
 				.Literal(":")
 				.Rule("value")
 				.Transform<string, Ignored, object>((k, _, v) => KeyValuePair.Create(k, v));
+
+			builder.CreateRule("object")
+				.Literal("{")
+				.ZeroOrMoreSeparated(v => v.Rule("pair"), s => s.Literal(","))
+					.TransformLast(v => v.SelectValues<KeyValuePair<string, object>>().ToDictionary())
+				.Literal("}")
+				.TransformSelect(1);
 
 			builder.CreateMainRule()
 				.Rule("value")

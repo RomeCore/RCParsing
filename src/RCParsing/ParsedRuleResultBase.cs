@@ -31,7 +31,7 @@ namespace RCParsing
 		/// <summary>
 		/// Gets the token result if the parsed result represents a token. Otherwise, returns null.
 		/// </summary>
-		public virtual ParsedTokenResult? Token => new ParsedTokenResult(this, Context, Result.element);
+		public virtual ParsedTokenResult? Token => IsToken ? new ParsedTokenResult(this, Context, Result.element, Result.tokenId) : null;
 
 		/// <summary>
 		/// Gets value indicating whether the parsing operation was successful.
@@ -145,15 +145,15 @@ namespace RCParsing
 		/// </summary>
 		/// <typeparam name="T">The type of value to retrieve.</typeparam>
 		/// <returns>The intermediate value associated with this rule.</returns>
-		public T? TryGetIntermediateValue<T>() where T : class => IntermediateValue as T;
+		public T? TryGetIntermediateValue<T>() => IntermediateValue is T result ? result : default;
 
 		/// <summary>
 		/// Tries to get the intermediate value associated with child rule at the specific index as an instance of type <typeparamref name="T"/>.
 		/// </summary>
 		/// <typeparam name="T">The type of value to retrieve.</typeparam>
 		/// <returns>The intermediate value associated with child rule.</returns>
-		public T? TryGetIntermediateValue<T>(int index) where T : class
-			=> Count > index ? this[index].IntermediateValue as T : null;
+		public T? TryGetIntermediateValue<T>(int index)
+			=> Count > index ? this[index].IntermediateValue is T result ? result : default : default;
 
 		/// <summary>
 		/// Gets the intermediate value associated with this rule converted to type <typeparamref name="T"/>.
@@ -196,19 +196,19 @@ namespace RCParsing
 		public T GetValue<T>(int index) => (T)this[index].Value;
 
 		/// <summary>
-		/// Tries to get the value associated with this rule as an instance of type <typeparamref name="T"/>.
+		/// Tries to get the value associated with this rule as an instance of type <typeparamref name="T"/> or <see langword="default"/> value.
 		/// </summary>
 		/// <typeparam name="T">The type of value to retrieve.</typeparam>
 		/// <returns>The value associated with this rule.</returns>
-		public T? TryGetValue<T>() where T : class => Value as T;
+		public T? TryGetValue<T>() => Value is T result ? result : default;
 
 		/// <summary>
-		/// Tries to get the value associated with child rule at the specific index as an instance of type <typeparamref name="T"/>.
+		/// Tries to get the value associated with child rule at the specific index as an instance of type <typeparamref name="T"/> or <see langword="default"/> value.
 		/// </summary>
 		/// <typeparam name="T">The type of value to retrieve.</typeparam>
 		/// <returns>The value associated with child rule.</returns>
-		public T? TryGetValue<T>(int index) where T : class
-			=> Count > index ? this[index].Value as T : null;
+		public T? TryGetValue<T>(int index)
+			=> Count > index ? this[index].Value is T result ? result : default : default;
 
 		/// <summary>
 		/// Gets the value associated with this rule converted to type <typeparamref name="T"/>.
@@ -232,11 +232,11 @@ namespace RCParsing
 		public T GetParsingParameter<T>() => (T)ParsingParameter;
 
 		/// <summary>
-		/// Tries to get the parsing parameter associated with this rule as an instance of type <typeparamref name="T"/>.
+		/// Tries to get the parsing parameter associated with this rule as an instance of type <typeparamref name="T"/> or <see langword="default"/> value.
 		/// </summary>
 		/// <typeparam name="T">The type of parsing parameter to retrieve.</typeparam>
 		/// <returns>The parsing parameter associated with this rule.</returns>
-		public T? TryGetParsingParameter<T>() where T : class => ParsingParameter as T;
+		public T? TryGetParsingParameter<T>() => ParsingParameter is T result ? result : default;
 
 		/// <summary>
 		/// Selects the children values array of this rule.
@@ -357,13 +357,16 @@ namespace RCParsing
 		}
 
 		/// <summary>
-		/// Gets child parsed rules for this rule and joins them into a single collection.
+		/// Gets child parsed rules for this rule and joins them into a single collection recursively.
 		/// </summary>
-		/// <param name="maxDepth">The maximum depth to which child rules should be joined. If less than or equal to zero, this element is returned.</param>
-		/// <returns>A collection of child parsed rules. Returns this element if no children are present or the maximum depth is reached.</returns>
-		public IEnumerable<ParsedRuleResultBase> GetJoinedChildren(int maxDepth)
+		/// <remarks>
+		/// Used for making the AST flat.
+		/// </remarks>
+		/// <param name="maxDepth">The maximum depth to which child rules should be joined. If equal to zero, this element is returned. If -1, all child rules are joined recursively. Default is -1.</param>
+		/// <returns>A collection of all child parsed rules. Returns this element if no children are present or the maximum depth is reached.</returns>
+		public IEnumerable<ParsedRuleResultBase> GetJoinedChildren(int maxDepth = -1)
 		{
-			if (maxDepth <= 0 || Count == 0)
+			if (maxDepth == 0 || Count == 0)
 				return this.WrapIntoEnumerable();
 
 			return this.SelectMany(r => r.GetJoinedChildren(maxDepth - 1));

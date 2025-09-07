@@ -37,14 +37,14 @@ namespace RCParsing.Benchmarks.JSON
 			.Between(Char('[').Before(SkipWhitespaces), Char(']').Before(SkipWhitespaces))
 			.Select(x => (object)x.ToArray());
 
-		private static readonly Parser<char, KeyValuePair<string, object>> JsonProperty =
+		private static readonly Parser<char, KeyValuePair<string, object>> JsonPair =
 			from name in String
 			from colon in Char(':').Before(SkipWhitespaces)
 			from value in Rec(() => Json)
 			select new KeyValuePair<string, object>(name, value);
 
 		private static readonly Parser<char, object> JsonObject =
-			JsonProperty
+			JsonPair
 			.Separated(Char(',').Before(SkipWhitespaces))
 			.Between(Char('{').Before(SkipWhitespaces), Char('}').Before(SkipWhitespaces))
 			.Select(x =>

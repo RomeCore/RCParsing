@@ -16,7 +16,7 @@ This library focuses on **Developer-experience (DX)** first, providing best tool
 - 🎯 **Fluent API**: Write parsers in C# that read like clean BNF grammars, boosting readability and maintainability compared to imperative or functional approaches.
 - 🐛 **Debug-Friendly**: Get detailed, actionable error messages with stack traces and precise source locations.
 - ⚡ **Fast**: Performance is now on par with the fastest .NET parsing libraries (see benchmarks below).
-- 🌳 **Rich AST**: Parser makes an AST (Abstract Syntax Tree) from raw text, with ability to optimize, fully analyze and calculate the result value entirely lazy, reducing unneccesary allocations.
+- 🌳 **Rich AST**: Parser makes an AST (Abstract Syntax Tree) from raw text, with ability to optimize, fully analyze and calculate the result value entirely lazy, reducing unnecessary allocations.
 - 🔧 **Configurable Skipping**: Advanced strategies for whitespace and comments, allowing you to use conflicting tokens in your main rules.
 - 📦 **Batteries Included**: Useful built-in tokens and rules (regex, identifiers, numbers, escaped strings, separated lists, custom tokens, and more...).
 - 🖥️ **Broad Compatibility**: Targets `.NET Standard 2.0` (runs on `.NET Framework 4.6.1+`), `.NET 6.0`, and `.NET 8.0`.
@@ -205,8 +205,8 @@ var builder = new ParserBuilder();
 builder.Settings.SkipWhitespaces();
 
 // Add the 'INDENT' and 'DEDENT' barrier tokenizer
-// 'INDENT' is emmited when indentation grows
-// And 'DEDENT' is emmited when indentation cuts
+// 'INDENT' is emitted when indentation grows
+// And 'DEDENT' is emitted when indentation cuts
 // They are indentation delta tokens
 builder.BarrierTokenizers
 	.AddIndent(indentSize: 4, "INDENT", "DEDENT");
@@ -287,10 +287,10 @@ The `FindAllMatches` method allows you to extract all occurrences of a pattern f
 ```csharp
 var builder = new ParserBuilder();
 
-// Skip unneccesary whitespace (you can configure comments here and they will be ignored when matching)
+// Skip unnecessary whitespace (you can configure comments here and they will be ignored when matching)
 builder.Settings.SkipWhitespaces();
 
-// Create thee rule that we will find in text
+// Create the rule that we will find in text
 builder.CreateMainRule()
 	.Literal("Price:")
 	.Number<double>() // 1
@@ -381,22 +381,26 @@ Runtime=.NET 8.0  IterationCount=3  WarmupCount=2
 
 The JSON value calculation with the typeset `Dictionary<string, object>`, `object[]`, `string`, `int` and `null`.
 
-| Method               | Mean        | Error     | StdDev   | Ratio | RatioSD | Gen0    | Gen1    | Allocated | Alloc Ratio |
-|--------------------- |------------:|----------:|---------:|------:|--------:|--------:|--------:|----------:|------------:|
-| JsonBig_RCParsing    |   230.06 us | 24.871 us | 1.363 us |  1.00 |    0.01 | 25.3906 | 12.2070 | 418.27 KB |        1.00 |
-| JsonBig_Pidgin       |   211.99 us |  4.125 us | 0.226 us |  0.92 |    0.00 |  3.9063 |  0.2441 |  65.25 KB |        0.16 |
-| JsonBig_Superpower   | 1,184.04 us | 46.592 us | 2.554 us |  5.15 |    0.03 | 39.0625 |  5.8594 | 638.31 KB |        1.53 |
-|                      |             |           |          |       |         |         |         |           |             |
-| JsonShort_RCParsing  |    12.56 us |  1.769 us | 0.097 us |  1.00 |    0.01 |  1.4954 |  0.0610 |  24.51 KB |        1.00 |
-| JsonShort_Pidgin     |    10.73 us |  1.896 us | 0.104 us |  0.85 |    0.01 |  0.2136 |       - |   3.58 KB |        0.15 |
-| JsonShort_Superpower |    63.92 us |  2.153 us | 0.118 us |  5.09 |    0.04 |  1.9531 |       - |  33.32 KB |        1.36 |
+| Method               | Mean         | Error         | StdDev     | Ratio | RatioSD | Gen0     | Gen1    | Allocated  | Alloc Ratio |
+|--------------------- |-------------:|--------------:|-----------:|------:|--------:|---------:|--------:|-----------:|------------:|
+| JsonBig_RCParsing    |   193.732 us |    15.2783 us |  0.8375 us |  1.00 |    0.01 |  14.4043 |  3.6621 |  237.67 KB |        1.00 |
+| JsonBig_Parlot       |    40.349 us |     2.1830 us |  0.1197 us |  0.21 |    0.00 |   1.9531 |  0.1221 |   32.08 KB |        0.13 |
+| JsonBig_Pidgin       |   204.885 us |     7.7079 us |  0.4225 us |  1.06 |    0.00 |   3.9063 |  0.2441 |   65.25 KB |        0.27 |
+| JsonBig_Superpower   | 1,184.334 us |    41.9646 us |  2.3002 us |  6.11 |    0.03 |  39.0625 |  5.8594 |  638.31 KB |        2.69 |
+| JsonBig_Sprache      | 1,258.793 us | 1,016.3510 us | 55.7096 us |  6.50 |    0.25 | 232.4219 | 27.3438 | 3808.34 KB |       16.02 |
+|                      |              |               |            |       |         |          |         |            |             |
+| JsonShort_RCParsing  |    10.914 us |     0.5714 us |  0.0313 us |  1.00 |    0.00 |   0.8545 |  0.0153 |   14.13 KB |        1.00 |
+| JsonShort_Parlot     |     2.145 us |     0.0680 us |  0.0037 us |  0.20 |    0.00 |   0.1144 |       - |    1.91 KB |        0.14 |
+| JsonShort_Pidgin     |    11.003 us |     0.1905 us |  0.0104 us |  1.01 |    0.00 |   0.2136 |       - |    3.58 KB |        0.25 |
+| JsonShort_Superpower |    64.511 us |     3.6988 us |  0.2027 us |  5.91 |    0.02 |   1.9531 |       - |   33.32 KB |        2.36 |
+| JsonShort_Sprache    |    60.472 us |     4.1068 us |  0.2251 us |  5.54 |    0.02 |  12.6953 |  0.3052 |  208.17 KB |       14.74 |
 
 Notes:
 
 - `RCParsing` uses `UseInlining()` and `IgnoreErrors()` settings.
+- `Parlot` uses `Compiled()` version of parser.
 - `JsonShort` methods uses ~20 lines of hardcoded (not generated) JSON with simple content.
 - `JsonBig` methods uses ~180 lines of hardcoded (not generated) JSON with various content (deep, long objects/arrays).
-- `Parlot` was temporarily excluded from this benchmark.
 
 ## Expressions
 
@@ -404,13 +408,13 @@ The `int` value calculation from expression with parentheses `()`, spaces and op
 
 | Method                    | Mean         | Error        | StdDev      | Ratio | Gen0    | Gen1    | Allocated | Alloc Ratio |
 |-------------------------- |-------------:|-------------:|------------:|------:|--------:|--------:|----------:|------------:|
-| ExpressionBig_RCParsing   | 345,740.9 ns | 41,384.23 ns | 2,268.41 ns |  1.00 | 47.8516 | 34.6680 |  807240 B |        1.00 |
-| ExpressionBig_Pidgin      | 690,574.8 ns | 64,348.54 ns | 3,527.16 ns |  2.00 |  0.9766 |       - |   23536 B |        0.03 |
-| ExpressionBig_Parlot      |  64,181.6 ns |  1,089.82 ns |    59.74 ns |  0.19 |  3.2959 |       - |   56608 B |        0.07 |
+| ExpressionBig_RCParsing   | 285,804.7 ns | 20,172.23 ns | 1,105.71 ns |  1.00 | 22.9492 | 10.7422 |  385720 B |        1.00 |
+| ExpressionBig_Parlot      |  69,685.0 ns |  4,580.85 ns |   251.09 ns |  0.24 |  3.2959 |       - |   56608 B |        0.15 |
+| ExpressionBig_Pidgin      | 666,472.5 ns | 29,955.41 ns | 1,641.96 ns |  2.33 |  0.9766 |       - |   23536 B |        0.06 |
 |                           |              |              |             |       |         |         |           |             |
-| ExpressionShort_RCParsing |   2,871.4 ns |    242.95 ns |    13.32 ns |  1.00 |  0.4730 |  0.0076 |    7960 B |        1.00 |
-| ExpressionShort_Pidgin    |   6,628.0 ns |     84.15 ns |     4.61 ns |  2.31 |  0.0153 |       - |     344 B |        0.04 |
-| ExpressionShort_Parlot    |     599.3 ns |     16.96 ns |     0.93 ns |  0.21 |  0.0534 |       - |     896 B |        0.11 |
+| ExpressionShort_RCParsing |   2,486.6 ns |    193.33 ns |    10.60 ns |  1.00 |  0.2327 |       - |    3904 B |        1.00 |
+| ExpressionShort_Parlot    |     586.0 ns |     71.83 ns |     3.94 ns |  0.24 |  0.0534 |       - |     896 B |        0.23 |
+| ExpressionShort_Pidgin    |   6,893.6 ns |    192.66 ns |    10.56 ns |  2.77 |  0.0153 |       - |     344 B |        0.09 |
 
 Notes:
 

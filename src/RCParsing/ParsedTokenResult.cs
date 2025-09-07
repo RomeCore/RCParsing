@@ -39,7 +39,7 @@ namespace RCParsing
 		/// <summary>
 		/// Gets the parsed value associated with this token.
 		/// </summary>
-		public TokenPattern Token => Context.parser.TokenPatterns[Result.elementId];
+		public TokenPattern Token => Context.parser.TokenPatterns[TokenId];
 
 		/// <summary>
 		/// Gets the alias for the token pattern that was parsed. May be null if no alias is defined.
@@ -87,6 +87,23 @@ namespace RCParsing
 		{
 			Parent = parent;
 			Context = context;
+			Result = result;
+
+			_textLazy = new Utils.LazyValue<string>(() => Context.str.Substring(Result.startIndex, Result.length));
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ParsedTokenResult"/> class.
+		/// </summary>
+		/// <param name="parent">The parent result of this rule, if any.</param>
+		/// <param name="context">The parser context used for parsing.</param>
+		/// <param name="result">The parsed token object containing the result of the parse.</param>
+		/// <param name="tokenId">The unique identifier for the token that was parsed.</param>
+		public ParsedTokenResult(ParsedRuleResultBase? parent, ParserContext context, ParsedElement result, int tokenId)
+		{
+			Parent = parent;
+			Context = context;
+			result.elementId = tokenId;
 			Result = result;
 
 			_textLazy = new Utils.LazyValue<string>(() => Context.str.Substring(Result.startIndex, Result.length));

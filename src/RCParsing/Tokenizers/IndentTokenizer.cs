@@ -304,7 +304,7 @@ namespace RCParsing.Tokenizers
 			while (m < length && input[m] != '\r' && input[m] != '\n') m++;
 
 			bool isBlankLine = (contentStart >= length) ||
-							  (contentStart < length &&
+							   (contentStart < length &&
 							   (input[contentStart] == '\r' || input[contentStart] == '\n'));
 
 			int newlineStart = m;
