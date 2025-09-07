@@ -8,12 +8,13 @@
 
 	<PropertyGroup>
 		<PackageId>RCParsing</PackageId>
-		<Version>2.2.0</Version>
+		<Version>2.3.0</Version>
 		<Authors>Roman K.</Authors>
 		<Company>RomeCore</Company>
 		<Product>RCParsing</Product>
-		<Description>A flexible, readable, fast and powerful .NET lexerless parser building library.</Description>
+		<Description>A flexible, readable, fast and powerful .NET lexerless parser building framework.</Description>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageIcon>icon-nuget.png</PackageIcon>
 		<PackageTags>parser, grammar, lexerless, syntax, ast, bnf, dsl, compiler</PackageTags>
 		<RepositoryUrl>https://github.com/RomeCore/RCParsing</RepositoryUrl>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -22,10 +23,11 @@
 	
 	<ItemGroup>
 		<None Include="..\..\README.md" Pack="true" PackagePath="\"/>
+		<None Include="..\..assets\icon-nuget.png" Pack="true" PackagePath="\"/>
 	</ItemGroup>
 	
 	<ItemGroup>
 		<PackageReference Include="System.Collections.Immutable" Version="8.0.0" />
 	</ItemGroup>
-
+	
 </Project>
