@@ -134,14 +134,14 @@ namespace RCParsing
 		public int position;
 
 		/// <summary>
+		/// Maximum position in the input string. Used to limit parsing.
+		/// </summary>
+		public int maxPosition;
+
+		/// <summary>
 		/// The count of passed barrier tokens.
 		/// </summary>
 		public int passedBarriers;
-
-		/// <summary>
-		/// The inherited settings that control the behavior of the parser during parsing operations.
-		/// </summary>
-		public ParserSettings settings;
 
 		/// <summary>
 		/// Gets the top stack frame in the stack, if any.
@@ -236,8 +236,8 @@ namespace RCParsing
 		internal ParserContext(Parser parser, string str, object? parserParameter)
 		{
 			position = 0;
+			maxPosition = str.Length;
 			passedBarriers = 0;
-			settings = parser.GlobalSettings;
 			topStackFrame = null;
 			shared = new SharedParserContext(parser, str, parserParameter);
 		}
@@ -252,11 +252,12 @@ namespace RCParsing
 		}
 
 		/// <summary>
-		/// Records, ignores or throws an error based on the current settings.
+		/// Records, ignores or throws an error based on settings.
 		/// </summary>
+		/// <param name="settings">The settings that affects the recording behavior.</param>
 		/// <param name="error">The parsing error to record.</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public readonly void RecordError(ParsingError error)
+		public readonly void RecordError(ParserSettings settings, ParsingError error)
 		{
 			switch (settings.errorHandling)
 			{
@@ -275,26 +276,28 @@ namespace RCParsing
 		/// <summary>
 		/// Records, ignores or throws an error based on the current settings.
 		/// </summary>
+		/// <param name="settings">The settings that affects the recording behavior.</param>
 		/// <param name="message">The error message to record.</param>
 		/// <param name="elementId">The ID of the element (rule or token) that caused the error or been expected at this position.</param>
 		/// <param name="isToken">A value indicating whether the element that caused the error is a token.</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public readonly void RecordError(string? message = null, int elementId = -1, bool isToken = false)
+		public readonly void RecordError(ParserSettings settings, string? message = null, int elementId = -1, bool isToken = false)
 		{
-			RecordError(new ParsingError(position, message, elementId, isToken, topStackFrame));
+			RecordError(settings, new ParsingError(position, message, elementId, isToken, topStackFrame));
 		}
 
 		/// <summary>
 		/// Records, ignores or throws an error based on the current settings.
 		/// </summary>
+		/// <param name="settings">The settings that affects the recording behavior.</param>
 		/// <param name="position">The position in the input string where the error occurred.</param>
 		/// <param name="message">The error message to record.</param>
 		/// <param name="elementId">The ID of the element (rule or token) that caused the error or been expected at this position.</param>
 		/// <param name="isToken">A value indicating whether the element that caused the error is a token.</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public readonly void RecordError(int position, string? message = null, int elementId = -1, bool isToken = false)
+		public readonly void RecordError(ParserSettings settings, int position, string? message = null, int elementId = -1, bool isToken = false)
 		{
-			RecordError(new ParsingError(position, message, elementId, isToken, topStackFrame));
+			RecordError(settings, new ParsingError(position, message, elementId, isToken, topStackFrame));
 		}
 
 		/// <summary>

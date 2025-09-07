@@ -50,7 +50,7 @@ namespace RCParsing.Building
 		private readonly Dictionary<string, RuleBuilder> _rules = new Dictionary<string, RuleBuilder>();
 		private readonly ParserSettingsBuilder _settingsBuilder = new ParserSettingsBuilder();
 		private readonly ParserTokenizersBuilder _tokenizersBuilder = new ParserTokenizersBuilder();
-		private string? _mainRuleAlias;
+		private RuleBuilder? _mainRuleBuilder;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="ParserBuilder"/> class.
@@ -92,6 +92,23 @@ namespace RCParsing.Building
 		}
 
 		/// <summary>
+		/// Creates a rule builder and registers it as the main rule.
+		/// </summary>
+		/// <remarks>
+		/// Marks this rule as main rule. The main rule may be used as entry point for parsing.
+		/// </remarks>
+		/// <returns>A <see cref="RuleBuilder"/> instance for building the rule.</returns>
+		/// <exception cref="ArgumentException">Thrown if main rule already exists.</exception>
+		public RuleBuilder CreateMainRule()
+		{
+			if (_mainRuleBuilder != null)
+				throw new ArgumentException("Main rule has already been set.");
+
+			_mainRuleBuilder = new RuleBuilder();
+			return _mainRuleBuilder;
+		}
+
+		/// <summary>
 		/// Creates a rule builder and registers it under the given name.
 		/// </summary>
 		/// <remarks>
@@ -102,15 +119,14 @@ namespace RCParsing.Building
 		/// <exception cref="ArgumentException">Thrown if a rule with the same name already exists.</exception>
 		public RuleBuilder CreateMainRule(string name)
 		{
-			if (_mainRuleAlias != null)
+			if (_mainRuleBuilder != null)
 				throw new ArgumentException("Main rule has already been set.");
 			if (_rules.ContainsKey(name))
 				throw new ArgumentException($"Rule with name '{name}' already exists.");
 
-			_mainRuleAlias = name;
-			var rule = new RuleBuilder();
-			_rules[name] = rule;
-			return rule;
+			_mainRuleBuilder = new RuleBuilder();
+			_rules[name] = _mainRuleBuilder;
+			return _mainRuleBuilder;
 		}
 
 		/// <summary>
@@ -201,6 +217,19 @@ namespace RCParsing.Building
 				namedRules.Add(rule.Key, brule);
 			}
 
+			BuildableParserRule? mainRule = null;
+			_mainRuleBuilder?.BuildingRule?.Switch(
+				name =>
+				{
+					if (!namedRules.TryGetValue(name, out mainRule))
+						throw new ParserBuildingException($"Main rule '{name}' cannot be found.");
+				},
+				rule =>
+				{
+					elementsToProcess.Enqueue(mainRule = rule);
+				}
+			);
+
 			// Initialize processing queue and namedTokenPatterns map with root token patterns
 			foreach (var pattern in _tokenPatterns)
 			{
@@ -258,6 +287,8 @@ namespace RCParsing.Building
 				});
 			}
 
+			int mainRuleId = -1;
+
 			// Process all rules and tokens in the queue, assign IDs and collect dependencies
 			while (elementsToProcess.Count > 0)
 			{
@@ -287,7 +318,11 @@ namespace RCParsing.Building
 					continue;
 
 				if (element is BuildableParserRule rule)
+				{
+					if (Equals(element, mainRule))
+						mainRuleId = ruleCounter;
 					elements.Add(element, ruleCounter++);
+				}
 				else if (element is BuildableTokenPattern pattern)
 					elements.Add(element, tokenCounter++);
 
@@ -437,7 +472,7 @@ namespace RCParsing.Building
 
 			// Return the fully built parser instance with rules and token patterns
 			return new Parser(resultTokenPatterns.ToImmutableArray(), resultRules.ToImmutableArray(),
-				tokenizers, mainSettings, globalSettings, _mainRuleAlias, initFlagsFactory);
+				tokenizers, mainSettings, globalSettings, mainRuleId, initFlagsFactory);
 		}
 	}
 }

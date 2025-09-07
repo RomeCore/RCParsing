@@ -6,20 +6,17 @@
 
 **A Fluent, Lexerless Parser Builder for .NET — Define ANY grammars with the elegance of BNF and the power of C#.**
 
-This library focuses on **Delevoper-experience (DX)** first, providing best toolkit for creating your programming languages or file formats with declarative API, debugging tools, and more. This allows you to design your parser directly in code and easily fix it using *rule stack traces* and detailed error messages.
-
-It provides a Fluent API to fully construct your own parser from grammar to usable object creation. Since this parsing library is lexerless, you don't need to prioritize your tokens and you can mix code with text that contains keywords, just using this library!
-
-It has a brand new feature for parser combinators, the **barrier tokens** that cannot be missed and **must** be parsed, this allows to parse indent-sensitive languages like Python.
+This library focuses on **Developer-experience (DX)** first, providing best toolkit for creating your **programming languages**, **file formats** or even **data extraction tools** with declarative API, debugging tools, and more. This allows you to design your parser directly in code and easily fix it using *rule stack traces* and detailed error messages.
 
 ## Why RCParsing?
 
-- 🐍 **Hybrid**: Unique support for **barrier tokens** to parse indent-sensitive languages like Python and YAML flawlessly.
-- 🚫 **Lexerless**: No token priority headaches. Parse directly from raw text, even with keywords embedded in sources using tokens just as primitives.
-- 🎯 **Fluent API**: Write parsers in C# that read like clean BNF grammars, boosting readability and maintainability without that imperative functional approach.
+- 🐍 **Hybrid Power**: Unique support for **barrier tokens** to parse indent-sensitive languages like Python and YAML flawlessly.
+- 💪 **Regex on Steroids**: You can find all matches for target structure in the input text with detailed AST information and transformed value.
+- 🚫 **Lexerless Freedom**: No token priority headaches. Parse directly from raw text, even with keywords embedded in strings. Tokens are used just as lightweight matching primitives.
+- 🎯 **Fluent API**: Write parsers in C# that read like clean BNF grammars, boosting readability and maintainability compared to imperative or functional approaches.
 - 🐛 **Debug-Friendly**: Get detailed, actionable error messages with stack traces and precise source locations.
 - ⚡ **Fast**: Performance is now on par with the fastest .NET parsing libraries (see benchmarks below).
-- 🌳 **Rich AST**: Parser makes an AST (Abstract Syntax Tree) from raw text, with ability to optimize, fully analyze and calculate the result value entirely lazy, reducing unneccesary allocations.
+- 🌳 **Rich AST**: Parser makes an AST (Abstract Syntax Tree) from raw text, with ability to optimize, fully analyze and calculate the result value entirely lazy, reducing unnecessary allocations.
 - 🔧 **Configurable Skipping**: Advanced strategies for whitespace and comments, allowing you to use conflicting tokens in your main rules.
 - 📦 **Batteries Included**: Useful built-in tokens and rules (regex, identifiers, numbers, escaped strings, separated lists, custom tokens, and more...).
 - 🖥️ **Broad Compatibility**: Targets `.NET Standard 2.0` (runs on `.NET Framework 4.6.1+`), `.NET 6.0`, and `.NET 8.0`.
@@ -29,9 +26,10 @@ It has a brand new feature for parser combinators, the **barrier tokens** that c
 - [Installation](#installation)
 - [Tutorials, docs and examples](#tutorials-docs-and-examples)
 - [Simple examples](#simple-examples) - The examples that you can copy, paste and run!
-	- [A + B](#a--b) - Basic arithmetic expression parser.
+	- [A + B](#a--b) - Basic arithmetic expression parser with result calculation.
 	- [JSON](#json) - A complete JSON parser with comments and skipping.
 	- [Python-like](#python-like) - Demonstrating barrier tokens for indentation.
+	- [Finding patterns](#finding-patterns) - How to find all occurrences of a rule in a string.
 - [Comparison with other parsing libraries](#comparison-with-other-parsing-libraries)
 - [Benchmarks](#benchmarks)
 	- [JSON](#json-1)
@@ -204,12 +202,11 @@ using RCParsing.Building;
 
 var builder = new ParserBuilder();
 
-builder.Settings
-	.Skip(b => b.Whitespaces().ConfigureForSkip());
+builder.Settings.SkipWhitespaces();
 
 // Add the 'INDENT' and 'DEDENT' barrier tokenizer
-// 'INDENT' is emmited when indentation grows
-// And 'DEDENT' is emmited when indentation cuts
+// 'INDENT' is emitted when indentation grows
+// And 'DEDENT' is emitted when indentation cuts
 // They are indentation delta tokens
 builder.BarrierTokenizers
 	.AddIndent(indentSize: 4, "INDENT", "DEDENT");
@@ -269,23 +266,66 @@ foreach (var statement in ast.Children)
 
 // Outputs:
 
-// def a():
-//     b = c;
-//     c = a;
+/*
+def a():
+    b = c;
+    c = a;
 
-// a = p;
+a = p;
 
-// if c:
-//     h = i;
-//     if b:
-//         a = aa;
+if c:
+    h = i;
+    if b:
+        a = aa;
+*/
+```
+
+## Finding patterns
+
+The `FindAllMatches` method allows you to extract all occurrences of a pattern from a string, even in complex inputs, while handling optional transformations. Here's an example where will will find the `Price: *PRICE* (USD|EUR)` pattern:
+
+```csharp
+var builder = new ParserBuilder();
+
+// Skip unnecessary whitespace (you can configure comments here and they will be ignored when matching)
+builder.Settings.SkipWhitespaces();
+
+// Create the rule that we will find in text
+builder.CreateMainRule()
+	.Literal("Price:")
+	.Number<double>() // 1
+	.LiteralChoice(["USD", "EUR"]) // 2
+	.Transform(v =>
+	{
+		var number = v[1].Value; // Get the number value
+		var currency = v[2].Text; // Get the 'USD' or 'EUR' text
+		return new { Amount = number, Currency = currency };
+	});
+
+var input =
+"""
+Some log entries.
+Price: 42.99 USD
+Error: something happened.
+Price: 99.50 EUR
+Another line.
+Price: 2.50 USD
+""";
+
+// Find all transformed matches
+var prices = builder.Build().FindAllMatches<dynamic>(input).ToList();
+
+foreach (var price in prices)
+{
+	Console.WriteLine($"Price: {price.Amount}; Currency: {price.Currency}");
+}
 ```
 
 # Comparison with Other Parsing Libraries
 
 `RCParsing` is designed to outstand with unique features, and **easy** developer experience, speed is not the target, but it is good enough to compete with other fastest parsers. The benchmarks show that it competes directly with the fastest libraries, while the feature comparison reveals why it stands apart.
 
-### Performance at a Glance
+### Performance at a Glance (based on JSON benchmark)
 
 | Library        | Speed (Relative to RCParsing) | Memory Efficiency |
 | :------------- | :---------------------------- | :---------------- |
@@ -303,7 +343,7 @@ This table highlights the unique architectural and usability features of each li
 | **API**                    | **High-readable Fluent**      | Functional          | Fluent/functional      | Fluent/functional   | Grammar Files      |
 | **Barrier/complex Tokens** | **Yes, built-in or manual**   | None                | None                   | Yes, manual         | Yes, manual        |
 | **Skipping**               | **6 strategies, globally**    | Manual              | Global or manual       | Tokenizer-based     | Tokenizer-based    |
-| **Error Messages**         | **Extremely Detailed**        | Position/expected   | None?                  | Position/expected   | Position/expected  |
+| **Error Messages**         | **Extremely Detailed**        | Position/expected   | Manual messages        | Position/expected   | Position/expected  |
 | **Minimum .NET Target**    | **.NET Standard 2.0**         | .NET 7.0            | .NET Standard 2.0      | .NET Standard 2.0   | .NET Framework 4.5 |
 
 ### The Verdict: Why RCParsing?
@@ -339,22 +379,49 @@ Runtime=.NET 8.0  IterationCount=3  WarmupCount=2
 
 ## JSON
 
-| Method               | Mean        | Error     | StdDev   | Ratio | RatioSD | Gen0    | Gen1    | Allocated | Alloc Ratio |
-|--------------------- |------------:|----------:|---------:|------:|--------:|--------:|--------:|----------:|------------:|
-| JsonBig_RCParsing    |   231.87 us | 10.672 us | 0.585 us |  1.00 |    0.00 | 26.8555 | 13.4277 | 442.37 KB |        1.00 |
-| JsonBig_Pidgin       |   218.32 us |  3.429 us | 0.188 us |  0.94 |    0.00 |  3.9063 |  0.2441 |  65.25 KB |        0.15 |
-| JsonBig_Superpower   | 1,188.05 us | 56.929 us | 3.120 us |  5.12 |    0.02 | 39.0625 |  5.8594 | 638.31 KB |        1.44 |
-|                      |             |           |          |       |         |         |         |           |             |
-| JsonShort_RCParsing  |    12.82 us |  2.196 us | 0.120 us |  1.00 |    0.01 |  1.5717 |  0.0763 |  25.86 KB |        1.00 |
-| JsonShort_Pidgin     |    10.98 us |  0.242 us | 0.013 us |  0.86 |    0.01 |  0.2136 |       - |   3.58 KB |        0.14 |
-| JsonShort_Superpower |    65.12 us |  2.230 us | 0.122 us |  5.08 |    0.04 |  1.9531 |       - |  33.32 KB |        1.29 |
+The JSON value calculation with the typeset `Dictionary<string, object>`, `object[]`, `string`, `int` and `null`.
+
+| Method               | Mean         | Error         | StdDev     | Ratio | RatioSD | Gen0     | Gen1    | Allocated  | Alloc Ratio |
+|--------------------- |-------------:|--------------:|-----------:|------:|--------:|---------:|--------:|-----------:|------------:|
+| JsonBig_RCParsing    |   193.732 us |    15.2783 us |  0.8375 us |  1.00 |    0.01 |  14.4043 |  3.6621 |  237.67 KB |        1.00 |
+| JsonBig_Parlot       |    40.349 us |     2.1830 us |  0.1197 us |  0.21 |    0.00 |   1.9531 |  0.1221 |   32.08 KB |        0.13 |
+| JsonBig_Pidgin       |   204.885 us |     7.7079 us |  0.4225 us |  1.06 |    0.00 |   3.9063 |  0.2441 |   65.25 KB |        0.27 |
+| JsonBig_Superpower   | 1,184.334 us |    41.9646 us |  2.3002 us |  6.11 |    0.03 |  39.0625 |  5.8594 |  638.31 KB |        2.69 |
+| JsonBig_Sprache      | 1,258.793 us | 1,016.3510 us | 55.7096 us |  6.50 |    0.25 | 232.4219 | 27.3438 | 3808.34 KB |       16.02 |
+|                      |              |               |            |       |         |          |         |            |             |
+| JsonShort_RCParsing  |    10.914 us |     0.5714 us |  0.0313 us |  1.00 |    0.00 |   0.8545 |  0.0153 |   14.13 KB |        1.00 |
+| JsonShort_Parlot     |     2.145 us |     0.0680 us |  0.0037 us |  0.20 |    0.00 |   0.1144 |       - |    1.91 KB |        0.14 |
+| JsonShort_Pidgin     |    11.003 us |     0.1905 us |  0.0104 us |  1.01 |    0.00 |   0.2136 |       - |    3.58 KB |        0.25 |
+| JsonShort_Superpower |    64.511 us |     3.6988 us |  0.2027 us |  5.91 |    0.02 |   1.9531 |       - |   33.32 KB |        2.36 |
+| JsonShort_Sprache    |    60.472 us |     4.1068 us |  0.2251 us |  5.54 |    0.02 |  12.6953 |  0.3052 |  208.17 KB |       14.74 |
 
 Notes:
 
 - `RCParsing` uses `UseInlining()` and `IgnoreErrors()` settings.
+- `Parlot` uses `Compiled()` version of parser.
 - `JsonShort` methods uses ~20 lines of hardcoded (not generated) JSON with simple content.
 - `JsonBig` methods uses ~180 lines of hardcoded (not generated) JSON with various content (deep, long objects/arrays).
-- `Parlot` was excluded from this benchmark because it fails on `JsonBig` and i don't know why (it does not throws any error messages).
+
+## Expressions
+
+The `int` value calculation from expression with parentheses `()`, spaces and operators `+-/*` with priorities.
+
+| Method                    | Mean         | Error        | StdDev      | Ratio | Gen0    | Gen1    | Allocated | Alloc Ratio |
+|-------------------------- |-------------:|-------------:|------------:|------:|--------:|--------:|----------:|------------:|
+| ExpressionBig_RCParsing   | 285,804.7 ns | 20,172.23 ns | 1,105.71 ns |  1.00 | 22.9492 | 10.7422 |  385720 B |        1.00 |
+| ExpressionBig_Parlot      |  69,685.0 ns |  4,580.85 ns |   251.09 ns |  0.24 |  3.2959 |       - |   56608 B |        0.15 |
+| ExpressionBig_Pidgin      | 666,472.5 ns | 29,955.41 ns | 1,641.96 ns |  2.33 |  0.9766 |       - |   23536 B |        0.06 |
+|                           |              |              |             |       |         |         |           |             |
+| ExpressionShort_RCParsing |   2,486.6 ns |    193.33 ns |    10.60 ns |  1.00 |  0.2327 |       - |    3904 B |        1.00 |
+| ExpressionShort_Parlot    |     586.0 ns |     71.83 ns |     3.94 ns |  0.24 |  0.0534 |       - |     896 B |        0.23 |
+| ExpressionShort_Pidgin    |   6,893.6 ns |    192.66 ns |    10.56 ns |  2.77 |  0.0153 |       - |     344 B |        0.09 |
+
+Notes:
+
+- `RCParsing` uses `UseInlining()` and `IgnoreErrors()` settings.
+- `Parlot` uses `Compiled()` version of parser.
+- `ExpressionShort` methods uses single line with 4 operators of hardcoded (not generated) expression.
+- `ExpressionBig` methods uses single line with ~400 operators of hardcoded (not generated) expression.
 
 *More benchmarks will be later here...*
 

@@ -27,23 +27,23 @@ namespace RCParsing.Tests
 
 			var parser = builder.Build();
 
-			parser.TryMatchToken("integer", "3218a", out var res);
+			var res = parser.MatchToken("integer", "3218a");
 			Assert.True(res.Success);
 			Assert.Equal(4, res.Length);
 			Assert.Equal(3218, res.GetIntermediateValue<int>());
 
-			parser.TryMatchToken("integer", "a3", out res);
+			res = parser.MatchToken("integer", "a3");
 			Assert.False(res.Success);
 
-			parser.TryMatchToken("sinteger", "-3218a", out res);
+			res = parser.MatchToken("sinteger", "-3218a");
 			Assert.True(res.Success);
 			Assert.Equal(5, res.Length);
 			Assert.Equal(-3218, res.GetIntermediateValue<int>());
 
-			parser.TryMatchToken("sinteger", "-a", out res);
+			res = parser.MatchToken("sinteger", "-a");
 			Assert.False(res.Success);
 
-			parser.TryMatchToken("sshort", "+103", out res);
+			res = parser.MatchToken("sshort", "+103");
 			Assert.True(res.Success);
 			Assert.Equal(4, res.Length);
 			Assert.Equal(103, res.GetIntermediateValue<short>());
@@ -62,19 +62,19 @@ namespace RCParsing.Tests
 			var parser = builder.Build();
 
 			// Basic float
-			parser.TryMatchToken("float", "3.14abc", out var res);
+			var res = parser.MatchToken("float", "3.14abc");
 			Assert.True(res.Success);
 			Assert.Equal(4, res.Length);
 			Assert.Equal(3.14f, res.GetIntermediateValue<float>());
 
 			// Float with implicit fractional part
-			parser.TryMatchToken("float", "5.xyz", out res);
+			res = parser.MatchToken("float", "5.xyz");
 			Assert.True(res.Success);
 			Assert.Equal(2, res.Length); // "5."
 			Assert.Equal(5.0f, res.GetIntermediateValue<float>());
 
 			// Scientific notation
-			parser.TryMatchToken("scientific", "1.23e-10end", out res);
+			res = parser.MatchToken("scientific", "1.23e-10end");
 			Assert.True(res.Success);
 			Assert.Equal(8, res.Length);
 			Assert.Equal(1.23e-10, res.GetIntermediateValue<double>(), 1e-8);
@@ -93,21 +93,21 @@ namespace RCParsing.Tests
 			var parser = builder.Build();
 
 			// Strict float rejects implicit parts
-			parser.TryMatchToken("strict_float", ".5abc", out var res);
+			var res = parser.MatchToken("strict_float", ".5abc");
 			Assert.False(res.Success); // No implicit integer part allowed
 
-			parser.TryMatchToken("strict_float", "5.xyz", out res);
+			res = parser.MatchToken("strict_float", "5.xyz");
 			Assert.True(res.Success);
 			Assert.Equal(1, res.Length);
 			Assert.Equal(5f, res.GetIntermediateValue<float>());
 
 			// Lenient float accepts implicit parts
-			parser.TryMatchToken("lenient_float", ".5abc", out res);
+			res = parser.MatchToken("lenient_float", ".5abc");
 			Assert.True(res.Success);
 			Assert.Equal(2, res.Length);
 			Assert.Equal(0.5f, res.GetIntermediateValue<float>());
 
-			parser.TryMatchToken("lenient_float", "5.xyz", out res);
+			res = parser.MatchToken("lenient_float", "5.xyz");
 			Assert.True(res.Success);
 			Assert.Equal(2, res.Length);
 			Assert.Equal(5.0f, res.GetIntermediateValue<float>());
@@ -124,21 +124,21 @@ namespace RCParsing.Tests
 			var parser = builder.Build();
 
 			// Integer -> int
-			parser.TryMatchToken("smart_number", "42abc", out var res);
+			var res = parser.MatchToken("smart_number", "42abc");
 			Assert.True(res.Success);
 			Assert.Equal(2, res.Length);
 			Assert.IsType<int>(res.IntermediateValue);
 			Assert.Equal(42, res.GetIntermediateValue<int>());
 
 			// Float -> float
-			parser.TryMatchToken("smart_number", "3.14abc", out res);
+			res = parser.MatchToken("smart_number", "3.14abc");
 			Assert.True(res.Success);
 			Assert.Equal(4, res.Length);
 			Assert.IsType<float>(res.IntermediateValue);
 			Assert.Equal(3.14f, res.GetIntermediateValue<float>());
 
 			// Scientific without fractional dot -> int
-			parser.TryMatchToken("smart_number", "1e5abc", out res);
+			res = parser.MatchToken("smart_number", "1e5abc");
 			Assert.True(res.Success);
 			Assert.Equal(3, res.Length);
 			Assert.IsType<int>(res.IntermediateValue);
@@ -158,19 +158,19 @@ namespace RCParsing.Tests
 			var parser = builder.Build();
 
 			// Valid exponent
-			parser.TryMatchToken("scientific", "1.5e-10abc", out var res);
+			var res = parser.MatchToken("scientific", "1.5e-10abc");
 			Assert.True(res.Success);
 			Assert.Equal(7, res.Length); // "1.5e-10"
 			Assert.Equal(1.5e-10, res.GetIntermediateValue<double>());
 
 			// Exponent without digits -> backtrack to float
-			parser.TryMatchToken("scientific", "2.5e+abc", out res);
+			res = parser.MatchToken("scientific", "2.5e+abc");
 			Assert.True(res.Success);
 			Assert.Equal(3, res.Length); // "2.5" (backtracked from exponent)
 			Assert.Equal(2.5, res.GetIntermediateValue<double>());
 
 			// Just 'e' without sign -> backtrack to float
-			parser.TryMatchToken("scientific", "3.0etest", out res);
+			res = parser.MatchToken("scientific", "3.0etest");
 			Assert.True(res.Success);
 			Assert.Equal(3, res.Length); // "3.0"
 			Assert.Equal(3.0, res.GetIntermediateValue<double>());
@@ -189,22 +189,22 @@ namespace RCParsing.Tests
 			var parser = builder.Build();
 
 			// Unsigned integer rejects sign
-			parser.TryMatchToken("uint", "-123abc", out var res);
+			var res = parser.MatchToken("uint", "-123abc");
 			Assert.False(res.Success);
 
-			parser.TryMatchToken("uint", "+123abc", out res);
+			res = parser.MatchToken("uint", "+123abc");
 			Assert.False(res.Success);
 
-			parser.TryMatchToken("uint", "456abc", out res);
+			res = parser.MatchToken("uint", "456abc");
 			Assert.True(res.Success);
 			Assert.Equal(3, res.Length);
 			Assert.Equal(456, res.GetIntermediateValue<int>());
 
 			// Unsigned float
-			parser.TryMatchToken("ufloat", "-1.5abc", out res);
+			res = parser.MatchToken("ufloat", "-1.5abc");
 			Assert.False(res.Success);
 
-			parser.TryMatchToken("ufloat", "2.5abc", out res);
+			res = parser.MatchToken("ufloat", "2.5abc");
 			Assert.True(res.Success);
 			Assert.Equal(3, res.Length);
 			Assert.Equal(2.5f, res.GetIntermediateValue<float>());
@@ -221,28 +221,28 @@ namespace RCParsing.Tests
 			var parser = builder.Build();
 
 			// Empty string
-			parser.TryMatchToken("number", "", out var res);
+			var res = parser.MatchToken("number", "");
 			Assert.False(res.Success);
 
 			// Only sign
-			parser.TryMatchToken("number", "-", out res);
+			res = parser.MatchToken("number", "-");
 			Assert.False(res.Success);
 
 			// Only decimal point
-			parser.TryMatchToken("number", ".", out res);
+			res = parser.MatchToken("number", ".");
 			Assert.False(res.Success);
 
 			// Only exponent marker
-			parser.TryMatchToken("number", "e", out res);
+			res = parser.MatchToken("number", "e");
 			Assert.False(res.Success);
 
 			// Valid edge cases
-			parser.TryMatchToken("number", ".5abc", out res);
+			res = parser.MatchToken("number", ".5abc");
 			Assert.True(res.Success);
 			Assert.Equal(2, res.Length);
 			Assert.Equal(0.5, res.GetIntermediateValue<double>());
 
-			parser.TryMatchToken("number", "5.abc", out res);
+			res = parser.MatchToken("number", "5.abc");
 			Assert.True(res.Success);
 			Assert.Equal(2, res.Length);
 			Assert.Equal(5.0, res.GetIntermediateValue<double>());

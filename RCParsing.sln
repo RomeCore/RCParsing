@@ -18,6 +18,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RCParsing.Benchmarks.Differ
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RCParsing.Benchmarks.Expressions", "benchmarks\RCParsing.Benchmarks.Expressions\RCParsing.Benchmarks.Expressions.csproj", "{BA4678F0-6205-425D-905A-9B0A22958CB1}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SyntaxColorizer", "samples\SyntaxColorizer\SyntaxColorizer.csproj", "{5961F887-4672-488F-96D3-014BCCCED3E5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -44,6 +46,10 @@ Global
 		{BA4678F0-6205-425D-905A-9B0A22958CB1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BA4678F0-6205-425D-905A-9B0A22958CB1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BA4678F0-6205-425D-905A-9B0A22958CB1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5961F887-4672-488F-96D3-014BCCCED3E5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5961F887-4672-488F-96D3-014BCCCED3E5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5961F887-4672-488F-96D3-014BCCCED3E5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5961F887-4672-488F-96D3-014BCCCED3E5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

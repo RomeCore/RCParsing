@@ -118,7 +118,7 @@ namespace RCParsing.Tokenizers
 		private IEnumerable<BarrierToken> TokenizeStrict(ParserContext context)
 		{
 			string input = context.str ?? string.Empty;
-			int length = input.Length;
+			int length = context.maxPosition;
 			int currentIndent = 0;
 
 			while (context.position < length)
@@ -175,7 +175,7 @@ namespace RCParsing.Tokenizers
 		private IEnumerable<BarrierToken> TokenizeSoft(ParserContext context)
 		{
 			string input = context.str ?? string.Empty;
-			int length = input.Length;
+			int length = context.maxPosition;
 
 			var indentStack = new Stack<int>();
 			indentStack.Push(0);
@@ -226,7 +226,7 @@ namespace RCParsing.Tokenizers
 		private IEnumerable<BarrierToken> TokenizeHybrid(ParserContext context)
 		{
 			string input = context.str ?? string.Empty;
-			int length = input.Length;
+			int length = context.maxPosition;
 			int currentIndent = 0;
 
 			while (context.position < length)
@@ -304,7 +304,7 @@ namespace RCParsing.Tokenizers
 			while (m < length && input[m] != '\r' && input[m] != '\n') m++;
 
 			bool isBlankLine = (contentStart >= length) ||
-							  (contentStart < length &&
+							   (contentStart < length &&
 							   (input[contentStart] == '\r' || input[contentStart] == '\n'));
 
 			int newlineStart = m;

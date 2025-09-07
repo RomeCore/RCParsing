@@ -186,18 +186,9 @@ namespace RCParsing.Tests
 
 			builder.CreateRule("array")
 				.Literal("[") // The string with one character automatically converts to LiteralCharTokenPattern
-				.ZeroOrMoreSeparated(v => v.Rule("value"), s => s.Literal(","),
-					allowTrailingSeparator: true, includeSeparatorsInResult: false)
+				.ZeroOrMoreSeparated(v => v.Rule("value"), s => s.Literal(","))
 					.TransformLast(v => v.SelectArray())
 				.Literal("]")
-				.TransformSelect(1);
-
-			builder.CreateRule("object")
-				.Literal("{") // And chained calling with builder converts the rule into SequenceParserRule by default
-				.ZeroOrMoreSeparated(v => v.Rule("pair"), s => s.Literal(","),
-					allowTrailingSeparator: true, includeSeparatorsInResult: false)
-					.TransformLast(v => v.SelectValues<KeyValuePair<string, object>>().ToDictionary(k => k.Key, v => v.Value))
-				.Literal("}")
 				.TransformSelect(1);
 
 			builder.CreateRule("pair")
@@ -206,7 +197,14 @@ namespace RCParsing.Tests
 				.Rule("value")
 				.Transform<string, Ignored, object>((k, _, v) => KeyValuePair.Create(k, v));
 
-			builder.CreateMainRule("content")
+			builder.CreateRule("object")
+				.Literal("{")
+				.ZeroOrMoreSeparated(v => v.Rule("pair"), s => s.Literal(","))
+					.TransformLast(v => v.SelectValues<KeyValuePair<string, object>>().ToDictionary())
+				.Literal("}")
+				.TransformSelect(1);
+
+			builder.CreateMainRule()
 				.Rule("value")
 				.EOF() // Sure that we captured all the input
 				.TransformSelect(0);
@@ -230,7 +228,7 @@ namespace RCParsing.Tests
 			var invalidJson = "{ \"name\": \"Test\", \"age\": }";
 
 			var result = jsonParser.Parse<Dictionary<string, object>>(json);
-			Assert.Throws<ParsingException>(() => jsonParser.ParseRule("content", invalidJson));
+			Assert.Throws<ParsingException>(() => jsonParser.Parse(invalidJson));
 		}
 
 		[Fact]
@@ -255,8 +253,7 @@ namespace RCParsing.Tests
 				.Literal('"')
 				.EscapedTextDoubleChars('"')
 				.Literal('"')
-				.Pass(v => v[1])
-				.Transform(v => v.IntermediateValue);
+				.Pass(v => v[1]);
 
 			builder.CreateToken("number")
 				.Number<double>(TokenPatterns.NumberFlags.StrictScientific);
@@ -314,7 +311,7 @@ namespace RCParsing.Tests
 			builder.CreateRule("expression")
 				.Rule("additive_operator");
 
-			builder.CreateMainRule("content")
+			builder.CreateMainRule()
 				.Rule("expression")
 				.EOF();
 

@@ -1,7 +1,7 @@
 # Table of contents
 
 - [Main concepts](#main-concepts) - core concepts and principles of this framework
-- [Rule and token building](#rule-and-token-building) - explains some things about how building tokens and rules working under the hood.
+- [Rule and token building](#rule-and-token-building) - explains some things about how building tokens and rules working under the hood
 - [Auto-skipping](#auto-skipping) - about configuring skip-rules and how to require whitespaces in rules when you are skipping them 
 - [Deduplication](#deduplication) - why you should not worry about references when building your parser
 - [Transformation and intermediate values](#transformation-and-intermediate-values) - how to build a usable value from AST
@@ -41,7 +41,7 @@ Parsers in this library is created via `ParserBuilder`s. When parser is being bu
 
 # Rule and token building
 
-First, you need to create a `ParserBuilder` to let all the IDs assignment and deduplication to it:
+First, you need to create a `ParserBuilder` to let all the IDs assignments, deduplication and other hard work to it:
 ```csharp
 var builder = new ParserBuilder();
 ```
@@ -133,6 +133,8 @@ You also may want to prevent this rule from recording errors, then do this:
 ```csharp
 builder.Settings
     .Skip(b => b.Whitespaces().ConfigureForSkip());
+// Or use the shortcut:
+builder.Settings.SkipWhitespaces();
 ```
 
 By default, if skip rule is set, parser will try to skip it before parsing every rule once (`skip -> parse`). You can select the other skip strategy to skip it repeatedly:
@@ -143,7 +145,7 @@ builder.Settings
     .Skip(b => b.Choice(
         b => b.Whitespaces(), // Skip whitespaces
         b => b.Literal("//").TextUntil("\n", "\r"), // Skip single-line comments, newline characters will be skipped by upper choice (Whitespaces)
-        b => b.Literal("/*").TextUntil("*/").Literal("*/")
+        b => b.Literal("/*").TextUntil("*/").Literal("*/") // Multi-line comments
     ).ConfigureForSkip(), // Prevents from error recording
     ParserSkippingStrategy.SkipBeforeParsingGreedy); // Tries to skip repeatedly until skip-rule fails
 ```
@@ -167,7 +169,7 @@ builder.CreateRule("variable_declaration")
     .Rule("value");
 ```
 
-When using `TryParseThenSkip` strategy, parser will try to parse first, then skip, then parse (`parse -> skip -> parse`, instead of `skip -> parse`). This allows to require rules that conflicts with skip-rules, but may be a bit slow and emit lots of unnecessary parsing errors, slightly impacting on allocation and performance.
+When using `TryParseThenSkip` strategy, parser will try to parse first, then skip, then parse (`parse -> skip -> parse`, instead of `skip -> parse`). This allows to require rules that conflicts with skip-rules, but may be a bit slow and emit some unnecessary parsing errors into context, slightly impacting on allocation and performance.
 
 ### Supported skip strategies
 
@@ -379,7 +381,7 @@ Now parser will try to skip whitespaces before parsing the `string` rule, but it
 
 There is list of possible override/inheritance modes:
 
-- **InheritForSelfAndChildren**, default: Applies the parent's setting for this element and all its children, ignoring any local or global *(parser)* settings.
+- **InheritForSelfAndChildren**, default: Applies the parent's setting for this element and all its children, ignoring any local or global (parser) settings.
 - **LocalForSelfAndChildren**, default when configuration applied to rule: Applies the local setting for this element and all its children. This is the default when explicitly providing a local setting.
 - **LocalForSelfOnly**: Applies the local setting for this element only, while propagating the parent's setting to all child elements.
 - **LocalForChildrenOnly**: Applies the parent's setting for this element only, while propagating the local setting to all child elements.
@@ -392,7 +394,7 @@ These modes provide fine-grained control over how settings propagate through you
 Also, token patterns does not have their own configuration, but you can apply *default* configuration that will be applied to the rule that brings the token, just like `Transform` functions:
 
 ```csharp
-// Configure the default configuration for token
+// Attach the default configuration for token
 builder.CreateToken("identifier")
     .Identifier()
     .Configure(c => c.IgnoreErrors());
@@ -478,11 +480,19 @@ parser.Parse(input);
 
 # Initialization flags, debugging and performance
 
-You can manually apply initialization flags on parser elements using `Setting` property on builder:
+Some settings in the parser elements (tokens and rules) can be *static* (unlike *runtime* settings that support inheritance, e.g. a skip-rule, skip strategy and error handling) and may be applied to specific elements at the **compiling** stage of building (the `builder.Build()` call).
+
+You can apply initialization flags on parser elements using `Setting` property on builder:
 ```csharp
 builder.Settings.UseInitFlags(...);
 ```
-Or use some of sugar versions:
+
+There is example of applying `EnableMemoization` initialization flag:
+```csharp
+builder.Settings.UseInitFlags(ParserInitFlags.EnableMemoization);
+```
+
+And there is some of shortcut/sugar versions:
 ```csharp
 builder.Settings.UseInlining(); // Inlines some rules instead of calling the Parser
 builder.Settings.UseFirstCharacterMatch(); // Will choose rules based on lookahead, not effective on simple grammars
@@ -497,7 +507,18 @@ builder.Settings.ErrorFormatting(
 builder.Settings.UseDebug(); // Uses both WriteStackTrace and DetailedErrors
 ```
 
-Here is default error example on JSON grammar (ooops, i put extra comma in object!):
+If you use one previous methods, initialization flags will be applied to *ALL* parser elements.
+
+*Want to apply these flags more precisely?*  
+There is example how to apply `StackTraceWriting` initialization flag on the `TokenParserRule` that holds `WhitespacesTokenPattern`:
+
+```csharp
+builder.Settings.UseInitFlagsOn(ParserInitFlags.StackTraceWriting,
+	elem => elem is TokenParserRule tokenRule &&
+	tokenRule.TokenPattern is WhitespacesTokenPattern);
+```
+
+Here is default error example on JSON grammar (ooops, i put extra comma in object definition):
 
 ```
 RCParsing.ParsingException : One or more errors occurred during parsing:
@@ -752,19 +773,6 @@ builder.CreateToken("literal")
     .Literal('a', StringComparison.OrdinalIgnoreCase)
     .Literal("another str", StringComparison.InvariantCulture)
     .LiteralChoice(["abc", "def"], StringComparer.OrdinalIgnoreCase);
-```
-Builder automatically converts these tokens to more efficient ones if possible:
-```csharp
-builder.CreateToken("literal")
-    .Literal("a") // -> LiteralChar('a')
-    .LiteralChoice("str") // -> Literal("str")
-    .LiteralChoice("b"); // -> LiteralChar('b')
-```
-They puts the original matched literal to intermediate value:
-```csharp
-builder.CreateToken("literal")
-    .Literal("abc", StringComparison.OrdinalIgnoreCase)
-    .Transform(v => v.IntermediateValue); // Input "AbC" transforms to -> "abc"
 ```
 
 ### Number

@@ -13,7 +13,7 @@ namespace RCParsing
 		/// <summary>
 		/// Gets the parsed value factory associated with this rule.
 		/// </summary>
-		public Func<ParsedRuleResult, object?>? ParsedValueFactory { get; internal set; } = null;
+		public Func<ParsedRuleResultBase, object?>? ParsedValueFactory { get; internal set; } = null;
 
 		/// <summary>
 		/// Gets the local settings for this parser rule with each setting configurable by override modes.
@@ -39,22 +39,17 @@ namespace RCParsing
 		/// <summary>
 		/// Advances the parser context to use for this and child elements.
 		/// </summary>
-		/// <remarks>
-		/// For <paramref name="context"/> it updates the settings to use as local element. <br/>
-		/// It makes a <paramref name="childContext"/> that have advanced recursion depth and settings for child elements.
-		/// </remarks>
-		public void AdvanceContext(ref ParserContext context, out ParserContext childContext)
+		public void AdvanceContext(ref ParserContext context, ref ParserSettings settings, out ParserSettings childSettings)
 		{
 			if (_writeStackTrace)
 				context.AppendStackFrame(Id);
-			childContext = context;
+			childSettings = settings;
 
 			if (!Settings.isDefault)
 			{
-				context.settings.Resolve(Settings, Parser.GlobalSettings, out var forLocal, out var forChildren);
-				context.settings = forLocal;
-
-				childContext.settings = forChildren;
+				settings.Resolve(Settings, Parser.GlobalSettings, out var forLocal, out var forChildren);
+				settings = forLocal;
+				childSettings = forChildren;
 			}
 		}
 
@@ -62,9 +57,10 @@ namespace RCParsing
 		/// Tries to parse the input string using this rule.
 		/// </summary>
 		/// <param name="context">The local parser context to use for this element.</param>
-		/// <param name="childContext">The parser context for the child elements.</param>
+		/// <param name="settings">The settings to use for this element.</param>
+		/// <param name="childSettings">The settings to use for child elements.</param>
 		/// <returns>The parsed rule containing the result of parsing.</returns>
-		public abstract ParsedRule Parse(ParserContext context, ParserContext childContext);
+		public abstract ParsedRule Parse(ParserContext context, ParserSettings settings, ParserSettings childSettings);
 
 		/// <summary>
 		/// Converts this parser rule to a stack trace string for debugging purposes.

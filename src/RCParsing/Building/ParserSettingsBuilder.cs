@@ -36,21 +36,6 @@ namespace RCParsing.Building
 			return (_mainSettings, result, _initFlagsFactory);
 		}
 
-		public override bool Equals(object? obj)
-		{
-			return obj is ParserSettingsBuilder other &&
-				   _settings == other._settings &&
-				   _skipRule == other._skipRule;
-		}
-
-		public override int GetHashCode()
-		{
-			int hashCode = 17;
-			hashCode ^= _settings.GetHashCode() * 23;
-			hashCode ^= (_skipRule?.GetHashCode() ?? 0) * 47;
-			return hashCode;
-		}
-
 
 
 		/// <summary>
@@ -58,7 +43,7 @@ namespace RCParsing.Building
 		/// </summary>
 		/// <param name="builderAction">The action to build the skip rule.</param>
 		/// <param name="skippingStrategy">The skipping strategy to use.</param>
-		/// <returns>This instance for method chaining.</returns>
+		/// <returns>Current instance for method chaining.</returns>
 		public ParserSettingsBuilder Skip(Action<RuleBuilder> builderAction,
 			ParserSkippingStrategy skippingStrategy = ParserSkippingStrategy.SkipBeforeParsing)
 		{
@@ -73,7 +58,7 @@ namespace RCParsing.Building
 		/// Sets the 'Whitespaces' skip rule that will be skipped before parsing rules.
 		/// </summary>
 		/// <param name="skippingStrategy">The skipping strategy to use.</param>
-		/// <returns>This instance for method chaining.</returns>
+		/// <returns>Current instance for method chaining.</returns>
 		public ParserSettingsBuilder SkipWhitespaces(ParserSkippingStrategy skippingStrategy = ParserSkippingStrategy.SkipBeforeParsing)
 		{
 			var builder = new RuleBuilder();
@@ -87,7 +72,7 @@ namespace RCParsing.Building
 		/// Sets the skipping strategy.
 		/// </summary>
 		/// <param name="skippingStrategy">The skipping strategy to use.</param>
-		/// <returns>This instance for method chaining.</returns>
+		/// <returns>Current instance for method chaining.</returns>
 		public ParserSettingsBuilder SkippingStrategy(ParserSkippingStrategy skippingStrategy)
 		{
 			_settings.skippingStrategy = skippingStrategy;
@@ -97,7 +82,7 @@ namespace RCParsing.Building
 		/// <summary>
 		/// Removes the skip rule.
 		/// </summary>
-		/// <returns>This instance for method chaining.</returns>
+		/// <returns>Current instance for method chaining.</returns>
 		public ParserSettingsBuilder NoSkipping()
 		{
 			_settings.skippingStrategy = ParserSkippingStrategy.Default;
@@ -108,7 +93,7 @@ namespace RCParsing.Building
 		/// Sets the error handling mode.
 		/// </summary>
 		/// <param name="mode">The error handling mode.</param>
-		/// <returns>This instance for method chaining.</returns>
+		/// <returns>Current instance for method chaining.</returns>
 		public ParserSettingsBuilder ErrorHandling(ParserErrorHandlingMode mode)
 		{
 			_settings.errorHandling = mode;
@@ -121,7 +106,7 @@ namespace RCParsing.Building
 		/// <remarks>
 		/// This will cause the parser to record errors.
 		/// </remarks>
-		/// <returns>This instance for method chaining.</returns>
+		/// <returns>Current instance for method chaining.</returns>
 		public ParserSettingsBuilder RecordErrors()
 		{
 			return ErrorHandling(ParserErrorHandlingMode.Default);
@@ -133,7 +118,7 @@ namespace RCParsing.Building
 		/// <remarks>
 		/// This will cause the parser to ignore any errors when trying to record them.
 		/// </remarks>
-		/// <returns>This instance for method chaining.</returns>
+		/// <returns>Current instance for method chaining.</returns>
 		public ParserSettingsBuilder IgnoreErrors()
 		{
 			return ErrorHandling(ParserErrorHandlingMode.NoRecord);
@@ -145,7 +130,7 @@ namespace RCParsing.Building
 		/// <remarks>
 		/// This will cause the parser to throw errors when trying to record them.
 		/// </remarks>
-		/// <returns>This instance for method chaining.</returns>
+		/// <returns>Current instance for method chaining.</returns>
 		public ParserSettingsBuilder ThrowErrors()
 		{
 			return ErrorHandling(ParserErrorHandlingMode.Throw);
@@ -157,7 +142,7 @@ namespace RCParsing.Building
 		/// <remarks>
 		/// Useful for debugging purposes.
 		/// </remarks>
-		/// <returns>This instance for method chaining.</returns>
+		/// <returns>Current instance for method chaining.</returns>
 		public ParserSettingsBuilder ErrorFormatting(ErrorFormattingFlags flags)
 		{
 			_mainSettings.errorFormattingFlags = flags;
@@ -170,7 +155,7 @@ namespace RCParsing.Building
 		/// <remarks>
 		/// Useful for debugging purposes.
 		/// </remarks>
-		/// <returns>This instance for method chaining.</returns>
+		/// <returns>Current instance for method chaining.</returns>
 		public ParserSettingsBuilder DetailedErrors()
 		{
 			return ErrorFormatting(ErrorFormattingFlags.DisplayRules |
@@ -178,10 +163,72 @@ namespace RCParsing.Building
 		}
 
 		/// <summary>
+		/// Sets the creating AST type to <see cref="ParserASTType.Lightweight"/> (the <see cref="ParsedRuleResult"/>).
+		/// </summary>
+		/// <remarks>
+		/// This type of AST stores minimum amount of data, should not be used when AST nodes is reused.
+		/// </remarks>
+		/// <returns>Current instance for method chaining.</returns>
+		public ParserSettingsBuilder UseLightAST()
+		{
+			_mainSettings.astType = ParserASTType.Lightweight;
+			return this;
+		}
+
+		/// <summary>
+		/// Sets the creating AST type to <see cref="ParserASTType.Lazy"/> (the <see cref="ParsedRuleResultLazy"/>).
+		/// </summary>
+		/// <remarks>
+		/// Prevents from AST recalculations.
+		/// This type of AST can do more allocations, impacting on memory usage and speed,
+		/// but crucial for reusable AST nodes.
+		/// </remarks>
+		/// <returns>Current instance for method chaining.</returns>
+		public ParserSettingsBuilder UseLazyAST()
+		{
+			_mainSettings.astType = ParserASTType.Lazy;
+			return this;
+		}
+
+		/// <summary>
+		/// Sets the creating AST type to the specified type.
+		/// </summary>
+		/// <returns>Current instance for method chaining.</returns>
+		public ParserSettingsBuilder UseAST(ParserASTType astType)
+		{
+			_mainSettings.astType = astType;
+			return this;
+		}
+
+		/// <summary>
+		/// Allows the parser to record skipped rules to the context.
+		/// </summary>
+		/// <remarks>
+		/// Useful for debugging purposes and syntax highlighting.
+		/// </remarks>
+		/// <param name="record">Whether to record skipped rules. Default is true.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public ParserSettingsBuilder RecordSkippedRules(bool record = true)
+		{
+			_mainSettings.recordSkippedRules = record;
+			return this;
+		}
+
+		/// <summary>
+		/// Prevents the parser from recording skipped rules to the context.
+		/// </summary>
+		/// <returns>Current instance for method chaining.</returns>
+		public ParserSettingsBuilder DoNotRecordSkippedRules()
+		{
+			_mainSettings.recordSkippedRules = false;
+			return this;
+		}
+
+		/// <summary>
 		/// Sets the barrier tokens to be ignored while parsing.
 		/// </summary>
 		/// <param name="ignore">Whether to ignore barrier tokens or not.</param>
-		/// <returns>This instance for method chaining.</returns>
+		/// <returns>Current instance for method chaining.</returns>
 		public ParserSettingsBuilder IgnoreBarriers(bool ignore)
 		{
 			_settings.ignoreBarriers = ignore;
@@ -191,7 +238,7 @@ namespace RCParsing.Building
 		/// <summary>
 		/// Ignores barrier tokens while parsing.
 		/// </summary>
-		/// <returns>This instance for method chaining.</returns>
+		/// <returns>Current instance for method chaining.</returns>
 		public ParserSettingsBuilder IgnoreBarriers()
 		{
 			_settings.ignoreBarriers = true;
@@ -201,7 +248,7 @@ namespace RCParsing.Building
 		/// <summary>
 		/// Enables barrier tokens while parsing.
 		/// </summary>
-		/// <returns>This instance for method chaining.</returns>
+		/// <returns>Current instance for method chaining.</returns>
 		public ParserSettingsBuilder RestoreBarriers()
 		{
 			_settings.ignoreBarriers = false;
@@ -212,7 +259,7 @@ namespace RCParsing.Building
 		/// Uses the specified initialization flags for all elements.
 		/// </summary>
 		/// <param name="flags">The initialization flags to use.</param>
-		/// <returns>This instance for method chaining.</returns>
+		/// <returns>Current instance for method chaining.</returns>
 		public ParserSettingsBuilder UseInitFlags(ParserInitFlags flags)
 		{
 			var prevFactory = _initFlagsFactory;
@@ -229,7 +276,7 @@ namespace RCParsing.Building
 		/// </summary>
 		/// <param name="flags">The initialization flags to use.</param>
 		/// <param name="predicate">The predicate to determine whether a parser element should be cached.</param>
-		/// <returns>This instance for method chaining.</returns>
+		/// <returns>Current instance for method chaining.</returns>
 		public ParserSettingsBuilder UseInitFlagsOn(ParserInitFlags flags, Predicate<ParserElement> predicate)
 		{
 			var prevFactory = _initFlagsFactory;
@@ -248,7 +295,7 @@ namespace RCParsing.Building
 		/// </summary>
 		/// <param name="flags">The initialization flags to use.</param>
 		/// <param name="predicate">The predicate to determine whether a parser element should be cached.</param>
-		/// <returns>This instance for method chaining.</returns>
+		/// <returns>Current instance for method chaining.</returns>
 		public ParserSettingsBuilder UseInitFlagsOnOnly(ParserInitFlags flags, Predicate<ParserElement> predicate)
 		{
 			var prevFactory = _initFlagsFactory;
@@ -270,7 +317,7 @@ namespace RCParsing.Building
 		/// <remarks>
 		/// This will cause the parser to use and write both rules and token patterns via caching.
 		/// </remarks>
-		/// <returns>This instance for method chaining.</returns>
+		/// <returns>Current instance for method chaining.</returns>
 		public ParserSettingsBuilder UseCaching()
 		{
 			return UseInitFlags(ParserInitFlags.EnableMemoization);
@@ -282,7 +329,7 @@ namespace RCParsing.Building
 		/// <remarks>
 		/// This will cause the parser to use and write rules via caching.
 		/// </remarks>
-		/// <returns>This instance for method chaining.</returns>
+		/// <returns>Current instance for method chaining.</returns>
 		public ParserSettingsBuilder CacheOnlyRules()
 		{
 			return UseCachingOn(e => e is not TokenPattern && e is not TokenParserRule);
@@ -294,7 +341,7 @@ namespace RCParsing.Building
 		/// <remarks>
 		/// This will cause the parser to use and write token patterns via caching.
 		/// </remarks>
-		/// <returns>This instance for method chaining.</returns>
+		/// <returns>Current instance for method chaining.</returns>
 		public ParserSettingsBuilder CacheOnlyTokens()
 		{
 			return UseCachingOn(e => e is TokenPattern || e is TokenParserRule);
@@ -304,7 +351,7 @@ namespace RCParsing.Building
 		/// Sets the caching mode for token patterns and rules based on the specified predicate.
 		/// </summary>
 		/// <param name="predicate">The predicate to determine whether a parser element should be cached.</param>
-		/// <returns>This instance for method chaining.</returns>
+		/// <returns>Current instance for method chaining.</returns>
 		public ParserSettingsBuilder UseCachingOn(Predicate<ParserElement> predicate)
 		{
 			return UseInitFlagsOn(ParserInitFlags.EnableMemoization, predicate);
@@ -317,7 +364,7 @@ namespace RCParsing.Building
 		/// Overrides the previous caching mode with the new one for all elements.
 		/// </remarks>
 		/// <param name="predicate">The predicate to determine whether a parser element should be cached.</param>
-		/// <returns>This instance for method chaining.</returns>
+		/// <returns>Current instance for method chaining.</returns>
 		public ParserSettingsBuilder UseCachingOnOnly(Predicate<ParserElement> predicate)
 		{
 			return UseInitFlagsOnOnly(ParserInitFlags.EnableMemoization, predicate);
@@ -329,7 +376,7 @@ namespace RCParsing.Building
 		/// <remarks>
 		/// May improve performance by avoiding unnecessary backtracking in some cases. However, it can also reduce helpful errors.
 		/// </remarks>
-		/// <returns>This instance for method chaining.</returns>
+		/// <returns>Current instance for method chaining.</returns>
 		public ParserSettingsBuilder UseFirstCharacterMatch()
 		{
 			var prevFactory = _initFlagsFactory;
@@ -348,7 +395,7 @@ namespace RCParsing.Building
 		/// <remarks>
 		/// May lead to unexpected behavior if not used properly. Use with caution.
 		/// </remarks>
-		/// <returns>This instance for method chaining.</returns>
+		/// <returns>Current instance for method chaining.</returns>
 		public ParserSettingsBuilder UseInlining()
 		{
 			var prevFactory = _initFlagsFactory;
@@ -364,7 +411,7 @@ namespace RCParsing.Building
 		/// <summary>
 		/// Sets the stack trace writing mode to enabled.
 		/// </summary>
-		/// <returns>This instance for method chaining.</returns>
+		/// <returns>Current instance for method chaining.</returns>
 		public ParserSettingsBuilder WriteStackTrace()
 		{
 			var prevFactory = _initFlagsFactory;
@@ -383,7 +430,7 @@ namespace RCParsing.Building
 		/// <remarks>
 		/// Useful for debuggings grammars.
 		/// </remarks>
-		/// <returns>This instance for method chaining.</returns>
+		/// <returns>Current instance for method chaining.</returns>
 		public ParserSettingsBuilder UseDebug()
 		{
 			return this.WriteStackTrace().DetailedErrors();

@@ -149,18 +149,18 @@ namespace RCParsing
 		}
 
 		/// <summary>
-		/// Gets the next barrier token group index after the specified position. If no more barrier tokens, returns input string length.
+		/// Gets the next barrier token group index after the specified position. If no more barrier tokens, returns -1.
 		/// </summary>
 		/// <param name="position">The position to get the next barrier token group index from.</param>
 		/// <param name="passedBarriers">The pa</param>
-		/// <returns>The index of the next barrier token group, or input string length if no more barrier tokens.</returns>
+		/// <returns>The index of the next barrier token group, or -1 if no more barrier tokens.</returns>
 		public int GetNextBarrierPosition(int position, int passedBarriers)
 		{
 			if (_count == 0)
-				return _inputLength;
+				return -1;
 
 			if (position < 0 || position >= _nextPositionMap.Length)
-				return _inputLength;
+				return -1;
 
 			var next = _nextPositionMap[position];
 			if (next.maxBarrierIndex > passedBarriers)

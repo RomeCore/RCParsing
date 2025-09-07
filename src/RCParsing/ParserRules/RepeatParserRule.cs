@@ -50,54 +50,54 @@ namespace RCParsing.ParserRules
 
 
 
-		private Func<ParserContext, ParserContext, ParsedRule> parseFunction;
+		private Func<ParserContext, ParserSettings, ParserSettings, ParsedRule> parseFunction;
 
 		protected override void Initialize(ParserInitFlags initFlags)
 		{
-			parseFunction = (ctx, chCtx) =>
+			parseFunction = (ctx, stng, chStng) =>
 			{
 				var rules = new List<ParsedRule>();
-				var initialPosition = chCtx.position;
+				var initialPosition = ctx.position;
 				ParsedRule parsedRule = default;
 
 				for (int i = 0; i < this.MaxCount || this.MaxCount == -1; i++)
 				{
-					parsedRule = TryParseRule(Rule, chCtx);
+					parsedRule = TryParseRule(Rule, ctx, chStng);
 					if (!parsedRule.success)
 						break;
 
-					chCtx.position = parsedRule.startIndex + parsedRule.length;
-					chCtx.passedBarriers = parsedRule.passedBarriers;
+					ctx.position = parsedRule.startIndex + parsedRule.length;
+					ctx.passedBarriers = parsedRule.passedBarriers;
 					parsedRule.occurency = i;
 					rules.Add(parsedRule);
 				}
 
 				if (rules.Count < MinCount)
 				{
-					RecordError(ref ctx, $"Expected at least {MinCount} repetitions of child rule, but found {rules.Count}.");
+					RecordError(ref ctx, ref stng, $"Expected at least {MinCount} repetitions of child rule, but found {rules.Count}.");
 					return ParsedRule.Fail;
 				}
 
-				return ParsedRule.Rule(Id, initialPosition, chCtx.position - initialPosition, chCtx.passedBarriers, rules, null);
+				return ParsedRule.Rule(Id, initialPosition, ctx.position - initialPosition, ctx.passedBarriers, rules, null);
 			};
 
 			if (initFlags.HasFlag(ParserInitFlags.EnableMemoization))
 			{
 				var previous = parseFunction;
-				parseFunction = (ctx, chCtx) =>
+				parseFunction = (ctx, stng, chStng) =>
 				{
 					if (ctx.cache.TryGetRule(Id, ctx.position, out var cachedResult))
 						return cachedResult;
-					cachedResult = previous(ctx, chCtx);
+					cachedResult = previous(ctx, stng, chStng);
 					ctx.cache.AddRule(Id, ctx.position, cachedResult);
 					return cachedResult;
 				};
 			}
 		}
 
-		public override ParsedRule Parse(ParserContext context, ParserContext childContext)
+		public override ParsedRule Parse(ParserContext context, ParserSettings settings, ParserSettings childSettings)
 		{
-			return parseFunction(context, childContext);
+			return parseFunction(context, settings, childSettings);
 		}
 
 

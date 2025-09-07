@@ -15,7 +15,12 @@ namespace RCParsing.ParserRules
 		/// <summary>
 		/// The token pattern ID to match for this rule.
 		/// </summary>
-		public int TokenPattern { get; }
+		public int TokenPatternId { get; }
+
+		/// <summary>
+		/// The token pattern associated with this rule.
+		/// </summary>
+		public TokenPattern TokenPattern => _pattern ?? Parser.TokenPatterns[TokenPatternId];
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="TokenParserRule"/> class.
@@ -23,72 +28,74 @@ namespace RCParsing.ParserRules
 		/// <param name="tokenPattern">The token pattern ID to match for this rule.</param>
 		public TokenParserRule(int tokenPattern)
 		{
-			TokenPattern = tokenPattern;
+			TokenPatternId = tokenPattern;
 		}
 
 
 
-		delegate ParsedRule ParseDelegate(ref ParserContext ctx, ref ParserContext chCtx);
+		delegate ParsedRule ParseDelegate(ref ParserContext ctx, ref ParserSettings settings, ref ParserSettings childSettings);
 
+		private bool parseIgnoringBarriers = false;
 		private TokenPattern _pattern;
 		private ParseDelegate parseFunction;
 
 		protected override void PreInitialize(ParserInitFlags initFlags)
 		{
-			_pattern = Parser.TokenPatterns[TokenPattern];
+			_pattern = Parser.TokenPatterns[TokenPatternId];
 		}
 
 		protected override void Initialize(ParserInitFlags initFlags)
 		{
-			ParsedRule ParseIgnoringBarriers(ref ParserContext ctx, ref ParserContext chCtx)
+			ParsedRule ParseIgnoringBarriers(ref ParserContext ctx, ref ParserSettings stng, ref ParserSettings chStng)
 			{
-				var match = _pattern.Match(ctx.str, ctx.position, ctx.str.Length, ctx.parserParameter);
+				var match = _pattern.Match(ctx.str, ctx.position, ctx.maxPosition, ctx.parserParameter);
 				if (!match.success)
 				{
-					RecordError(ref ctx, "Failed to parse token");
+					RecordError(ref ctx, ref stng, "Failed to parse token");
 					return ParsedRule.Fail;
 				}
 
-				return ParsedRule.Token(Id, TokenPattern, match.startIndex, match.length, ctx.passedBarriers, match.intermediateValue);
+				return ParsedRule.Token(Id, TokenPatternId, match.startIndex, match.length, ctx.passedBarriers, match.intermediateValue);
 			}
 
-			ParsedRule ParseUsingBarriers(ref ParserContext ctx, ref ParserContext chCtx)
+			ParsedRule ParseUsingBarriers(ref ParserContext ctx, ref ParserSettings stng, ref ParserSettings chStng)
 			{
-				if (ctx.settings.ignoreBarriers)
+				if (stng.ignoreBarriers)
 				{
-					return ParseIgnoringBarriers(ref ctx, ref chCtx);
+					return ParseIgnoringBarriers(ref ctx, ref stng, ref chStng);
 				}
 
 				if (ctx.barrierTokens.TryGetBarrierToken(ctx.position, ctx.passedBarriers, out var barrierToken))
 				{
-					if (barrierToken.tokenId == TokenPattern)
+					if (barrierToken.tokenId == TokenPatternId)
 					{
-						return ParsedRule.Token(Id, TokenPattern, ctx.position, barrierToken.length,
+						return ParsedRule.Token(Id, TokenPatternId, ctx.position, barrierToken.length,
 							barrierToken.index + 1, null);
 					}
 					else
 					{
-						RecordError(ref ctx, "Failed to match virtual token.");
+						RecordError(ref ctx, ref stng, "Failed to match virtual token.");
 						return ParsedRule.Fail;
 					}
 				}
 
 				if (_pattern is BarrierTokenPattern)
 				{
-					RecordError(ref ctx, "Failed to match virtual token.");
+					RecordError(ref ctx, ref stng, "Failed to match virtual token.");
 					return ParsedRule.Fail;
 				}
 
 				int maxPos = ctx.barrierTokens.GetNextBarrierPosition(ctx.position, ctx.passedBarriers);
+				if (maxPos == -1) maxPos = ctx.maxPosition;
 
 				var match = _pattern.Match(ctx.str, ctx.position, maxPos, ctx.parserParameter);
 				if (!match.success)
 				{
-					RecordError(ref ctx, "Failed to parse token.");
+					RecordError(ref ctx, ref stng, "Failed to parse token.");
 					return ParsedRule.Fail;
 				}
 
-				return ParsedRule.Token(Id, TokenPattern, match.startIndex, match.length,
+				return ParsedRule.Token(Id, TokenPatternId, match.startIndex, match.length,
 					ctx.passedBarriers, match.intermediateValue);
 			}
 
@@ -101,23 +108,37 @@ namespace RCParsing.ParserRules
 			{
 				var prev = parseFunction;
 
-				ParsedRule ParseMemoized(ref ParserContext ctx, ref ParserContext chCtx)
+				ParsedRule ParseMemoized(ref ParserContext ctx, ref ParserSettings stng, ref ParserSettings chStng)
 				{
 					if (ctx.cache.TryGetRule(Id, ctx.position, out var cachedResult))
 						return cachedResult;
 
-					cachedResult = prev(ref ctx, ref chCtx);
+					cachedResult = prev(ref ctx, ref stng, ref chStng);
 					ctx.cache.AddRule(Id, ctx.position, cachedResult);
 					return cachedResult;
 				}
 
 				parseFunction = ParseMemoized;
 			}
+
+			parseIgnoringBarriers = parseFunction == ParseIgnoringBarriers;
 		}
 
-		public override ParsedRule Parse(ParserContext context, ParserContext childContext)
+		public override ParsedRule Parse(ParserContext context, ParserSettings settings, ParserSettings childSettings)
 		{
-			return parseFunction(ref context, ref childContext);
+			if (parseIgnoringBarriers)
+			{
+				var match = _pattern.Match(context.str, context.position, context.maxPosition, context.parserParameter);
+				if (!match.success)
+				{
+					RecordError(ref context, ref settings, "Failed to parse token");
+					return ParsedRule.Fail;
+				}
+
+				return ParsedRule.Token(Id, TokenPatternId, match.startIndex, match.length, context.passedBarriers, match.intermediateValue);
+			}
+
+			return parseFunction(ref context, ref settings, ref childSettings);
 		}
 
 
@@ -126,9 +147,9 @@ namespace RCParsing.ParserRules
 		{
 			string alias = Aliases.Count > 0 ? $" '{Aliases.Last()}'" : string.Empty;
 			if (!string.IsNullOrEmpty(alias))
-				return $"{alias} {GetTokenPattern(TokenPattern).ToString(remainingDepth)}";
+				return $"{alias} {GetTokenPattern(TokenPatternId).ToString(remainingDepth)}";
 
-			return GetTokenPattern(TokenPattern).ToString(remainingDepth);
+			return GetTokenPattern(TokenPatternId).ToString(remainingDepth);
 		}
 
 		public override string ToStackTraceString(int remainingDepth, int childIndex)
@@ -136,22 +157,22 @@ namespace RCParsing.ParserRules
 			string alias = Aliases.Count > 0 ? $"'{Aliases.Last()}'" : string.Empty;
 
 			if (!string.IsNullOrEmpty(alias))
-				return $"{alias} {GetTokenPattern(TokenPattern).ToString(remainingDepth)}";
+				return $"{alias} {GetTokenPattern(TokenPatternId).ToString(remainingDepth)}";
 
-			return GetTokenPattern(TokenPattern).ToString(remainingDepth);
+			return GetTokenPattern(TokenPatternId).ToString(remainingDepth);
 		}
 
 		public override bool Equals(object? obj)
 		{
 			return base.Equals(obj) &&
 				   obj is TokenParserRule rule &&
-				   TokenPattern == rule.TokenPattern;
+				   TokenPatternId == rule.TokenPatternId;
 		}
 
 		public override int GetHashCode()
 		{
 			int hashCode = base.GetHashCode();
-			hashCode = hashCode * -1521134295 + TokenPattern.GetHashCode();
+			hashCode = hashCode * -1521134295 + TokenPatternId.GetHashCode();
 			return hashCode;
 		}
 	}

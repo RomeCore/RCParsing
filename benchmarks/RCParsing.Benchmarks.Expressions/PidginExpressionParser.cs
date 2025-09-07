@@ -20,7 +20,7 @@ namespace RCParsing.Benchmarks.Expressions
 					.Or(Char('-').Before(SkipWhitespaces).ThenReturn<Func<int, int, int>>((x, y) => x - y)))
 			};
 			Expr = ExpressionParser.Build(
-				expr => Num.Before(SkipWhitespaces).Or(expr.Between(Char('('), Char(')'))),
+				expr => Num.Before(SkipWhitespaces).Or(expr.Between(Char('(').Before(SkipWhitespaces), Char(')').Before(SkipWhitespaces))),
 				operators
 			);
 		}

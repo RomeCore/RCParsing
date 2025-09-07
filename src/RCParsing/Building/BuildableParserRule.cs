@@ -15,7 +15,7 @@ namespace RCParsing.Building
 		/// <summary>
 		/// Gets the parsed value factory associated with this rule.
 		/// </summary>
-		public Func<ParsedRuleResult, object?>? ParsedValueFactory { get; set; } = null;
+		public Func<ParsedRuleResultBase, object?>? ParsedValueFactory { get; set; } = null;
 
 		/// <summary>
 		/// Gets the local settings builder for this parser rule.

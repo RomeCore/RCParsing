@@ -34,7 +34,7 @@ namespace RCParsing.Benchmarks.Expressions
 		{
 			var builder = new ParserBuilder();
 			FillWithRules(builder);
-			builder.Settings.UseInlining();
+			builder.Settings.UseInlining().IgnoreErrors();
 			optimizedParser = builder.Build();
 
 			builder = new ParserBuilder();

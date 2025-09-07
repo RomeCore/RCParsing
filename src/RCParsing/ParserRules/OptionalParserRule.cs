@@ -31,13 +31,13 @@ namespace RCParsing.ParserRules
 
 
 
-		private Func<ParserContext, ParserContext, ParsedRule> parseFunction;
+		private Func<ParserContext, ParserSettings, ParserSettings, ParsedRule> parseFunction;
 
 		protected override void Initialize(ParserInitFlags initFlags)
 		{
-			parseFunction = (ctx, chCtx) =>
+			parseFunction = (ctx, stng, chStng) =>
 			{
-				var result = TryParseRule(Rule, chCtx);
+				var result = TryParseRule(Rule, ctx, chStng);
 				if (result.success)
 				{
 					return ParsedRule.Rule(Id, result.startIndex, result.length, result.passedBarriers, ParsedRuleChildUtils.Single(ref result), result.intermediateValue);
@@ -51,20 +51,20 @@ namespace RCParsing.ParserRules
 			if (initFlags.HasFlag(ParserInitFlags.EnableMemoization))
 			{
 				var previous = parseFunction;
-				parseFunction = (ctx, chCtx) =>
+				parseFunction = (ctx, stng, chStng) =>
 				{
 					if (ctx.cache.TryGetRule(Id, ctx.position, out var cachedResult))
 						return cachedResult;
-					cachedResult = previous(ctx, chCtx);
+					cachedResult = previous(ctx, stng, chStng);
 					ctx.cache.AddRule(Id, ctx.position, cachedResult);
 					return cachedResult;
 				};
 			}
 		}
 
-		public override ParsedRule Parse(ParserContext context, ParserContext childContext)
+		public override ParsedRule Parse(ParserContext context, ParserSettings settings, ParserSettings childSettings)
 		{
-			return parseFunction(context, childContext);
+			return parseFunction(context, settings, childSettings);
 		}
 
 

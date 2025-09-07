@@ -7,11 +7,11 @@ namespace RCParsing.Building
 {
 	public partial class RuleBuilder
 	{
-		private static Func<ParsedRuleResult, object?> GenerateLambdaForTypes(
+		private static Func<ParsedRuleResultBase, object?> GenerateLambdaForTypes(
 			Delegate factory,
 			params Type[] types)
 		{
-			var rParam = Expression.Parameter(typeof(ParsedRuleResult), "r");
+			var rParam = Expression.Parameter(typeof(ParsedRuleResultBase), "r");
 			var args = new Expression[types.Length];
 
 			for (int i = 0; i < types.Length; i++)
@@ -24,7 +24,7 @@ namespace RCParsing.Building
 				{
 					args[i] = Expression.Call(
 						rParam,
-						nameof(ParsedRuleResult.GetValue),
+						nameof(ParsedRuleResultBase.GetValue),
 						new[] { types[i] },
 						Expression.Constant(i)
 					);
@@ -33,7 +33,7 @@ namespace RCParsing.Building
 
 			var body = Expression.Invoke(Expression.Constant(factory), args);
 
-			var lambda = Expression.Lambda<Func<ParsedRuleResult, object?>>(body, rParam);
+			var lambda = Expression.Lambda<Func<ParsedRuleResultBase, object?>>(body, rParam);
 
 			return lambda.Compile();
 		}
