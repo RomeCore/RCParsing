@@ -254,7 +254,7 @@ namespace RCParsing.Building
 		/// </summary>
 		/// <param name="factory">The transformation function (parsed value factory) to set.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		/// <exception cref="ParserBuildingException">Thrown if the parser rule is not set or it is a direct reference to a named rule.</exception>
+		/// <exception cref="ParserBuildingException">Thrown if the parser rule is not set or sequence rule is empty or it is a direct reference to a named rule.</exception>
 		public RuleBuilder TransformLast(Func<ParsedRuleResultBase, object?>? factory)
 		{
 			if (BuildingRule?.AsT2() is BuildableSequenceParserRule sequenceRule)
@@ -281,6 +281,29 @@ namespace RCParsing.Building
 		public RuleBuilder Configure(Action<ParserLocalSettingsBuilder> configAction)
 		{
 			if (BuildingRule?.AsT2() is BuildableParserRule rule)
+				configAction(rule.Settings);
+			else
+				throw new ParserBuildingException("Parser rule is not set or it is a direct reference to named rule.");
+			return this;
+		}
+
+		/// <summary>
+		/// Configures the local settings for the last rule in the sequence.
+		/// </summary>
+		/// <param name="configAction">The configuration action.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if the parser rule is not set or sequence rule is empty or it is a direct reference to a named rule.</exception>
+		public RuleBuilder ConfigureLast(Action<ParserLocalSettingsBuilder> configAction)
+		{
+			if (BuildingRule?.AsT2() is BuildableSequenceParserRule sequenceRule)
+			{
+				if (sequenceRule.Elements.LastOrDefault().AsT2() is BuildableParserRule rule)
+					configAction(rule.Settings);
+				else
+					throw new ParserBuildingException("Last rule in the sequence is not set or it is a direct reference to named rule.");
+				return this;
+			}
+			else if (BuildingRule?.AsT2() is BuildableParserRule rule)
 				configAction(rule.Settings);
 			else
 				throw new ParserBuildingException("Parser rule is not set or it is a direct reference to named rule.");

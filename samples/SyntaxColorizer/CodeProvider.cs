@@ -50,9 +50,7 @@ namespace SyntaxColorizer
 				    Boolean false: @false
 				    Null test: @null
 				}
-				""",
 
-				"""
 				@// Second template with no expressions.
 				@template Secondary {
 				    Static text only

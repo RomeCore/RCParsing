@@ -306,7 +306,6 @@ namespace RCParsing.TokenPatterns
 			if (length == 0 || (integerDigitCount == 0 && fractionalDigitCount == 0))
 				return ParsedElement.Fail;
 
-
 			// ".x" is allowed only if ImplicitIntegerPart is enabled.
 			if (integerDigitCount == 0 && (Flags & NumberFlags.ImplicitIntegerPart) == 0)
 				return ParsedElement.Fail;
