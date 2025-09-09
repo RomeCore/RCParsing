@@ -110,30 +110,80 @@ namespace RCParsing
 			matchedLength = 0;
 
 			var node = root;
-			int pos = startIndex;
 			int lastTerminalPos = -1;
 			object? lastTerminalValue = null;
 
 			// If root itself is terminal => empty key exists
 			if (node.isTerminal)
 			{
-				lastTerminalPos = pos;
+				lastTerminalPos = startIndex;
 				lastTerminalValue = node.value;
 			}
 
 			// Traverse characters one by one; record the last terminal node encountered.
-			while (pos < endIndex)
+			for (int i = startIndex; i < endIndex; i++)
 			{
-				char c = text[pos];
+				char c = text[i];
 				if (!TryGetChild(node, c, out var next))
 					break;
 
 				node = next;
-				pos++;
 
 				if (node.isTerminal)
 				{
-					lastTerminalPos = pos;
+					lastTerminalPos = i + 1;
+					lastTerminalValue = node.value;
+				}
+			}
+
+			if (lastTerminalPos >= 0)
+			{
+				matchedLength = lastTerminalPos - startIndex;
+				value = lastTerminalValue;
+				return true;
+			}
+
+			return false;
+		}
+
+		/// <summary>
+		/// Attempts to find the longest stored key that matches the input <paramref name="text"/>
+		/// starting at <paramref name="startIndex"/>. If a match is found, returns true and outputs
+		/// the matched value and length in characters consumed.
+		/// </summary>
+		/// <param name="text">Input text to search in.</param>
+		/// <param name="startIndex">Start position in <paramref name="text"/>.</param>
+		/// <param name="value">Value associated with the matched key (or null if stored value is null).</param>
+		/// <param name="matchedLength">Length in characters of the matched key (0 if no match).</param>
+		/// <returns>True if at least one stored key matches a prefix of <paramref name="text"/> starting at <paramref name="startIndex"/>.</returns>
+		public bool TryGetLongestMatch(ReadOnlySpan<char> text, int startIndex, out object? value, out int matchedLength)
+		{
+			value = null;
+			matchedLength = 0;
+
+			var node = root;
+			int lastTerminalPos = -1;
+			object? lastTerminalValue = null;
+
+			// If root itself is terminal => empty key exists
+			if (node.isTerminal)
+			{
+				lastTerminalPos = startIndex;
+				lastTerminalValue = node.value;
+			}
+
+			// Traverse characters one by one; record the last terminal node encountered.
+			for (int i = startIndex; i < text.Length; i++)
+			{
+				char c = text[i];
+				if (!TryGetChild(node, c, out var next))
+					break;
+
+				node = next;
+
+				if (node.isTerminal)
+				{
+					lastTerminalPos = i + 1;
 					lastTerminalValue = node.value;
 				}
 			}
@@ -158,7 +208,7 @@ namespace RCParsing
 		/// <returns>IEnumerable of (length, value) tuples for every stored key that matches at the position.</returns>
 		public IEnumerable<(int length, object? value)> GetAllMatches(string text, int startIndex)
 		{
-			return GetAllMatches(text, startIndex);
+			return GetAllMatches(text, startIndex, text.Length);
 		}
 
 		/// <summary>
@@ -168,28 +218,57 @@ namespace RCParsing
 		/// </summary>
 		/// <param name="text">Input text.</param>
 		/// <param name="startIndex">Start index.</param>
-		/// <param name="maxIndex">Maximum index to consider.</param>
+		/// <param name="endIndex">Maximum index to consider.</param>
 		/// <returns>IEnumerable of (length, value) tuples for every stored key that matches at the position.</returns>
-		public IEnumerable<(int length, object? value)> GetAllMatches(string text, int startIndex, int maxIndex)
+		public IEnumerable<(int length, object? value)> GetAllMatches(string text, int startIndex, int endIndex)
 		{
 			var node = root;
-			int pos = startIndex;
 
 			if (node.isTerminal)
 				yield return (0, node.value);
 
-			while (pos < maxIndex)
+			for (int i = startIndex; i < endIndex; i++)
 			{
-				char c = text[pos];
+				char c = text[i];
 				if (!TryGetChild(node, c, out var next))
 					yield break;
 
 				node = next;
-				pos++;
 
 				if (node.isTerminal)
-					yield return (pos - startIndex, node.value);
+					yield return (i + 1 - startIndex, node.value);
 			}
+		}
+
+		/// <summary>
+		/// Returns all stored keys that match starting at <paramref name="startIndex"/>.
+		/// Each result is returned as a pair: (lengthConsumed, value).
+		/// Results are yielded in order of increasing length (shorter matches first).
+		/// </summary>
+		/// <param name="text">Input text.</param>
+		/// <param name="startIndex">Start index.</param>
+		/// <returns>IEnumerable of (length, value) tuples for every stored key that matches at the position.</returns>
+		public IEnumerable<(int length, object? value)> GetAllMatches(ReadOnlySpan<char> text, int startIndex)
+		{
+			var node = root;
+			var result = new List<(int length, object? value)>();
+
+			if (node.isTerminal)
+				result.Add((0, node.value));
+
+			for (int i = startIndex; i < text.Length; i++)
+			{
+				char c = text[i];
+				if (!TryGetChild(node, c, out var next))
+					break;
+
+				node = next;
+
+				if (node.isTerminal)
+					result.Add((i + 1 - startIndex, node.value));
+			}
+
+			return result;
 		}
 
 		/// <summary>
@@ -215,15 +294,13 @@ namespace RCParsing
 		public bool IsPrefix(string text, int startIndex, int endIndex)
 		{
 			var node = root;
-			int pos = startIndex;
 
-			while (pos < endIndex)
+			for (int i = startIndex; i < endIndex; i++)
 			{
-				char c = text[pos];
+				char c = text[i];
 				if (!TryGetChild(node, c, out var next))
 					return false;
 				node = next;
-				pos++;
 			}
 
 			// We succeeded walking all characters; it is a prefix if node exists (we don't require terminal).
@@ -263,20 +340,45 @@ namespace RCParsing
 		public bool IsStrictPrefixOfAny(string text, int startIndex, int endIndex)
 		{
 			var node = root;
-			int pos = startIndex;
 
 			// Walk as far as input goes.
-			while (pos < endIndex)
+			for (int i = startIndex; i < endIndex; i++)
 			{
-				char ch = text[pos];
+				char ch = text[i];
 				if (!TryGetChild(node, ch, out var child))
 					return false; // mismatch => not a prefix at all
 				node = child;
-				pos++;
 			}
 
 			// We consumed the whole remaining input along a trie path.
 			// It's a strict prefix if current node is not terminal and it has at least one child.
+			return !node.isTerminal && NodeHasAnyChild(node);
+		}
+
+		/// <summary>
+		/// Determines whether the substring of the specified text starting at the given index
+		/// is a strict prefix of any key stored in the trie.
+		/// </summary>
+		/// <remarks>
+		/// A strict prefix means that the substring exactly matches the path to a node in the trie,
+		/// the node is not terminal, and it has at least one child node. In other words,
+		/// the substring can be extended to form at least one complete key in the trie.
+		/// </remarks>
+		/// <param name="text">Input text to check.</param>
+		/// <param name="startIndex">Start index in <paramref name="text"/>.</param>
+		/// <returns><see langword="true"/> when the substring is a strict prefix of some stored key; otherwise <see langword="false"/>.</returns>
+		public bool IsStrictPrefixOfAny(ReadOnlySpan<char> text, int startIndex)
+		{
+			var node = root;
+
+			for (int i = startIndex; i < text.Length; i++)
+			{
+				char ch = text[i];
+				if (!TryGetChild(node, ch, out var child))
+					return false;
+				node = child;
+			}
+
 			return !node.isTerminal && NodeHasAnyChild(node);
 		}
 
