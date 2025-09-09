@@ -33,6 +33,7 @@ This library focuses on **Developer-experience (DX)** first, providing best tool
 - [Comparison with other parsing libraries](#comparison-with-other-parsing-libraries)
 - [Benchmarks](#benchmarks)
 	- [JSON](#json-1)
+	- [Expressions](#expressions)
 - [Projects using RCParsing](#projects-using-rcparsing)
 - [Roadmap](#roadmap)
 - [Contributing](#contributing)
@@ -67,19 +68,14 @@ using RCParsing.Building;
 // First, you need to create a builder
 var builder = new ParserBuilder();
 
-// Enable and configure the auto-skip (you can replace `Whitespaces` with any parser rule)
-builder.Settings
-    .Skip(b => b.Whitespaces().ConfigureForSkip());
-
-// Create the number token that transforms to double
-builder.CreateToken("number")
-	.Number<double>();
+// Enable and configure the auto-skip for 'Whitespaces' (you can replace it with any other rule)
+builder.Settings.SkipWhitespaces();
 
 // Create a main sequential expression rule
 builder.CreateMainRule("expression")
-    .Token("number")
+    .Number<double>()
     .LiteralChoice("+", "-")
-    .Token("number")
+    .Number<double>()
     .Transform(v => {
         var value1 = v.GetValue<double>(0);
         var op = v.Children[1].Text;
@@ -325,13 +321,15 @@ foreach (var price in prices)
 
 `RCParsing` is designed to outstand with unique features, and **easy** developer experience, speed is not the target, but it is good enough to compete with other fastest parsers. The benchmarks show that it competes directly with the fastest libraries, while the feature comparison reveals why it stands apart.
 
-### Performance at a Glance (based on JSON benchmark)
+### Performance at a Glance (based on benchmarks)
 
 | Library        | Speed (Relative to RCParsing) | Memory Efficiency |
 | :------------- | :---------------------------- | :---------------- |
 | **RCParsing**  | 1.00x (baseline)              | High              |
-| **Pidgin**     | **~1.10x faster**             | **Excellent**     |
-| **Superpower** | ~5.10x slower                 | Medium            |
+| **Parlot**     | **~-4.10-4.90x faster**       | **Excellent**     |
+| **Pidgin**     | ~1.00x-2.70x slower           | **Excellent**     |
+| **Superpower** | ~5.90x-6.10x slower           | Medium            |
+| **Sprache**    | ~5.50x-6.50x slower           | Very low          |
 
 ### Feature Comparison
 
@@ -340,15 +338,13 @@ This table highlights the unique architectural and usability features of each li
 | Feature                    | **RCParsing**                 | Pidgin              | Parlot                 | Superpower          | ANTLR4             |
 | :------------------------- | :---------------------------- | :------------------ | :--------------------- | :------------------ | :----------------- |
 | **Architecture**           | **Scannerless hybrid**        | Scannerless         | Scannerless            | Lexer-based         | Lexer-based        |
-| **API**                    | **High-readable Fluent**      | Functional          | Fluent/functional      | Fluent/functional   | Grammar Files      |
+| **API**                    | **Fluent**                    | Functional          | Fluent/functional      | Fluent/functional   | Grammar Files      |
 | **Barrier/complex Tokens** | **Yes, built-in or manual**   | None                | None                   | Yes, manual         | Yes, manual        |
 | **Skipping**               | **6 strategies, globally**    | Manual              | Global or manual       | Tokenizer-based     | Tokenizer-based    |
 | **Error Messages**         | **Extremely Detailed**        | Position/expected   | Manual messages        | Position/expected   | Position/expected  |
 | **Minimum .NET Target**    | **.NET Standard 2.0**         | .NET 7.0            | .NET Standard 2.0      | .NET Standard 2.0   | .NET Framework 4.5 |
 
 ### The Verdict: Why RCParsing?
-
-The performance gap has been nearly closed in `v2.0.0`. The choice now comes down to what you value most:
 
 - **Choose `RCParsing` when you need:**
   - **Rapid Development:** A fluent API that reads like a grammar definition
