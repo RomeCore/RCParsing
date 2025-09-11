@@ -111,6 +111,20 @@ namespace SyntaxColorizer
 				        }
 				    }
 				}
+				""",
+
+				"""
+				@messages template {
+				    @system message {
+				        You are text quest master, please respond based on players turns!
+				    }
+				    @foreach turn in game.turns {
+				        @message {
+				            @role turn.is_master ? 'assistant' : 'user' Here is plain text!
+				            @turn.contents
+				        }
+				    }
+				}
 				"""
 			];
 		}

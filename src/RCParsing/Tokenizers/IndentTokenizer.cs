@@ -125,6 +125,9 @@ namespace RCParsing.Tokenizers
 			{
 				var (col, contentStart, newlineStart, newlineLen, isBlankLine) = ParseLine(input, context.position, length);
 
+				if (NewlineTokenName != null)
+					yield return new BarrierToken(newlineStart, newlineLen, NewlineTokenName);
+
 				if (!isBlankLine)
 				{
 					// Strict: must be multiple of base indent
@@ -153,8 +156,6 @@ namespace RCParsing.Tokenizers
 
 				if (newlineStart < length)
 				{
-					if (NewlineTokenName != null)
-						yield return new BarrierToken(newlineStart, newlineLen, NewlineTokenName);
 					context.position = newlineStart + newlineLen;
 				}
 				else
@@ -184,6 +185,9 @@ namespace RCParsing.Tokenizers
 			{
 				var (col, contentStart, newlineStart, newlineLen, isBlankLine) = ParseLine(input, context.position, length);
 
+				if (NewlineTokenName != null)
+					yield return new BarrierToken(newlineStart, newlineLen, NewlineTokenName);
+
 				if (!isBlankLine)
 				{
 					int currentIndent = indentStack.Peek();
@@ -205,8 +209,6 @@ namespace RCParsing.Tokenizers
 
 				if (newlineStart < length)
 				{
-					if (NewlineTokenName != null)
-						yield return new BarrierToken(newlineStart, newlineLen, NewlineTokenName);
 					context.position = newlineStart + newlineLen;
 				}
 				else
@@ -233,6 +235,9 @@ namespace RCParsing.Tokenizers
 			{
 				var (col, contentStart, newlineStart, newlineLen, isBlankLine) = ParseLine(input, context.position, length);
 
+				if (NewlineTokenName != null)
+					yield return new BarrierToken(newlineStart, newlineLen, NewlineTokenName);
+
 				if (!isBlankLine)
 				{
 					int newIndent = col / IndentSize;
@@ -253,8 +258,6 @@ namespace RCParsing.Tokenizers
 
 				if (newlineStart < length)
 				{
-					if (NewlineTokenName != null)
-						yield return new BarrierToken(newlineStart, newlineLen, NewlineTokenName);
 					context.position = newlineStart + newlineLen;
 				}
 				else
