@@ -13,7 +13,7 @@ using RCParsing.Utils;
 
 namespace RCParsing.Building
 {
-	/* Concept:
+	/* Concept: (its very old)
 	
 	var builder = new ParserBuilder();
  
@@ -46,10 +46,10 @@ namespace RCParsing.Building
 	/// </summary>
 	public class ParserBuilder
 	{
-		private readonly Dictionary<string, TokenBuilder> _tokenPatterns = new Dictionary<string, TokenBuilder>();
-		private readonly Dictionary<string, RuleBuilder> _rules = new Dictionary<string, RuleBuilder>();
-		private readonly ParserSettingsBuilder _settingsBuilder = new ParserSettingsBuilder();
-		private readonly ParserTokenizersBuilder _tokenizersBuilder = new ParserTokenizersBuilder();
+		private readonly Dictionary<string, TokenBuilder> _tokenPatterns = new();
+		private readonly Dictionary<string, RuleBuilder> _rules = new();
+		private readonly ParserSettingsBuilder _settingsBuilder = new();
+		private readonly ParserTokenizersBuilder _tokenizersBuilder = new();
 		private RuleBuilder? _mainRuleBuilder;
 
 		/// <summary>

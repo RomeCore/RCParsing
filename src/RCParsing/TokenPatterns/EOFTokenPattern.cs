@@ -5,7 +5,7 @@ using System.Text;
 namespace RCParsing.TokenPatterns
 {
 	/// <summary>
-	/// Represents a token pattern that matches the end of file.
+	/// Represents a token pattern that matches the end of file or the some barrier.
 	/// </summary>
 	public class EOFTokenPattern : TokenPattern
 	{
@@ -22,7 +22,7 @@ namespace RCParsing.TokenPatterns
 
 		public override ParsedElement Match(string input, int position, int barrierPosition, object? parserParameter)
 		{
-			if (position >= input.Length && position <= barrierPosition)
+			if (position >= barrierPosition)
 				return new ParsedElement(Id, input.Length, 0);
 
 			return ParsedElement.Fail;

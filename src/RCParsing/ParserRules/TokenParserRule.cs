@@ -31,6 +31,8 @@ namespace RCParsing.ParserRules
 			TokenPatternId = tokenPattern;
 		}
 
+		protected override HashSet<char>? FirstCharsCore => TokenPattern.FirstChars;
+
 
 
 		delegate ParsedRule ParseDelegate(ref ParserContext ctx, ref ParserSettings settings, ref ParserSettings childSettings);
@@ -48,7 +50,7 @@ namespace RCParsing.ParserRules
 		{
 			ParsedRule ParseIgnoringBarriers(ref ParserContext ctx, ref ParserSettings stng, ref ParserSettings chStng)
 			{
-				var match = _pattern.Match(ctx.str, ctx.position, ctx.maxPosition, ctx.parserParameter);
+				var match = _pattern.Match(ctx.input, ctx.position, ctx.maxPosition, ctx.parserParameter);
 				if (!match.success)
 				{
 					RecordError(ref ctx, ref stng, "Failed to parse token");
@@ -88,7 +90,7 @@ namespace RCParsing.ParserRules
 				int maxPos = ctx.barrierTokens.GetNextBarrierPosition(ctx.position, ctx.passedBarriers);
 				if (maxPos == -1) maxPos = ctx.maxPosition;
 
-				var match = _pattern.Match(ctx.str, ctx.position, maxPos, ctx.parserParameter);
+				var match = _pattern.Match(ctx.input, ctx.position, maxPos, ctx.parserParameter);
 				if (!match.success)
 				{
 					RecordError(ref ctx, ref stng, "Failed to parse token.");
@@ -128,7 +130,7 @@ namespace RCParsing.ParserRules
 		{
 			if (parseIgnoringBarriers)
 			{
-				var match = _pattern.Match(context.str, context.position, context.maxPosition, context.parserParameter);
+				var match = _pattern.Match(context.input, context.position, context.maxPosition, context.parserParameter);
 				if (!match.success)
 				{
 					RecordError(ref context, ref settings, "Failed to parse token");

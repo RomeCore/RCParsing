@@ -146,6 +146,19 @@ namespace RCParsing
 		}
 
 		/// <summary>
+		/// Gets a token pattern by its ID.
+		/// </summary>
+		/// <param name="id">The ID of the token pattern.</param>
+		/// <returns>The token pattern with the specified alias.</returns>
+		/// <exception cref="ArgumentOutOfRangeException">Thrown if the provided ID is out of range.</exception>
+		public TokenPattern GetTokenPattern(int id)
+		{
+			if (id >= 0 && id < TokenPatterns.Length)
+				return TokenPatterns[id];
+			throw new ArgumentOutOfRangeException(nameof(id), "Invalid token pattern ID.");
+		}
+
+		/// <summary>
 		/// Gets a rule by its alias.
 		/// </summary>
 		/// <param name="alias">The alias of the rule.</param>
@@ -159,16 +172,27 @@ namespace RCParsing
 		}
 
 		/// <summary>
+		/// Gets a rule by its ID.
+		/// </summary>
+		/// <param name="id">The ID of the rule.</param>
+		/// <returns>The rule with the specified ID.</returns>
+		/// <exception cref="ArgumentOutOfRangeException">Thrown if the provided ID is out of range.</exception>
+		public ParserRule GetRule(int id)
+		{
+			if (id >= 0 && id < TokenPatterns.Length)
+				return Rules[id];
+			throw new ArgumentOutOfRangeException(nameof(id), "Invalid rule ID.");
+		}
+
+		/// <summary>
 		/// Creates a <see cref="ParsingException"/> from the current parser context.
 		/// </summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private ParsingException ExceptionFromContext(ParserContext context)
 		{
-			var errors = context.errors.ToArray();
-
-			if (errors.Length == 0)
+			var errors = context.errors;
+			if (errors.Count == 0)
 				return new ParsingException(context, "Unknown error.");
-
 			return new ParsingException(context, errors);
 		}
 
@@ -646,7 +670,7 @@ namespace RCParsing
 
 			var ctx = context;
 			var tokens = Tokenizers.SelectMany(t => t.Tokenize(ctx));
-			context.barrierTokens.FillWith(tokens, context.str, this);
+			context.barrierTokens.FillWith(tokens, context.input, this);
 		}
 
 		private ParsedRuleResultBase CreateResult(ref ParserContext context, ref ParsedRule parsedRule)
@@ -723,7 +747,7 @@ namespace RCParsing
 			if (!_tokenPatternsAliases.TryGetValue(tokenPatternAlias, out var tokenPatternId))
 				throw new ArgumentException("Invalid token pattern alias", nameof(tokenPatternAlias));
 
-			var parsedToken = MatchToken(tokenPatternId, context.str, context.position, context.maxPosition, parameter);
+			var parsedToken = MatchToken(tokenPatternId, context.input, context.position, context.maxPosition, parameter);
 			return new ParsedTokenResult(null, context, parsedToken);
 		}
 
@@ -743,7 +767,7 @@ namespace RCParsing
 				throw new ArgumentException("Invalid token pattern alias", nameof(tokenPatternAlias));
 
 			var context = CreateContext(input, parameter);
-			var parsedToken = MatchToken(tokenPatternId, context.str, context.position, context.maxPosition, parameter);
+			var parsedToken = MatchToken(tokenPatternId, context.input, context.position, context.maxPosition, parameter);
 			return new ParsedTokenResult(null, context, parsedToken);
 		}
 
@@ -764,7 +788,7 @@ namespace RCParsing
 				throw new ArgumentException("Invalid token pattern alias", nameof(tokenPatternAlias));
 
 			var context = CreateContext(input, startIndex, parameter);
-			var parsedToken = MatchToken(tokenPatternId, context.str, context.position, context.maxPosition, parameter);
+			var parsedToken = MatchToken(tokenPatternId, context.input, context.position, context.maxPosition, parameter);
 			return new ParsedTokenResult(null, context, parsedToken);
 		}
 
@@ -786,7 +810,7 @@ namespace RCParsing
 				throw new ArgumentException("Invalid token pattern alias", nameof(tokenPatternAlias));
 
 			var context = CreateContext(input, startIndex, length, parameter);
-			var parsedToken = MatchToken(tokenPatternId, context.str, context.position, context.maxPosition, parameter);
+			var parsedToken = MatchToken(tokenPatternId, context.input, context.position, context.maxPosition, parameter);
 			return new ParsedTokenResult(null, context, parsedToken);
 		}
 

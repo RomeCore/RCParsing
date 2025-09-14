@@ -77,8 +77,8 @@ namespace RCParsing
 			this.parserParameter = parserParameter;
 			this.parser = parser ?? throw new ArgumentNullException(nameof(parser));
 			this.cache = new ParserCache();
-			this.successPositions = new BitArray(str.Length);
-			this.positionsToAvoidSkipping = new BitArray(str.Length);
+			this.successPositions = new BitArray(str.Length + 1);
+			this.positionsToAvoidSkipping = new BitArray(str.Length + 1);
 			this.errors = new List<ParsingError>();
 			this.skippedRules = new List<ParsedRule>();
 			this.barrierTokens = new BarrierTokenCollection();
@@ -126,7 +126,7 @@ namespace RCParsing
 		/// <summary>
 		/// The input string to be parsed.
 		/// </summary>
-		public readonly string str => shared.str;
+		public readonly string input => shared.str;
 
 		/// <summary>
 		/// The current position in the input string.
@@ -220,7 +220,7 @@ namespace RCParsing
 		{
 			get
 			{
-				var substring = this.str.Substring(this.position);
+				var substring = this.input.Substring(this.position);
 				if (substring.Length > 20)
 					return substring.Substring(0, 20) + "...";
 				return substring;
@@ -283,7 +283,7 @@ namespace RCParsing
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public readonly void RecordError(ParserSettings settings, string? message = null, int elementId = -1, bool isToken = false)
 		{
-			RecordError(settings, new ParsingError(position, message, elementId, isToken, topStackFrame));
+			RecordError(settings, new ParsingError(position, passedBarriers, message, elementId, isToken, topStackFrame));
 		}
 
 		/// <summary>
@@ -297,7 +297,22 @@ namespace RCParsing
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public readonly void RecordError(ParserSettings settings, int position, string? message = null, int elementId = -1, bool isToken = false)
 		{
-			RecordError(settings, new ParsingError(position, message, elementId, isToken, topStackFrame));
+			RecordError(settings, new ParsingError(position, passedBarriers, message, elementId, isToken, topStackFrame));
+		}
+
+		/// <summary>
+		/// Records, ignores or throws an error based on the current settings.
+		/// </summary>
+		/// <param name="settings">The settings that affects the recording behavior.</param>
+		/// <param name="position">The position in the input string where the error occurred.</param>
+		/// <param name="passedBarriers">The count of barriers that were successfully parsed before encountering this error.</param>
+		/// <param name="message">The error message to record.</param>
+		/// <param name="elementId">The ID of the element (rule or token) that caused the error or been expected at this position.</param>
+		/// <param name="isToken">A value indicating whether the element that caused the error is a token.</param>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public readonly void RecordError(ParserSettings settings, int position, int passedBarriers, string? message = null, int elementId = -1, bool isToken = false)
+		{
+			RecordError(settings, new ParsingError(position, passedBarriers, message, elementId, isToken, topStackFrame));
 		}
 
 		/// <summary>
@@ -343,6 +358,15 @@ namespace RCParsing
 		{
 			var successPos = successPositions;
 			return errors.Where(e => !successPos[e.position]);
+		}
+
+		/// <summary>
+		/// Creates error groups from stored parsing errors.
+		/// </summary>
+		/// <returns>A collection of error groups.</returns>
+		public readonly ErrorGroupCollection CreateErrorGroups()
+		{
+			return new ErrorGroupCollection(this, errors);
 		}
 	}
 }

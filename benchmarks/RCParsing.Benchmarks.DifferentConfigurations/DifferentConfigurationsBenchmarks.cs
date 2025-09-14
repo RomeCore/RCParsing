@@ -8,6 +8,7 @@ using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Jobs;
 using RCParsing.Benchmarks.JSON;
+using RCParsing.Building;
 
 namespace RCParsing.Benchmarks.DifferentConfigurations
 {
@@ -16,72 +17,140 @@ namespace RCParsing.Benchmarks.DifferentConfigurations
 	[GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory)]
 	public class DifferentConfigurationsBenchmarks
 	{
+		private readonly Parser
+			defaultParser,
+			inlinedParser,
+			lookaheadParser,
+			ignoreErrorsParser,
+			stackTraceParser,
+			lazyAstParser,
+			recordSkippedParser,
+			memoizedParser,
+			fastestParser,
+			slowestParser;
+
 		public DifferentConfigurationsBenchmarks()
 		{
+			var builder = new ParserBuilder();
+			RCJsonParser.FillWithRules(builder);
+			defaultParser = builder.Build();
+
+			builder = new ParserBuilder();
+			builder.Settings.UseInlining();
+			RCJsonParser.FillWithRules(builder);
+			inlinedParser = builder.Build();
+
+			builder = new ParserBuilder();
+			builder.Settings.UseFirstCharacterMatch();
+			RCJsonParser.FillWithRules(builder);
+			lookaheadParser = builder.Build();
+
+			builder = new ParserBuilder();
+			builder.Settings.IgnoreErrors();
+			RCJsonParser.FillWithRules(builder);
+			ignoreErrorsParser = builder.Build();
+
+			builder = new ParserBuilder();
+			builder.Settings.WriteStackTrace();
+			RCJsonParser.FillWithRules(builder);
+			stackTraceParser = builder.Build();
+
+			builder = new ParserBuilder();
+			builder.Settings.UseLazyAST();
+			RCJsonParser.FillWithRules(builder);
+			lazyAstParser = builder.Build();
+
+			builder = new ParserBuilder();
+			builder.Settings.RecordSkippedRules();
+			RCJsonParser.FillWithRules(builder);
+			recordSkippedParser = builder.Build();
+
+			builder = new ParserBuilder();
+			builder.Settings.UseCaching();
+			RCJsonParser.FillWithRules(builder);
+			memoizedParser = builder.Build();
+
+			builder = new ParserBuilder();
+			builder.Settings.UseInlining().UseFirstCharacterMatch().IgnoreErrors();
+			RCJsonParser.FillWithRules(builder);
+			fastestParser = builder.Build();
+
+			builder = new ParserBuilder();
+			builder.Settings.WriteStackTrace().UseLazyAST().RecordSkippedRules().UseCaching();
+			RCJsonParser.FillWithRules(builder);
+			slowestParser = builder.Build();
 		}
 
-		// ====== Short JSON (~20 lines) ======
-
-		[Benchmark, BenchmarkCategory("short")]
-		public void JsonShort_InlinedNoValue()
+		[Benchmark(Baseline = true), BenchmarkCategory("json")]
+		public void Default()
 		{
-			var value = RCJsonParser.ParseInlinedNoValue(TestJSONs.shortJson);
+			var value = defaultParser.Parse<object>(TestJSONs.bigJson);
 		}
 
-		[Benchmark, BenchmarkCategory("short")]
-		public void JsonShort_Inlined()
+		[Benchmark, BenchmarkCategory("json")]
+		public void NoValue()
 		{
-			var value = RCJsonParser.ParseInlined(TestJSONs.shortJson);
+			var ast = defaultParser.Parse(TestJSONs.bigJson); // Do not calculate value from AST
 		}
 
-		[Benchmark(Baseline = true), BenchmarkCategory("short")]
-		public void JsonShort_Default()
+		[Benchmark, BenchmarkCategory("json")]
+		public void Inlined()
 		{
-			var value = RCJsonParser.Parse(TestJSONs.shortJson);
+			var value = inlinedParser.Parse<object>(TestJSONs.bigJson);
 		}
 
-		[Benchmark, BenchmarkCategory("short")]
-		public void JsonShort_Debug()
+		[Benchmark, BenchmarkCategory("json")]
+		public void FirstCharacterMatch()
 		{
-			var value = RCJsonParser.ParseDebug(TestJSONs.shortJson);
+			var value = lookaheadParser.Parse<object>(TestJSONs.bigJson);
 		}
 
-		[Benchmark, BenchmarkCategory("short")]
-		public void JsonShort_DebugMemoized()
+		[Benchmark, BenchmarkCategory("json")]
+		public void IgnoreErrors()
 		{
-			var value = RCJsonParser.ParseDebugMemoized(TestJSONs.shortJson);
+			var value = ignoreErrorsParser.Parse<object>(TestJSONs.bigJson);
 		}
 
-		// ====== Big JSON (~180 lines) ======
-
-		[Benchmark, BenchmarkCategory("big")]
-		public void JsonBig_InlinedNoValue()
+		[Benchmark, BenchmarkCategory("json")]
+		public void StackTrace()
 		{
-			var value = RCJsonParser.ParseInlinedNoValue(TestJSONs.bigJson);
+			var value = stackTraceParser.Parse<object>(TestJSONs.bigJson);
 		}
 
-		[Benchmark, BenchmarkCategory("big")]
-		public void JsonBig_Inlined()
+		[Benchmark, BenchmarkCategory("json")]
+		public void LazyAST()
 		{
-			var value = RCJsonParser.ParseInlined(TestJSONs.bigJson);
+			var value = lazyAstParser.Parse<object>(TestJSONs.bigJson);
 		}
 
-		[Benchmark(Baseline = true), BenchmarkCategory("big")]
-		public void JsonBig_Default()
+		[Benchmark, BenchmarkCategory("json")]
+		public void RecordSkipped()
 		{
-			var value = RCJsonParser.Parse(TestJSONs.bigJson);
+			var value = recordSkippedParser.Parse<object>(TestJSONs.bigJson);
 		}
 
-		[Benchmark, BenchmarkCategory("big")]
-		public void JsonBig_Debug()
+		[Benchmark, BenchmarkCategory("json")]
+		public void Memoized()
 		{
-			var value = RCJsonParser.ParseDebug(TestJSONs.bigJson);
+			var value = memoizedParser.Parse<object>(TestJSONs.bigJson);
 		}
 
-		[Benchmark, BenchmarkCategory("big")]
-		public void JsonBig_DebugMemoized()
+		[Benchmark, BenchmarkCategory("json")]
+		public void FastestNoValue()
 		{
-			var value = RCJsonParser.ParseDebugMemoized(TestJSONs.bigJson);
+			var ast = fastestParser.Parse(TestJSONs.bigJson); // Do not calculate value from AST
+		}
+
+		[Benchmark, BenchmarkCategory("json")]
+		public void Fastest()
+		{
+			var value = fastestParser.Parse<object>(TestJSONs.bigJson);
+		}
+
+		[Benchmark, BenchmarkCategory("json")]
+		public void Slowest()
+		{
+			var value = slowestParser.Parse<object>(TestJSONs.bigJson);
 		}
 	}
 }

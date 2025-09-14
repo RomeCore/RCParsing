@@ -75,7 +75,7 @@ namespace RCParsing
 		/// <summary>
 		/// Gets the parsed input text that was captured as a span of characters.
 		/// </summary>
-		public ReadOnlySpan<char> Span => Context.str.AsSpan(Result.startIndex, Result.length);
+		public ReadOnlySpan<char> Span => Context.input.AsSpan(Result.startIndex, Result.length);
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="ParsedTokenResult"/> class.
@@ -89,7 +89,7 @@ namespace RCParsing
 			Context = context;
 			Result = result;
 
-			_textLazy = new Utils.LazyValue<string>(() => Context.str.Substring(Result.startIndex, Result.length));
+			_textLazy = new Utils.LazyValue<string>(() => Context.input.Substring(Result.startIndex, Result.length));
 		}
 
 		/// <summary>
@@ -106,7 +106,7 @@ namespace RCParsing
 			result.elementId = tokenId;
 			Result = result;
 
-			_textLazy = new Utils.LazyValue<string>(() => Context.str.Substring(Result.startIndex, Result.length));
+			_textLazy = new Utils.LazyValue<string>(() => Context.input.Substring(Result.startIndex, Result.length));
 		}
 
 		/// <summary>

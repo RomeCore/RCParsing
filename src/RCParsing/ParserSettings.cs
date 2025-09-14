@@ -8,6 +8,42 @@ using System.Text;
 namespace RCParsing
 {
 	/// <summary>
+	/// Represents an immutable settings used directly for parsing.
+	/// </summary>
+	public class ImmutableParserSettings
+	{
+		/// <summary>
+		/// The skipping strategy to use when parsing rules. Default is to try skip before parsing the target rule.
+		/// </summary>
+		public readonly ParserSkippingStrategy skippingStrategy;
+
+		/// <summary>
+		/// The rule ID to skip before parsing a specific rule. If set to -1, no rules are skipped.
+		/// </summary>
+		public readonly int skipRule;
+
+		/// <summary>
+		/// The error handling mode to use when parsing.
+		/// If set to <see cref="ParserErrorHandlingMode.NoRecord"/> any errors are ignored when trying to parse but thrown when just parsing.
+		/// If set to <see cref="ParserErrorHandlingMode.Throw"/>, any errors are thrown regardless of whether they are being parsed or just trying, no errors are recorded.
+		/// </summary>
+		public readonly ParserErrorHandlingMode errorHandling;
+
+		/// <summary>
+		/// The value indicates whether to ignore barriers while parsing. Default is false.
+		/// </summary>
+		public readonly bool ignoreBarriers;
+
+		public ImmutableParserSettings(ParserSettings settings)
+		{
+			skippingStrategy = settings.skippingStrategy;
+			skipRule = settings.skipRule;
+			errorHandling = settings.errorHandling;
+			ignoreBarriers = settings.ignoreBarriers;
+		}
+	}
+
+	/// <summary>
 	/// Defines settings for a parser. These can be used to control how the parser behaves and what it does when encountering errors or other situations.
 	/// </summary>
 	public struct ParserSettings : IEquatable<ParserSettings>

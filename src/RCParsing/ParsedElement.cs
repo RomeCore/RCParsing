@@ -18,6 +18,11 @@ namespace RCParsing
 		public bool success;
 
 		/// <summary>
+		/// The value indicating that this element should be excluded from AST.
+		/// </summary>
+		public bool excludeFromAst;
+
+		/// <summary>
 		/// The ID of the element that was parsed.
 		/// </summary>
 		public int elementId;
@@ -56,6 +61,7 @@ namespace RCParsing
 		public ParsedElement(int elementId, int startIndex, int length, object? intermediateValue = null)
 		{
 			this.success = true;
+			this.excludeFromAst = false;
 			this.elementId = elementId;
 			this.startIndex = startIndex;
 			this.length = length;
@@ -68,6 +74,7 @@ namespace RCParsing
 		public static ParsedElement Fail { get; } = new ParsedElement
 		{
 			success = false,
+			excludeFromAst = false,
 			elementId = -1,
 			startIndex = -1,
 			length = 0,

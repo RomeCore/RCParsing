@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using RCParsing.ParserRules;
 using RCParsing.Utils;
 
@@ -21,27 +22,25 @@ namespace RCParsing
 		/// <summary>
 		/// Gets a list of errors that occurred during parsing.
 		/// </summary>
-		public ImmutableList<ParsingError> Errors { get; }
+		public IReadOnlyList<ParsingError> Errors { get; }
 
 		/// <summary>
 		/// Gets the last error message during parsing.
 		/// </summary>
-		public string ErrorMessage { get; }
-
-		/// <summary>
-		/// Gets the list of original messages of the exception.
-		/// </summary>
-		public ImmutableList<string> ErrorMessages { get; }
+		public string LastErrorMessage { get; }
 
 		/// <summary>
 		/// Gets the last position in the input where the error occurred.
 		/// </summary>
-		public int Position { get; }
+		public int LastPosition { get; }
 
 		/// <summary>
-		/// Gets the positions in the input where the errors occurred.
+		/// Gets the groups of errors that occurred during parsing.
 		/// </summary>
-		public ImmutableList<int> Positions { get; }
+		/// <remarks>
+		/// Groups errors by their position in the input.
+		/// </remarks>
+		public ErrorGroupCollection Groups { get; }
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="ParsingException"/> class.
@@ -49,13 +48,14 @@ namespace RCParsing
 		/// <param name="context">The parser context that was used during parsing.</param>
 		/// <param name="message">The error message.</param>
 		public ParsingException(ParserContext context, string message) :
-			base(FormatMessage(context, ErrorFromContextAndMessage(context, message, context.position)))
+			base(FormatMessage(context, out var groups,
+				new ParsingError[] { CreateError(message, context.position, out var error) }))
 		{
 			Context = context;
-			ErrorMessages = ImmutableList.Create(message);
-			ErrorMessage = message;
-			Positions = ImmutableList.Create(context.position);
-			Position = context.position;
+			Errors = ImmutableList.Create(error);
+			LastErrorMessage = message;
+			LastPosition = context.position;
+			Groups = groups;
 		}
 
 		/// <summary>
@@ -65,13 +65,23 @@ namespace RCParsing
 		/// <param name="message">The error message.</param>
 		/// <param name="position">The position in the input where the error occurred.</param>
 		public ParsingException(ParserContext context, string message, int position) :
-			base(FormatMessage(context, ErrorFromContextAndMessage(context, message, position)))
+			base(FormatMessage(context, out var groups,
+				new ParsingError[] { CreateError(message, position, out var error) }))
 		{
 			Context = context;
-			ErrorMessages = ImmutableList.Create(message);
-			ErrorMessage = message;
-			Positions = ImmutableList.Create(context.position);
-			Position = position;
+			Errors = ImmutableList.Create(error);
+			LastErrorMessage = message;
+			LastPosition = position;
+			Groups = groups;
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ParsingException"/> class.
+		/// </summary>
+		/// <param name="context">The parser context that was used during parsing.</param>
+		public ParsingException(ParserContext context) :
+			this(context, context.errors)
+		{
 		}
 
 		/// <summary>
@@ -80,33 +90,52 @@ namespace RCParsing
 		/// <param name="context">The parser context that was used during parsing.</param>
 		/// <param name="errors">The list of parsing errors that occurred.</param>
 		public ParsingException(ParserContext context, params ParsingError[] errors) :
-			base(FormatMessage(context, errors))
+			this(context, (IReadOnlyList<ParsingError>)errors)
+		{
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ParsingException"/> class.
+		/// </summary>
+		/// <param name="context">The parser context that was used during parsing.</param>
+		/// <param name="errors">The list of parsing errors that occurred.</param>
+		public ParsingException(ParserContext context, IReadOnlyList<ParsingError> errors) :
+			base(FormatMessage(context, out var groups, errors))
 		{
 			if (errors == null)
 				throw new ArgumentNullException(nameof(errors));
-			if (!errors.Any())
-				throw new ArgumentException("At least one error must be provided.", nameof(errors));
+			if (errors.Count == 0)
+				errors = new ParsingError[] { CreateError("Unknown error", context.position, out var error) };
 
 			Context = context;
-			ErrorMessages = errors.Select(e => e.message).ToImmutableList();
-			ErrorMessage = ErrorMessages[ErrorMessages.Count - 1];
-			Positions = errors.Select(e => e.position).ToImmutableList();
-			Position = Positions[Positions.Count - 1];
+			Groups = groups;
+			Errors = Groups.Errors;
+
+			var errorMessages = Groups.Last.ErrorMessages;
+			LastErrorMessage = errorMessages.Count > 0 ? errorMessages[errorMessages.Count - 1] : string.Empty;
+			LastPosition = Groups.Last.Position;
 		}
 
-		private static ParsingError ErrorFromContextAndMessage(ParserContext context, string message, int position)
+		private static ParsingError CreateError(string message, int position, out ParsingError error)
 		{
-			return new ParsingError(position, message);
+			return error = new ParsingError(position, 0, message);
 		}
 
-		private static string FormatMessage(ParserContext context, ParsingError error)
+		private static string FormatMessage(ParserContext context, out ErrorGroupCollection groups, IReadOnlyList<ParsingError> errors)
 		{
-			return error.ToString(context);
-		}
+			groups = new ErrorGroupCollection(context, errors);
 
-		private static string FormatMessage(ParserContext context, params ParsingError[] errors)
-		{
-			return ErrorFormatter.FormatErrors(context, errors);
+			var flags = context.parser.MainSettings.errorFormattingFlags;
+			int maxGroups = Math.Min(flags == ErrorFormattingFlags.MoreGroups ? 5 : 1, groups.Count);
+
+			if (maxGroups == 0)
+				return string.Empty;
+
+			string header = maxGroups > 1
+				? "One or more errors occured during parsing:"
+				: "An error occurred during parsing:";
+
+			return $"{header}{Environment.NewLine}{Environment.NewLine}{groups.ToString(flags, maxGroups)}";
 		}
 	}
 }

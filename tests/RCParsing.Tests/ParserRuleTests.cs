@@ -225,10 +225,35 @@ namespace RCParsing.Tests
 				}
 			}
 			""";
-			var invalidJson = "{ \"name\": \"Test\", \"age\": }";
 
 			var result = jsonParser.Parse<Dictionary<string, object>>(json);
-			Assert.Throws<ParsingException>(() => jsonParser.Parse(invalidJson));
+			Assert.Equal(1, (double)result["id"]);
+			Assert.Equal(["tag1", "tag2", "tag3"], (object[])result["tags"]);
+			Assert.True((bool)result["isActive"]);
+			var nested = (Dictionary<string, object>)result["nested"];
+			Assert.Equal(123.456, (double)nested["value"]);
+			Assert.Equal("Nested description", nested["description"].ToString());
+
+			var invalidJson =
+			"""
+			{
+				"id": 1,
+				"name": "Sample Data",
+				"created": "2023-01-01T00:00:00", // This is a comment
+				"tags": ["tag1", "tag2", "tag3"],, // Extra comma here
+				"isActive": true,
+				"nested": {
+					"value": 123.456,
+					"description": "Nested description"
+				}
+			}
+			""";
+
+			var exception = Assert.Throws<ParsingException>(() => jsonParser.Parse(invalidJson));
+			var lastGroup = exception.Groups.Last!;
+			Assert.Equal(5, lastGroup.Line);
+			Assert.Equal(35, lastGroup.Column);
+			Assert.Equal("string", lastGroup.Expected.Tokens[0].Alias);
 		}
 
 		[Fact]
@@ -253,7 +278,7 @@ namespace RCParsing.Tests
 				.Literal('"')
 				.EscapedTextDoubleChars('"')
 				.Literal('"')
-				.Pass(v => v[1]);
+				.Pass(1);
 
 			builder.CreateToken("number")
 				.Number<double>(TokenPatterns.NumberFlags.StrictScientific);

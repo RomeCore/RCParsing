@@ -50,9 +50,7 @@ namespace SyntaxColorizer
 				    Boolean false: @false
 				    Null test: @null
 				}
-				""",
 
-				"""
 				@// Second template with no expressions.
 				@template Secondary {
 				    Static text only
@@ -110,6 +108,20 @@ namespace SyntaxColorizer
 				    @foreach item in items {
 				        @assistant message {
 				            Processing item: @item
+				        }
+				    }
+				}
+				""",
+
+				"""
+				@messages template {
+				    @system message {
+				        You are text quest master, please respond based on players turns!
+				    }
+				    @foreach turn in game.turns {
+				        @message {
+				            @role turn.is_master ? 'assistant' : 'user' Here is plain text!
+				            @turn.contents
 				        }
 				    }
 				}

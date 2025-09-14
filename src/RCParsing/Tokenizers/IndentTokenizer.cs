@@ -117,13 +117,16 @@ namespace RCParsing.Tokenizers
 
 		private IEnumerable<BarrierToken> TokenizeStrict(ParserContext context)
 		{
-			string input = context.str ?? string.Empty;
+			string input = context.input ?? string.Empty;
 			int length = context.maxPosition;
 			int currentIndent = 0;
 
 			while (context.position < length)
 			{
 				var (col, contentStart, newlineStart, newlineLen, isBlankLine) = ParseLine(input, context.position, length);
+
+				if (NewlineTokenName != null)
+					yield return new BarrierToken(newlineStart, newlineLen, NewlineTokenName);
 
 				if (!isBlankLine)
 				{
@@ -153,8 +156,6 @@ namespace RCParsing.Tokenizers
 
 				if (newlineStart < length)
 				{
-					if (NewlineTokenName != null)
-						yield return new BarrierToken(newlineStart, newlineLen, NewlineTokenName);
 					context.position = newlineStart + newlineLen;
 				}
 				else
@@ -174,7 +175,7 @@ namespace RCParsing.Tokenizers
 
 		private IEnumerable<BarrierToken> TokenizeSoft(ParserContext context)
 		{
-			string input = context.str ?? string.Empty;
+			string input = context.input ?? string.Empty;
 			int length = context.maxPosition;
 
 			var indentStack = new Stack<int>();
@@ -183,6 +184,9 @@ namespace RCParsing.Tokenizers
 			while (context.position < length)
 			{
 				var (col, contentStart, newlineStart, newlineLen, isBlankLine) = ParseLine(input, context.position, length);
+
+				if (NewlineTokenName != null)
+					yield return new BarrierToken(newlineStart, newlineLen, NewlineTokenName);
 
 				if (!isBlankLine)
 				{
@@ -205,8 +209,6 @@ namespace RCParsing.Tokenizers
 
 				if (newlineStart < length)
 				{
-					if (NewlineTokenName != null)
-						yield return new BarrierToken(newlineStart, newlineLen, NewlineTokenName);
 					context.position = newlineStart + newlineLen;
 				}
 				else
@@ -225,13 +227,16 @@ namespace RCParsing.Tokenizers
 
 		private IEnumerable<BarrierToken> TokenizeHybrid(ParserContext context)
 		{
-			string input = context.str ?? string.Empty;
+			string input = context.input ?? string.Empty;
 			int length = context.maxPosition;
 			int currentIndent = 0;
 
 			while (context.position < length)
 			{
 				var (col, contentStart, newlineStart, newlineLen, isBlankLine) = ParseLine(input, context.position, length);
+
+				if (NewlineTokenName != null)
+					yield return new BarrierToken(newlineStart, newlineLen, NewlineTokenName);
 
 				if (!isBlankLine)
 				{
@@ -253,8 +258,6 @@ namespace RCParsing.Tokenizers
 
 				if (newlineStart < length)
 				{
-					if (NewlineTokenName != null)
-						yield return new BarrierToken(newlineStart, newlineLen, NewlineTokenName);
 					context.position = newlineStart + newlineLen;
 				}
 				else

@@ -55,7 +55,7 @@ namespace RCParsing.TokenPatterns
 
 		public override string ToStringOverride(int remainingDepth)
 		{
-			return $"literal: '{Literal}'";
+			return $"literal '{Literal}'";
 		}
 
 		public override bool Equals(object? obj)

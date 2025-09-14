@@ -12,9 +12,9 @@ namespace RCParsing.Benchmarks.JSON
 {
 	public static class RCJsonParser
 	{
-		static Parser optimizedParser, defaultParser, debugParser, slowParser;
+		static Parser parser;
 
-		private static void FillWithRules(ParserBuilder builder)
+		public static void FillWithRules(ParserBuilder builder)
 		{
 			builder.Settings
 				.SkipWhitespaces();
@@ -89,49 +89,14 @@ namespace RCParsing.Benchmarks.JSON
 		static RCJsonParser()
 		{
 			var builder = new ParserBuilder();
-			builder.Settings.UseInlining().IgnoreErrors().UseLightAST();
+			builder.Settings.UseInlining().UseFirstCharacterMatch().IgnoreErrors().UseLightAST();
 			FillWithRules(builder);
-			optimizedParser = builder.Build();
-
-			builder = new ParserBuilder();
-			FillWithRules(builder);
-			defaultParser = builder.Build();
-
-			builder = new ParserBuilder();
-			builder.Settings.DetailedErrors().WriteStackTrace();
-			FillWithRules(builder);
-			debugParser = builder.Build();
-
-			builder = new ParserBuilder();
-			builder.Settings.DetailedErrors().WriteStackTrace().UseCaching().UseLazyAST();
-			FillWithRules(builder);
-			slowParser = builder.Build();
+			parser = builder.Build();
 		}
 
-		public static object ParseInlinedNoValue(string text)
-		{
-			return optimizedParser.Parse(text); // Just AST
-		}
-
-		// The parser used in benchmarks for comparison with other libraries
 		public static object ParseInlined(string text)
 		{
-			return optimizedParser.Parse<object>(text);
-		}
-
-		public static object Parse(string text)
-		{
-			return defaultParser.Parse<object>(text);
-		}
-
-		public static object ParseDebug(string text)
-		{
-			return debugParser.Parse<object>(text);
-		}
-
-		public static object ParseDebugMemoized(string text)
-		{
-			return slowParser.Parse<object>(text);
+			return parser.Parse<object>(text);
 		}
 	}
 }

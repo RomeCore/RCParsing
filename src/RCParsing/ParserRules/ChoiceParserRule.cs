@@ -130,7 +130,7 @@ namespace RCParsing.ParserRules
 
 				parseFunction = (ctx, stng, chStng) =>
 				{
-					if (!candidatesByFirstChar.TryGetValue(ctx.str[ctx.position], out var candidates))
+					if (!candidatesByFirstChar.TryGetValue(ctx.input[ctx.position], out var candidates))
 						candidates = nonDeterministicCandidates;
 
 					for (int i = 0; i < candidates.Length; i++)

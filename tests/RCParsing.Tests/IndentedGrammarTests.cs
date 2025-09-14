@@ -127,7 +127,10 @@ namespace RCParsing.Tests
 			    a = aa;
 			""";
 
-			Assert.Throws<ParsingException>(() => parser.Parse(invalidInputStr));
+			var exception = Assert.Throws<ParsingException>(() => parser.Parse(invalidInputStr));
+			var expected = exception.Groups.Last?.Expected.Tokens[0];
+			Assert.NotNull(expected);
+			Assert.Equal("INDENT", expected.Alias);
 			
 			invalidInputStr =
 			"""
@@ -141,7 +144,10 @@ namespace RCParsing.Tests
 			            a = aa;
 			""";
 
-			Assert.Throws<ParsingException>(() => parser.Parse(invalidInputStr));
+			exception = Assert.Throws<ParsingException>(() => parser.Parse(invalidInputStr));
+			var barrier = exception.Groups.Last?.UnexpectedBarrier;
+			Assert.NotNull(barrier);
+			Assert.Equal("INDENT", barrier.Alias);
 		}
 	}
 }

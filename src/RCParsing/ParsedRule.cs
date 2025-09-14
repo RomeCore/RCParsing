@@ -22,6 +22,11 @@ namespace RCParsing
 		public bool success { readonly get => element.success; set => element.success = value; }
 
 		/// <summary>
+		/// The value indicating that this element should be excluded from AST.
+		/// </summary>
+		public bool excludeFromAst { readonly get => element.excludeFromAst; set => element.excludeFromAst = value; }
+
+		/// <summary>
 		/// The ID of the child token pattern that was parsed.
 		/// </summary>
 		public int ruleId { readonly get => element.elementId; set => element.elementId = value; }
@@ -56,7 +61,7 @@ namespace RCParsing
 		public object? intermediateValue { readonly get => element.intermediateValue; set => element.intermediateValue = value; }
 
 		/// <summary>
-		/// The ID of the rule that was parsed.
+		/// The ID of the rule that was parsed. Or -1 if it is not a token.
 		/// </summary>
 		public int tokenId;
 
@@ -68,7 +73,7 @@ namespace RCParsing
 		/// <summary>
 		/// Gets the value indicating whether this rule represents a token.
 		/// </summary>
-		public bool isToken;
+		public readonly bool isToken => tokenId != -1;
 
 		/// <summary>
 		/// Gets the occurency index of this rule within its parent rule. -1 by default.
@@ -83,7 +88,7 @@ namespace RCParsing
 		/// <summary>
 		/// Gets a parsed rule that represents failure.
 		/// </summary>
-		public static ParsedRule Fail { get; } = new ParsedRule { element = ParsedElement.Fail, tokenId = -1, isToken = false };
+		public static ParsedRule Fail { get; } = new ParsedRule { element = ParsedElement.Fail, tokenId = -1 };
 
 		/// <summary>
 		/// Creates a parsed rule that represents success token.
@@ -99,11 +104,9 @@ namespace RCParsing
 		{
 			return new ParsedRule
 			{
-				element = new ParsedElement(tokenId, startIndex, length, intermediateValue),
+				element = new ParsedElement(ruleId, startIndex, length, intermediateValue),
 				passedBarriers = passedBarriers,
-				ruleId = ruleId,
 				tokenId = tokenId,
-				isToken = true,
 				occurency = -1
 			};
 		}
@@ -122,10 +125,9 @@ namespace RCParsing
 		{
 			return new ParsedRule
 			{
-				tokenId = -1,
 				element = new ParsedElement(ruleId, startIndex, length, intermediateValue),
 				passedBarriers = passedBarriers,
-				isToken = false,
+				tokenId = -1,
 				occurency = -1,
 				children = children
 			};

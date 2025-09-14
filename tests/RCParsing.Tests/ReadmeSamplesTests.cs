@@ -253,5 +253,101 @@ namespace RCParsing.Tests
 
 			Assert.Throws<ParsingException>(() => parser.ParseRule("custom_rule", "y", parameter: 'x'));
 		}
+
+		[Fact]
+		public void SimplifiedYAML()
+		{
+			var builder = new ParserBuilder();
+
+			builder.Settings.SkipWhitespaces();
+			builder.BarrierTokenizers.AddIndent(indentSize: 2, "INDENT", "DEDENT", "NEWLINE");
+
+			builder.CreateToken("boolean")
+				.LiteralChoice(["true", "false"], v => v.Text == "true");
+
+			builder.CreateToken("number")
+				.Number<double>();
+
+			builder.CreateToken("string")
+				.Literal("\"")                       // 0
+				.EscapedTextPrefix('\\', '\\', '\"') // 1
+				.Literal("\"")                       // 2
+				.Pass(index: 1);
+
+			builder.CreateToken("identifier")
+				.UnicodeIdentifier();
+
+			builder.CreateRule("value")
+				.Choice(
+					b => b.Token("boolean"),
+					b => b.Token("number"),
+					b => b.Token("string")
+				);
+
+			builder.CreateRule("object_pair")
+				.Token("identifier")
+				.Literal(":")
+				.Rule("value")
+				.Token("NEWLINE")
+				.Transform(v =>
+				{
+					var key = v[0].Text;
+					var value = v[2].GetValue();
+					return new KeyValuePair<string, object>(key, value);
+				});
+
+			builder.CreateRule("object_child")
+				.Choice(
+					b => b.Rule("object_pair"),
+					b => b.Rule("object")
+				);
+
+			builder.CreateRule("object")
+				.Token("identifier")
+				.Literal(":")
+				.Token("NEWLINE")
+				.Token("INDENT")
+				.OneOrMore(b => b.Rule("object_child"))
+					.TransformLast(v => v.SelectValues<KeyValuePair<string, object>>().ToDictionary())
+				.Token("DEDENT")
+				.Transform(v =>
+				{
+					var key = v[0].Text;
+					var value = v[4].GetValue();
+					return new KeyValuePair<string, object>(key, value);
+				});
+
+			builder.CreateMainRule()
+				.ZeroOrMore(b => b.Rule("object_child"))
+					.TransformLast(v => v.SelectValues<KeyValuePair<string, object>>().ToDictionary())
+				.EOF()
+				.TransformSelect(index: 0);
+
+			var parser = builder.Build();
+
+			string input =
+			"""
+			a_nested_map:
+			  key: true
+			  another_key: 0.9
+			  another_nested_map:
+			    hello: "Hello world!"
+			  key_after: 999
+			""";
+
+			var value = parser.Parse<Dictionary<string, object>>(input);
+
+			var a_nested_map = value["a_nested_map"] as Dictionary<string, object>;
+			var key = (bool)a_nested_map!["key"];
+			var another_key = (double)a_nested_map["another_key"];
+			var another_nested_map = a_nested_map["another_nested_map"] as Dictionary<string, object>;
+			var hello = another_nested_map!["hello"] as string;
+			var key_after = (double)a_nested_map["key_after"];
+
+			Assert.True(key);
+			Assert.Equal(0.9, another_key);
+			Assert.Equal("Hello world!", hello);
+			Assert.Equal(999, key_after);
+		}
 	}
 }
