@@ -8,7 +8,7 @@ on:
         required: false
         default: ''
   pull_request:
-    types: [closed]
+    types: [merged]
     branches: [main, master]
 
 jobs:
