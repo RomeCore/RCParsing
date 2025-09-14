@@ -13,8 +13,8 @@ This library focuses on **Developer-experience (DX)** first, providing best tool
 - 🐍 **Hybrid Power**: Unique support for **barrier tokens** to parse indent-sensitive languages like Python and YAML flawlessly.
 - 💪 **Regex on Steroids**: You can find all matches for target structure in the input text with detailed AST information and transformed value.
 - 🚫 **Lexerless Freedom**: No token priority headaches. Parse directly from raw text, even with keywords embedded in strings. Tokens are used just as lightweight matching primitives.
-- 🎯 **Fluent API**: Write parsers in C# that read like clean BNF grammars, boosting readability and maintainability compared to imperative or functional approaches.
-- 🐛 **Debug-Friendly**: Get detailed, actionable error messages with stack traces and precise source locations.
+- 🎨 **Fluent API**: Write parsers in C# that read like clean BNF grammars, boosting readability and maintainability compared to imperative or functional approaches.
+- 🐛 **Debug-Friendly**: Get detailed, actionable error messages with stack traces and precise source locations. Richest API for manual error information included.
 - ⚡ **Fast**: Performance is now on par with the fastest .NET parsing libraries (see benchmarks below).
 - 🌳 **Rich AST**: Parser makes an AST (Abstract Syntax Tree) from raw text, with ability to optimize, fully analyze and calculate the result value entirely lazy, reducing unnecessary allocations.
 - 🔧 **Configurable Skipping**: Advanced strategies for whitespace and comments, allowing you to use conflicting tokens in your main rules.
@@ -326,7 +326,7 @@ foreach (var price in prices)
 | Library        | Speed (Relative to RCParsing) | Memory Efficiency |
 | :------------- | :---------------------------- | :---------------- |
 | **RCParsing**  | 1.00x (baseline)              | High              |
-| **Parlot**     | **~-4.10-4.90x faster**       | **Excellent**     |
+| **Parlot**     | **~4.10-4.90x faster**        | **Excellent**     |
 | **Pidgin**     | ~1.00x-2.70x slower           | **Excellent**     |
 | **Superpower** | ~5.90x-6.10x slower           | Medium            |
 | **Sprache**    | ~5.50x-6.50x slower           | Very low          |
@@ -377,23 +377,23 @@ Runtime=.NET 8.0  IterationCount=3  WarmupCount=2
 
 The JSON value calculation with the typeset `Dictionary<string, object>`, `object[]`, `string`, `int` and `null`.
 
-| Method               | Mean         | Error         | StdDev     | Ratio | RatioSD | Gen0     | Gen1    | Allocated  | Alloc Ratio |
-|--------------------- |-------------:|--------------:|-----------:|------:|--------:|---------:|--------:|-----------:|------------:|
-| JsonBig_RCParsing    |   193.732 us |    15.2783 us |  0.8375 us |  1.00 |    0.01 |  14.4043 |  3.6621 |  237.67 KB |        1.00 |
-| JsonBig_Parlot       |    40.349 us |     2.1830 us |  0.1197 us |  0.21 |    0.00 |   1.9531 |  0.1221 |   32.08 KB |        0.13 |
-| JsonBig_Pidgin       |   204.885 us |     7.7079 us |  0.4225 us |  1.06 |    0.00 |   3.9063 |  0.2441 |   65.25 KB |        0.27 |
-| JsonBig_Superpower   | 1,184.334 us |    41.9646 us |  2.3002 us |  6.11 |    0.03 |  39.0625 |  5.8594 |  638.31 KB |        2.69 |
-| JsonBig_Sprache      | 1,258.793 us | 1,016.3510 us | 55.7096 us |  6.50 |    0.25 | 232.4219 | 27.3438 | 3808.34 KB |       16.02 |
-|                      |              |               |            |       |         |          |         |            |             |
-| JsonShort_RCParsing  |    10.914 us |     0.5714 us |  0.0313 us |  1.00 |    0.00 |   0.8545 |  0.0153 |   14.13 KB |        1.00 |
-| JsonShort_Parlot     |     2.145 us |     0.0680 us |  0.0037 us |  0.20 |    0.00 |   0.1144 |       - |    1.91 KB |        0.14 |
-| JsonShort_Pidgin     |    11.003 us |     0.1905 us |  0.0104 us |  1.01 |    0.00 |   0.2136 |       - |    3.58 KB |        0.25 |
-| JsonShort_Superpower |    64.511 us |     3.6988 us |  0.2027 us |  5.91 |    0.02 |   1.9531 |       - |   33.32 KB |        2.36 |
-| JsonShort_Sprache    |    60.472 us |     4.1068 us |  0.2251 us |  5.54 |    0.02 |  12.6953 |  0.3052 |  208.17 KB |       14.74 |
+| Method               | Mean         | Error       | StdDev    | Ratio | RatioSD | Gen0     | Gen1    | Allocated  | Alloc Ratio |
+|--------------------- |-------------:|------------:|----------:|------:|--------:|---------:|--------:|-----------:|------------:|
+| JsonBig_RCParsing    |   181.800 us |   3.4884 us | 0.1912 us |  1.00 |    0.00 |  14.4043 |  3.6621 |  237.67 KB |        1.00 |
+| JsonBig_Parlot       |    41.269 us |   1.6653 us | 0.0913 us |  0.23 |    0.00 |   1.9531 |  0.1221 |   32.08 KB |        0.13 |
+| JsonBig_Pidgin       |   200.936 us |   5.0342 us | 0.2759 us |  1.11 |    0.00 |   3.9063 |  0.2441 |   65.25 KB |        0.27 |
+| JsonBig_Superpower   | 1,180.159 us |  46.5028 us | 2.5490 us |  6.49 |    0.01 |  39.0625 |  5.8594 |  638.31 KB |        2.69 |
+| JsonBig_Sprache      | 1,168.350 us | 149.0224 us | 8.1684 us |  6.43 |    0.04 | 232.4219 | 27.3438 | 3808.34 KB |       16.02 |
+|                      |              |             |           |       |         |          |         |            |             |
+| JsonShort_RCParsing  |    10.366 us |   0.5918 us | 0.0324 us |  1.00 |    0.00 |   0.8545 |  0.0153 |   14.13 KB |        1.00 |
+| JsonShort_Parlot     |     2.368 us |   0.0648 us | 0.0036 us |  0.23 |    0.00 |   0.1144 |       - |    1.91 KB |        0.14 |
+| JsonShort_Pidgin     |    11.052 us |   0.6637 us | 0.0364 us |  1.07 |    0.00 |   0.2136 |       - |    3.58 KB |        0.25 |
+| JsonShort_Superpower |    64.223 us |   1.6115 us | 0.0883 us |  6.20 |    0.02 |   1.9531 |       - |   33.32 KB |        2.36 |
+| JsonShort_Sprache    |    62.399 us |   3.8648 us | 0.2118 us |  6.02 |    0.02 |  12.6953 |  0.2441 |  208.17 KB |       14.74 |
 
 Notes:
 
-- `RCParsing` uses `UseInlining()` and `IgnoreErrors()` settings.
+- `RCParsing` uses `UseInlining()`, `UseFirstCharacterMatch()` and `IgnoreErrors()` settings.
 - `Parlot` uses `Compiled()` version of parser.
 - `JsonShort` methods uses ~20 lines of hardcoded (not generated) JSON with simple content.
 - `JsonBig` methods uses ~180 lines of hardcoded (not generated) JSON with various content (deep, long objects/arrays).
@@ -402,15 +402,15 @@ Notes:
 
 The `int` value calculation from expression with parentheses `()`, spaces and operators `+-/*` with priorities.
 
-| Method                    | Mean         | Error        | StdDev      | Ratio | Gen0    | Gen1    | Allocated | Alloc Ratio |
-|-------------------------- |-------------:|-------------:|------------:|------:|--------:|--------:|----------:|------------:|
-| ExpressionBig_RCParsing   | 285,804.7 ns | 20,172.23 ns | 1,105.71 ns |  1.00 | 22.9492 | 10.7422 |  385720 B |        1.00 |
-| ExpressionBig_Parlot      |  69,685.0 ns |  4,580.85 ns |   251.09 ns |  0.24 |  3.2959 |       - |   56608 B |        0.15 |
-| ExpressionBig_Pidgin      | 666,472.5 ns | 29,955.41 ns | 1,641.96 ns |  2.33 |  0.9766 |       - |   23536 B |        0.06 |
-|                           |              |              |             |       |         |         |           |             |
-| ExpressionShort_RCParsing |   2,486.6 ns |    193.33 ns |    10.60 ns |  1.00 |  0.2327 |       - |    3904 B |        1.00 |
-| ExpressionShort_Parlot    |     586.0 ns |     71.83 ns |     3.94 ns |  0.24 |  0.0534 |       - |     896 B |        0.23 |
-| ExpressionShort_Pidgin    |   6,893.6 ns |    192.66 ns |    10.56 ns |  2.77 |  0.0153 |       - |     344 B |        0.09 |
+| Method                    | Mean         | Error        | StdDev      | Ratio | RatioSD | Gen0    | Gen1    | Allocated | Alloc Ratio |
+|-------------------------- |-------------:|-------------:|------------:|------:|--------:|--------:|--------:|----------:|------------:|
+| ExpressionBig_RCParsing   | 287,184.2 ns |  7,644.17 ns |   419.00 ns |  1.00 |    0.00 | 22.9492 | 10.7422 |  385720 B |        1.00 |
+| ExpressionBig_Parlot      |  60,676.0 ns |  7,001.80 ns |   383.79 ns |  0.21 |    0.00 |  3.3569 |       - |   56608 B |        0.15 |
+| ExpressionBig_Pidgin      | 675,575.8 ns | 35,734.99 ns | 1,958.76 ns |  2.35 |    0.01 |  0.9766 |       - |   23536 B |        0.06 |
+|                           |              |              |             |       |         |         |         |           |             |
+| ExpressionShort_RCParsing |   2,477.7 ns |    284.49 ns |    15.59 ns |  1.00 |    0.01 |  0.2327 |       - |    3904 B |        1.00 |
+| ExpressionShort_Parlot    |     589.3 ns |     43.17 ns |     2.37 ns |  0.24 |    0.00 |  0.0534 |       - |     896 B |        0.23 |
+| ExpressionShort_Pidgin    |   7,071.3 ns |     50.96 ns |     2.79 ns |  2.85 |    0.02 |  0.0153 |       - |     344 B |        0.09 |
 
 Notes:
 
