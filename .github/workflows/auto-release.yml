@@ -30,7 +30,7 @@ jobs:
           echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
         else
           echo "Fetching version from .csproj"
-          CSPROJ_FILE=$(find . -name "*.csproj" | head -n 1)
+          CSPROJ_FILE=$(find . -name "RCParsing.csproj" | head -n 1)
           VERSION=$(grep -oP '<Version>\K[^<]+' $CSPROJ_FILE || grep -oP '<VersionPrefix>\K[^<]+' $CSPROJ_FILE)
           echo "VERSION=$VERSION" >> $GITHUB_ENV
         fi
