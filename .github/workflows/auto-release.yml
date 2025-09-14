@@ -37,17 +37,23 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
     
-    - name: Build and test
-      run: |
-        dotnet build --configuration Release
-        dotnet test --configuration Release
-        
+    - name: Build project
+      run: dotnet build --configuration Release
+
+    - name: Run tests
+      run: dotnet test --configuration Release --no-build
+
+    - name: Create NuGet package
+      run: dotnet pack --configuration Release --no-build --output nupkg
+
     - name: Create release
       uses: softprops/action-gh-release@v1
       with:
         tag_name: v${{ needs.check-release.outputs.version }}
-        name: Release v${{ needs.check-release.outputs.version }}
+        name: v${{ needs.check-release.outputs.version }}
         files: "**/RCParsing.${{ needs.check-release.outputs.version }}.nupkg"
+        draft: false
+        prerelease: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
