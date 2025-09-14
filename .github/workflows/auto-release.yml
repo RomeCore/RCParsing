@@ -11,6 +11,10 @@ on:
     types: [merged]
     branches: [main, master]
 
+permissions:
+  contents: write
+  actions: read
+
 jobs:
   check-release:
     runs-on: ubuntu-latest
