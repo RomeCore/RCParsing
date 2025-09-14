@@ -91,12 +91,12 @@ namespace RCParsing
 		/// <summary>
 		/// Gets the parsed input text that was captured.
 		/// </summary>
-		public virtual string Text => Context.str.Substring(Result.startIndex, Result.length);
+		public virtual string Text => Context.input.Substring(Result.startIndex, Result.length);
 
 		/// <summary>
 		/// Gets the parsed input text that was captured as a span of characters.
 		/// </summary>
-		public ReadOnlySpan<char> Span => Context.str.AsSpan(Result.startIndex, Result.length);
+		public ReadOnlySpan<char> Span => Context.input.AsSpan(Result.startIndex, Result.length);
 
 		/// <summary>
 		/// Gets the parsed value associated with this rule.

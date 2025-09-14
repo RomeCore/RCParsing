@@ -20,6 +20,7 @@ namespace RCParsing.Benchmarks.DifferentConfigurations
 		private readonly Parser
 			defaultParser,
 			inlinedParser,
+			lookaheadParser,
 			ignoreErrorsParser,
 			stackTraceParser,
 			lazyAstParser,
@@ -38,6 +39,11 @@ namespace RCParsing.Benchmarks.DifferentConfigurations
 			builder.Settings.UseInlining();
 			RCJsonParser.FillWithRules(builder);
 			inlinedParser = builder.Build();
+
+			builder = new ParserBuilder();
+			builder.Settings.UseFirstCharacterMatch();
+			RCJsonParser.FillWithRules(builder);
+			lookaheadParser = builder.Build();
 
 			builder = new ParserBuilder();
 			builder.Settings.IgnoreErrors();
@@ -65,7 +71,7 @@ namespace RCParsing.Benchmarks.DifferentConfigurations
 			memoizedParser = builder.Build();
 
 			builder = new ParserBuilder();
-			builder.Settings.UseInlining().IgnoreErrors();
+			builder.Settings.UseInlining().UseFirstCharacterMatch().IgnoreErrors();
 			RCJsonParser.FillWithRules(builder);
 			fastestParser = builder.Build();
 
@@ -91,6 +97,12 @@ namespace RCParsing.Benchmarks.DifferentConfigurations
 		public void Inlined()
 		{
 			var value = inlinedParser.Parse<object>(TestJSONs.bigJson);
+		}
+
+		[Benchmark, BenchmarkCategory("json")]
+		public void FirstCharacterMatch()
+		{
+			var value = lookaheadParser.Parse<object>(TestJSONs.bigJson);
 		}
 
 		[Benchmark, BenchmarkCategory("json")]

@@ -95,7 +95,7 @@ namespace RCParsing
 			new ParsedTokenResult(this, Context, Result.element, Result.tokenId) : null;
 
 		private string _text;
-		public override string Text => _text ??= Context.str.Substring(Result.startIndex, Result.length);
+		public override string Text => _text ??= Context.input.Substring(Result.startIndex, Result.length);
 
 		private bool _valueConstructed;
 		private object? _value;
@@ -152,7 +152,7 @@ namespace RCParsing
 				rawChildren = rawChildren.Where(c => c.length != 0);
 
 			if (optimization.HasFlag(ParseTreeOptimization.RemoveWhitespaceNodes))
-				rawChildren = rawChildren.Where(c => !context.str.AsSpan(c.startIndex, c.length).IsWhiteSpace());
+				rawChildren = rawChildren.Where(c => !context.input.AsSpan(c.startIndex, c.length).IsWhiteSpace());
 
 			if (optimization.HasFlag(ParseTreeOptimization.RemovePureLiterals))
 				rawChildren = rawChildren.Where(c => !(c.isToken && (
@@ -170,7 +170,7 @@ namespace RCParsing
 
 			if (optimization.HasFlag(ParseTreeOptimization.TrimSpans))
 			{
-				var span = context.str.AsSpan(rule.startIndex, rule.length);
+				var span = context.input.AsSpan(rule.startIndex, rule.length);
 				
 				int startIndex = 0;
 				int length = span.Length;

@@ -558,7 +558,12 @@ namespace RCParsing.Tests
 			}
 			""";
 
-			Assert.Throws<ParsingException>(() => _parser.Parse(templateStr));
+			var exception = Assert.Throws<ParsingException>(() => _parser.Parse(templateStr));
+
+			// The last group expects '=' because of variable assignment.
+			// And the next from last expects whitespaces or '='.
+			var lastGroup = exception.Groups.Reversed[2];
+			Assert.Contains("system", lastGroup.Expected.ToString());
 		}
 	}
 }

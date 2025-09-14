@@ -72,7 +72,7 @@ namespace RCParsing.TokenPatterns
 
 		public override string ToStringOverride(int remainingDepth)
 		{
-			return $"literal choice: '{string.Join("|", Literals)}'";
+			return $"literal choice '{string.Join("|", Literals)}'";
 		}
 
 		public override bool Equals(object? obj)

@@ -374,7 +374,7 @@ namespace RCParsing.Building
 		/// Uses the first character match mode for all elements.
 		/// </summary>
 		/// <remarks>
-		/// May improve performance by avoiding unnecessary backtracking in some cases. However, it can also reduce helpful errors.
+		/// May improve performance by avoiding unnecessary backtracking in some cases. However, it can decreace amount of helpful errors.
 		/// </remarks>
 		/// <returns>Current instance for method chaining.</returns>
 		public ParserSettingsBuilder UseFirstCharacterMatch()

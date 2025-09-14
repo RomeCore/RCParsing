@@ -117,7 +117,7 @@ namespace RCParsing.Tokenizers
 
 		private IEnumerable<BarrierToken> TokenizeStrict(ParserContext context)
 		{
-			string input = context.str ?? string.Empty;
+			string input = context.input ?? string.Empty;
 			int length = context.maxPosition;
 			int currentIndent = 0;
 
@@ -175,7 +175,7 @@ namespace RCParsing.Tokenizers
 
 		private IEnumerable<BarrierToken> TokenizeSoft(ParserContext context)
 		{
-			string input = context.str ?? string.Empty;
+			string input = context.input ?? string.Empty;
 			int length = context.maxPosition;
 
 			var indentStack = new Stack<int>();
@@ -227,7 +227,7 @@ namespace RCParsing.Tokenizers
 
 		private IEnumerable<BarrierToken> TokenizeHybrid(ParserContext context)
 		{
-			string input = context.str ?? string.Empty;
+			string input = context.input ?? string.Empty;
 			int length = context.maxPosition;
 			int currentIndent = 0;
 

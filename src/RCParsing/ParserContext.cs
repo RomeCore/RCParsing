@@ -77,8 +77,8 @@ namespace RCParsing
 			this.parserParameter = parserParameter;
 			this.parser = parser ?? throw new ArgumentNullException(nameof(parser));
 			this.cache = new ParserCache();
-			this.successPositions = new BitArray(str.Length);
-			this.positionsToAvoidSkipping = new BitArray(str.Length);
+			this.successPositions = new BitArray(str.Length + 1);
+			this.positionsToAvoidSkipping = new BitArray(str.Length + 1);
 			this.errors = new List<ParsingError>();
 			this.skippedRules = new List<ParsedRule>();
 			this.barrierTokens = new BarrierTokenCollection();
@@ -126,7 +126,7 @@ namespace RCParsing
 		/// <summary>
 		/// The input string to be parsed.
 		/// </summary>
-		public readonly string str => shared.str;
+		public readonly string input => shared.str;
 
 		/// <summary>
 		/// The current position in the input string.
@@ -220,7 +220,7 @@ namespace RCParsing
 		{
 			get
 			{
-				var substring = this.str.Substring(this.position);
+				var substring = this.input.Substring(this.position);
 				if (substring.Length > 20)
 					return substring.Substring(0, 20) + "...";
 				return substring;
@@ -343,6 +343,15 @@ namespace RCParsing
 		{
 			var successPos = successPositions;
 			return errors.Where(e => !successPos[e.position]);
+		}
+
+		/// <summary>
+		/// Creates error groups from stored parsing errors.
+		/// </summary>
+		/// <returns>A collection of error groups.</returns>
+		public readonly ErrorGroupCollection CreateErrorGroups()
+		{
+			return new ErrorGroupCollection(this, errors);
 		}
 	}
 }

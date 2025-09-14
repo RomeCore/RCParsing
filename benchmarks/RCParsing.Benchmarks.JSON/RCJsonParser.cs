@@ -89,7 +89,7 @@ namespace RCParsing.Benchmarks.JSON
 		static RCJsonParser()
 		{
 			var builder = new ParserBuilder();
-			builder.Settings.UseInlining().IgnoreErrors().UseLightAST();
+			builder.Settings.UseInlining().UseFirstCharacterMatch().IgnoreErrors().UseLightAST();
 			FillWithRules(builder);
 			parser = builder.Build();
 		}

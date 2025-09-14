@@ -332,6 +332,7 @@ namespace RCParsing.Tests
 			  another_key: 0.9
 			  another_nested_map:
 			    hello: "Hello world!"
+			  key_after: 999
 			""";
 
 			var value = parser.Parse<Dictionary<string, object>>(input);
@@ -341,10 +342,12 @@ namespace RCParsing.Tests
 			var another_key = (double)a_nested_map["another_key"];
 			var another_nested_map = a_nested_map["another_nested_map"] as Dictionary<string, object>;
 			var hello = another_nested_map!["hello"] as string;
+			var key_after = (double)a_nested_map["key_after"];
 
 			Assert.True(key);
 			Assert.Equal(0.9, another_key);
 			Assert.Equal("Hello world!", hello);
+			Assert.Equal(999, key_after);
 		}
 	}
 }

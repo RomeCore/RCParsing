@@ -107,5 +107,15 @@ namespace RCParsing
 			hash = hash * 397 + (stackFrame?.GetHashCode() ?? 0);
 			return hash;
 		}
+
+		public static bool operator ==(ParsingError left, ParsingError right)
+		{
+			return left.Equals(right);
+		}
+
+		public static bool operator !=(ParsingError left, ParsingError right)
+		{
+			return !(left == right);
+		}
 	}
 }
