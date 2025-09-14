@@ -28,11 +28,13 @@ jobs:
         if [ -n "${{ github.event.inputs.version }}" ]; then
           echo "Using specified version: ${{ github.event.inputs.version }}"
           echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+          echo "Got version: ${{ github.event.inputs.version }}"
         else
           echo "Fetching version from .csproj"
           CSPROJ_FILE=$(find . -name "RCParsing.csproj" | head -n 1)
           VERSION=$(grep -oP '<Version>\K[^<]+' $CSPROJ_FILE || grep -oP '<VersionPrefix>\K[^<]+' $CSPROJ_FILE)
           echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Got version: $VERSION"
         fi
 
   release:
@@ -59,7 +61,7 @@ jobs:
       with:
         tag_name: v${{ needs.check-release.outputs.version }}
         name: v${{ needs.check-release.outputs.version }}
-        files: "**/RCParsing.${{ needs.check-release.outputs.version }}.nupkg"
+        # files: "**/RCParsing.${{ needs.check-release.outputs.version }}.nupkg"
         draft: false
         prerelease: false
       env:
