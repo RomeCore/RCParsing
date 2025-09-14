@@ -1,0 +1,55 @@
+name: Auto Release
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main, master]
+
+jobs:
+  check-release:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Get version
+      id: get_version
+      run: |
+        VERSION=$(dotnet minver --version 2>/dev/null || true)
+        if [ -z "$VERSION" ]; then
+          CSPROJ_FILE=$(find . -name "RCParsing.csproj" | head -n 1)
+          VERSION=$(grep -oP '<Version>\K[^<]+' $CSPROJ_FILE || grep -oP '<VersionPrefix>\K[^<]+' $CSPROJ_FILE)
+        fi
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+  release:
+    needs: check-release
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+    
+    - name: Build and test
+      run: |
+        dotnet build --configuration Release
+        dotnet test --configuration Release
+        
+    - name: Create release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ needs.check-release.outputs.version }}
+        name: Release v${{ needs.check-release.outputs.version }}
+        files: "**/RCParsing.${{ needs.check-release.outputs.version }}.nupkg"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Publish to NuGet
+      run: dotnet nuget push "**/RCParsing.${{ needs.check-release.outputs.version }}.nupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
