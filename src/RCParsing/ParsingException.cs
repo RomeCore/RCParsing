@@ -118,7 +118,7 @@ namespace RCParsing
 
 		private static ParsingError CreateError(string message, int position, out ParsingError error)
 		{
-			return error = new ParsingError(position, message);
+			return error = new ParsingError(position, 0, message);
 		}
 
 		private static string FormatMessage(ParserContext context, out ErrorGroupCollection groups, IReadOnlyList<ParsingError> errors)

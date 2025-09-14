@@ -283,7 +283,7 @@ namespace RCParsing
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public readonly void RecordError(ParserSettings settings, string? message = null, int elementId = -1, bool isToken = false)
 		{
-			RecordError(settings, new ParsingError(position, message, elementId, isToken, topStackFrame));
+			RecordError(settings, new ParsingError(position, passedBarriers, message, elementId, isToken, topStackFrame));
 		}
 
 		/// <summary>
@@ -297,7 +297,22 @@ namespace RCParsing
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public readonly void RecordError(ParserSettings settings, int position, string? message = null, int elementId = -1, bool isToken = false)
 		{
-			RecordError(settings, new ParsingError(position, message, elementId, isToken, topStackFrame));
+			RecordError(settings, new ParsingError(position, passedBarriers, message, elementId, isToken, topStackFrame));
+		}
+
+		/// <summary>
+		/// Records, ignores or throws an error based on the current settings.
+		/// </summary>
+		/// <param name="settings">The settings that affects the recording behavior.</param>
+		/// <param name="position">The position in the input string where the error occurred.</param>
+		/// <param name="passedBarriers">The count of barriers that were successfully parsed before encountering this error.</param>
+		/// <param name="message">The error message to record.</param>
+		/// <param name="elementId">The ID of the element (rule or token) that caused the error or been expected at this position.</param>
+		/// <param name="isToken">A value indicating whether the element that caused the error is a token.</param>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public readonly void RecordError(ParserSettings settings, int position, int passedBarriers, string? message = null, int elementId = -1, bool isToken = false)
+		{
+			RecordError(settings, new ParsingError(position, passedBarriers, message, elementId, isToken, topStackFrame));
 		}
 
 		/// <summary>

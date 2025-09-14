@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
+using System.Xml.Linq;
+using RCParsing.TokenPatterns;
 using RCParsing.Utils;
 
 namespace RCParsing
@@ -40,6 +42,7 @@ namespace RCParsing
 		private string? _lineText = null;
 		private string? _formattedLineText = null;
 		private bool? _isRelevant = null;
+		private int? _passedBarriers = null;
 
 		private int _lineStart = -1;
 		private int _lineLength = -1;
@@ -97,6 +100,11 @@ namespace RCParsing
 		/// Gets a value indicating whether this error group is relevant. An error group is considered relevant if it occurred at a position where no successful parsing has been done yet.
 		/// </summary>
 		public bool IsRelevant => _isRelevant ??= !Context.successPositions[Position];
+
+		/// <summary>
+		/// Gets the number of barriers that were successfully parsed before encountering this error group.
+		/// </summary>
+		public int PassedBarriers => _passedBarriers ??= Errors.Min(e => e.passedBarriers);
 
 		/// <summary>
 		/// Gets the starting index of the line that contains the error position.
@@ -187,6 +195,26 @@ namespace RCParsing
 			}
 		}
 
+		private bool _unexpectedBarrierCalculated;
+		private UnexpectedBarrierToken? _unexpectedBarrier = null;
+		/// <summary>
+		/// Gets the unexpected barrier token that was encountered during parsing.
+		/// </summary>
+		public UnexpectedBarrierToken? UnexpectedBarrier
+		{
+			get
+			{
+				if (!_unexpectedBarrierCalculated)
+				{
+					if (Context.barrierTokens.TryGetBarrierToken(Position, PassedBarriers, out var barrierToken))
+						_unexpectedBarrier = new UnexpectedBarrierToken(Context, barrierToken);
+
+					_unexpectedBarrierCalculated = true;
+				}
+				return _unexpectedBarrier;
+			}
+		}
+
 		private IReadOnlyList<string>? _errorMessages = null;
 		/// <summary>
 		/// Gets the list of error messages that describes the errors that occurred during parsing.
@@ -246,8 +274,6 @@ namespace RCParsing
 		{
 			var sb = new StringBuilder();
 
-			var position = Position;
-
 			if (Expected.Count == 0 ||
 				flags.HasFlag(ErrorFormattingFlags.DisplayMessages))
 			{
@@ -263,12 +289,12 @@ namespace RCParsing
 				sb.AppendLine();
 				var expected = flags.HasFlag(ErrorFormattingFlags.DisplayRules) ?
 					Expected.Select(e => e.ToString()).ToList() : Expected.Tokens.Select(e => e.ToString()).ToList();
-				var unexpected = $"'{GetCharacterDisplay(Input, position, Context.maxPosition)}' is unexpected character";
+				var unexpected = $"'{GetCharacterDisplay(Input, Position, Context.maxPosition)}' is unexpected character";
 
-				if (Context.barrierTokens.TryGetBarrierToken(position, Context.passedBarriers, out var barrierToken))
+				if (UnexpectedBarrier != null)
 				{
-					unexpected = $"'{barrierToken.tokenAlias}' " +
-						$"is unexpected barrier token or '{GetCharacterDisplay(Context.input, position, Context.maxPosition)}' " +
+					unexpected = $"'{UnexpectedBarrier.Alias}' " +
+						$"is unexpected barrier token or '{GetCharacterDisplay(Context.input, Position, Context.maxPosition)}' " +
 						$"is unexpected character";
 				}
 

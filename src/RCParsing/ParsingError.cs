@@ -15,6 +15,11 @@ namespace RCParsing
 		public readonly int position;
 
 		/// <summary>
+		/// Gets the count of barriers that were successfully parsed before encountering this error.
+		/// </summary>
+		public readonly int passedBarriers;
+
+		/// <summary>
 		/// Gets an optional description of the parsing error.
 		/// </summary>
 		public readonly string? message;
@@ -38,13 +43,15 @@ namespace RCParsing
 		/// Initializes a new instance of the <see cref="ParsingError"/> struct.
 		/// </summary>
 		/// <param name="position">The position in the input string where the error occurred.</param>
+		/// <param name="passedBarriers">The count of barriers that were successfully parsed before encountering this error.</param>
 		/// <param name="message">An optional description of the parsing error.</param>
 		/// <param name="elementId">The ID of the element (rule or token) that caused the error or been expected at this position.</param>
 		/// <param name="isToken">A value indicating whether the element that caused the error is a token.</param>
 		/// <param name="stackFrame">The stack frame that describes the state of the parser when the error occurred.</param>
-		public ParsingError(int position, string? message = null, int elementId = -1, bool isToken = false, ParserStackFrame? stackFrame = null)
+		public ParsingError(int position, int passedBarriers, string? message = null, int elementId = -1, bool isToken = false, ParserStackFrame? stackFrame = null)
 		{
 			this.position = position;
+			this.passedBarriers = passedBarriers;
 			this.message = message;
 			this.elementId = elementId;
 			this.isToken = isToken;
