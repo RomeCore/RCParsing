@@ -1,6 +1,12 @@
 name: Auto Release
 
 on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version for release:'
+        required: false
+        default: ''
   pull_request:
     types: [closed]
     branches: [main, master]
@@ -20,12 +26,15 @@ jobs:
     - name: Get version
       id: get_version
       run: |
-        VERSION=$(dotnet minver --version 2>/dev/null || true)
-        if [ -z "$VERSION" ]; then
-          CSPROJ_FILE=$(find . -name "RCParsing.csproj" | head -n 1)
+        if [ -n "${{ github.event.inputs.version }}" ]; then
+          echo "Using specified version: ${{ github.event.inputs.version }}"
+          echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+        else
+          echo "Fetching version from .csproj"
+          CSPROJ_FILE=$(find . -name "*.csproj" | head -n 1)
           VERSION=$(grep -oP '<Version>\K[^<]+' $CSPROJ_FILE || grep -oP '<VersionPrefix>\K[^<]+' $CSPROJ_FILE)
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
         fi
-        echo "version=$VERSION" >> $GITHUB_OUTPUT
 
   release:
     needs: check-release
