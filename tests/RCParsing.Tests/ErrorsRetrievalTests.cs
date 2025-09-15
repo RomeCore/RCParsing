@@ -213,13 +213,13 @@ namespace RCParsing.Tests
 		{
 			var builder = new ParserBuilder();
 
-			builder.Settings.SkipWhitespaces(ParserSkippingStrategy.TryParseThenSkip);
+			builder.Settings.SkipWhitespaces();
 
 			builder.CreateMainRule()
 				.Choice(
 					b => b
 						.LiteralChoice("if", "for", "while")
-						.Whitespaces()
+						.RequiredWhitespaces()
 						.Identifier(),
 					b => b
 						.Identifier()

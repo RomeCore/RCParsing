@@ -5,14 +5,14 @@ using System.Text;
 namespace RCParsing.TokenPatterns
 {
 	/// <summary>
-	/// The token pattern that matches one or more whitespace characters (' ', '\t', '\r' or '\n').
+	/// The token pattern that matches just spaces, the ' ' or '\t'
 	/// </summary>
-	public class WhitespacesTokenPattern : TokenPattern
+	public class SpacesTokenPattern : TokenPattern
 	{
 		/// <summary>
-		/// Creates a new instance of the <see cref="WhitespacesTokenPattern"/> class.
+		/// Creates a new instance of the <see cref="SpacesTokenPattern"/> class.
 		/// </summary>
-		public WhitespacesTokenPattern()
+		public SpacesTokenPattern()
 		{
 		}
 
@@ -20,7 +20,7 @@ namespace RCParsing.TokenPatterns
 			object? parserParameter)
 		{
 			int initialPosition = position;
-			while (position < barrierPosition && char.IsWhiteSpace(input[position]))
+			while (position < barrierPosition && (input[position] == ' ' || input[position] == '\t'))
 			{
 				position++;
 			}
@@ -31,17 +31,17 @@ namespace RCParsing.TokenPatterns
 			return ParsedElement.Fail;
 		}
 
-		protected override HashSet<char>? FirstCharsCore => new (new [] { ' ', '\t', '\n', '\r' });
+		protected override HashSet<char>? FirstCharsCore => new(new[] { ' ', '\t' });
 
 		public override string ToStringOverride(int remainingDepth)
 		{
-			return "whitespaces";
+			return "spaces";
 		}
 
 		public override bool Equals(object? obj)
 		{
 			return base.Equals(obj) &&
-				   obj is WhitespacesTokenPattern;
+				   obj is SpacesTokenPattern;
 		}
 
 		public override int GetHashCode()

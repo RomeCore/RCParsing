@@ -97,6 +97,11 @@ namespace RCParsing
 		/// Gets the parsed input text that was captured as a span of characters.
 		/// </summary>
 		public ReadOnlySpan<char> Span => Context.input.AsSpan(Result.startIndex, Result.length);
+		
+		/// <summary>
+		/// Gets the parsed input text that was captured as a memory of characters.
+		/// </summary>
+		public ReadOnlyMemory<char> Memory => Context.input.AsMemory(Result.startIndex, Result.length);
 
 		/// <summary>
 		/// Gets the parsed value associated with this rule.

@@ -11,7 +11,7 @@ namespace RCParsing.Building
 	/// <summary>
 	/// The base class for all parser element builders.
 	/// </summary>
-	public abstract class ParserElementBuilder<T>
+	public abstract partial class ParserElementBuilder<T>
 	{
 		/// <summary>
 		/// Gets the master parser builder associated with this rule builder, if any.
@@ -406,7 +406,21 @@ namespace RCParsing.Building
 		}
 
 		/// <summary>
-		/// Adds a whitespace token to the current sequence.
+		/// Adds a spaces token to the current sequence.
+		/// Matches one or more of ' ' or '\t' characters.
+		/// </summary>
+		/// <param name="factory">The factory function to create a parsed value.</param>
+		/// <param name="config">The action to configure the local settings for this token.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T Spaces(Func<ParsedRuleResultBase, object?>? factory = null,
+			Action<ParserLocalSettingsBuilder>? config = null)
+		{
+			return Token(new SpacesTokenPattern(), factory, config);
+		}
+
+		/// <summary>
+		/// Adds a whitespaces token to the current sequence.
+		/// Matches one or more of ' ', '\t', '\n' and '\n' characters.
 		/// </summary>
 		/// <param name="factory">The factory function to create a parsed value.</param>
 		/// <param name="config">The action to configure the local settings for this token.</param>
@@ -415,6 +429,19 @@ namespace RCParsing.Building
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			return Token(new WhitespacesTokenPattern(), factory, config);
+		}
+
+		/// <summary>
+		/// Adds a newline token to the current sequence.
+		/// Matches a newline, the '\r\n', '\r' or '\n' sequence.
+		/// </summary>
+		/// <param name="factory">The factory function to create a parsed value.</param>
+		/// <param name="config">The action to configure the local settings for this token.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T Newline(Func<ParsedRuleResultBase, object?>? factory = null,
+			Action<ParserLocalSettingsBuilder>? config = null)
+		{
+			return Token(new NewlineTokenPattern(), factory, config);
 		}
 
 		/// <summary>

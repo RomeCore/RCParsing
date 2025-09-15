@@ -41,9 +41,9 @@ namespace RCParsing
 		/// Gets the intermediate value associated with this element.
 		/// </summary>
 		/// <remarks>
-		/// For <see cref="SequenceTokenPattern"/> or <see cref="RepeatTokenPattern"/> it will be <see langword="null"/>. <br/>
+		/// For <see cref="SequenceTokenPattern"/> or <see cref="RepeatTokenPattern"/> it will be result from passage functions. <br/>
 		/// For <see cref="ChoiceTokenPattern"/> it will be the selected inner value. <br/>
-		/// For <see cref="OptionalTokenPattern"/> it will be the inner value if present, otherwise null.
+		/// For <see cref="OptionalTokenPattern"/> it will be the inner value if present, otherwise <see langword="null"/>.
 		/// <para/>
 		/// For leaf token implementations this may be, for example,
 		/// <see cref="Match"/> for <see cref="RegexTokenPattern"/>. <br/>
@@ -71,7 +71,7 @@ namespace RCParsing
 		/// <summary>
 		/// Gets a parsed element that represents failure.
 		/// </summary>
-		public static ParsedElement Fail { get; } = new ParsedElement
+		public static readonly ParsedElement Fail = new ParsedElement
 		{
 			success = false,
 			excludeFromAst = false,

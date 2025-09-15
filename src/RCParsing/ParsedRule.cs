@@ -47,17 +47,8 @@ namespace RCParsing
 		public int passedBarriers;
 
 		/// <summary>
-		/// Gets the intermediate value associated with this rule.
+		/// Gets the intermediate value associated with this rule, basically got from child token.
 		/// </summary>
-		/// <remarks>
-		/// For <see cref="SequenceTokenPattern"/> or <see cref="RepeatTokenPattern"/> it will be <see langword="null"/>. <br/>
-		/// For <see cref="ChoiceTokenPattern"/> it will be the selected inner value. <br/>
-		/// For <see cref="OptionalTokenPattern"/> it will be the inner value if present, otherwise null.
-		/// <para/>
-		/// For leaf token implementations this may be, for example,
-		/// <see cref="Match"/> for <see cref="RegexTokenPattern"/>. <br/>
-		/// See remarks for specific implementations.
-		/// </remarks>
 		public object? intermediateValue { readonly get => element.intermediateValue; set => element.intermediateValue = value; }
 
 		/// <summary>
