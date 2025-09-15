@@ -61,7 +61,7 @@ namespace RCParsing.Building
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
 			if (childToken.VariantIndex == 1)
-				factory ??= childToken.Value2.DefaultParsedValueFactory ?? DefaultFactory_Token;
+				factory ??= childToken.Value2.ParsedValueFactory ?? DefaultFactory_Token;
 			return Rule(new BuildableTokenParserRule
 			{
 				Child = childToken

@@ -44,6 +44,7 @@ namespace RCParsing.ParserRules
 		protected override void PreInitialize(ParserInitFlags initFlags)
 		{
 			_pattern = Parser.TokenPatterns[TokenPatternId];
+			ParsedValueFactory ??= _pattern.DefaultParsedValueFactory;
 		}
 
 		protected override void Initialize(ParserInitFlags initFlags)

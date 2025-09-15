@@ -53,7 +53,7 @@ namespace RCParsing
 		private void Calculate()
 		{
 			PositionalFormatter.Decompose(Input, Position, out _lineStart, out _lineLength,
-				out _line, out _column, out _visualColumn);
+				out _line, out _column, out _visualColumn, Context.parser.MainSettings.tabSize);
 		}
 
 		/// <summary>

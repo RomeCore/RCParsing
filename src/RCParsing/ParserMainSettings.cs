@@ -40,5 +40,10 @@ namespace RCParsing
 		/// Whether to record skipped rules during parsing. Useful for debugging and syntax highlighting.
 		/// </summary>
 		public bool recordSkippedRules;
+
+		/// <summary>
+		/// Size of tabs in spaces, if default or equal to 0, the 4 will be applied.
+		/// </summary>
+		public int tabSize;
 	}
 }

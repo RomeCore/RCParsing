@@ -54,7 +54,7 @@ namespace RCParsing.Building
 			else
 			{
 				var newSequence = new BuildableSequenceTokenPattern();
-				newSequence.DefaultParsedValueFactory = DefaultFactory_Token;
+				newSequence.ParsedValueFactory = DefaultFactory_Token;
 				newSequence.Elements.Add(BuildingPattern.Value);
 				newSequence.Elements.Add(childToken);
 				BuildingPattern = newSequence;
@@ -89,8 +89,8 @@ namespace RCParsing.Building
 			Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)
 		{
-			tokenPattern.DefaultParsedValueFactory = factory ?? DefaultFactory_Token;
-			tokenPattern.DefaultConfigurationAction = config;
+			tokenPattern.ParsedValueFactory = factory ?? DefaultFactory_Token;
+			config?.Invoke(tokenPattern.Settings);
 
 			return Token(new Or<string, BuildableTokenPattern>(tokenPattern));
 		}
@@ -139,7 +139,7 @@ namespace RCParsing.Building
 					BuildingPattern.Value.AsT2() is not BuildableSequenceTokenPattern)
 			{
 				var newSequence = new BuildableSequenceTokenPattern();
-				newSequence.DefaultParsedValueFactory = DefaultFactory_Token;
+				newSequence.ParsedValueFactory = DefaultFactory_Token;
 				newSequence.Elements.Add(BuildingPattern.Value);
 				BuildingPattern = newSequence;
 			}
@@ -155,7 +155,7 @@ namespace RCParsing.Building
 		public TokenBuilder Transform(Func<ParsedRuleResultBase, object?>? factory)
 		{
 			if (BuildingPattern?.AsT2() is BuildableTokenPattern pattern)
-				pattern.DefaultParsedValueFactory = factory;
+				pattern.ParsedValueFactory = factory;
 			else
 				throw new ParserBuildingException("Token pattern is not set or it is a direct reference to a named pattern.");
 			return this;
@@ -170,7 +170,7 @@ namespace RCParsing.Building
 		public TokenBuilder Configure(Action<ParserLocalSettingsBuilder> configAction)
 		{
 			if (BuildingPattern?.AsT2() is BuildableTokenPattern pattern)
-				pattern.DefaultConfigurationAction = configAction;
+				configAction(pattern.Settings);
 			else
 				throw new ParserBuildingException("Token pattern is not set or it is a direct reference to a named pattern.");
 			return this;

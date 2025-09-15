@@ -59,7 +59,6 @@ namespace RCParsing
 			int mainRuleId = -1, ParserInitFlags initFlags = ParserInitFlags.None)
 
 			: this(tokenPatterns, rules, tokenizers, mainSettings, globalSettings, mainRuleId, e => initFlags)
-
 		{
 		}
 
@@ -77,16 +76,21 @@ namespace RCParsing
 			ImmutableArray<BarrierTokenizer> tokenizers, ParserMainSettings mainSettings, ParserSettings globalSettings,
 			int mainRuleId = -1, Func<ParserElement, ParserInitFlags>? initFlagsFactory = null)
 		{
+			if (mainSettings.tabSize <= 0)
+				mainSettings.tabSize = 4;
+
 			Rules = rules;
 			TokenPatterns = tokenPatterns;
 			Tokenizers = tokenizers;
 			MainSettings = mainSettings;
 			GlobalSettings = globalSettings;
 
-			foreach (var rule in rules)
+			for (int i = 0; i < rules.Length; i++)
 			{
+				var rule = rules[i];
 				if (rule.Parser != null)
 					throw new InvalidOperationException("Parser already set for a rule.");
+				rule.Id = i;
 				rule.Parser = this;
 
 				foreach (var alias in rule.Aliases)
@@ -96,41 +100,52 @@ namespace RCParsing
 					_rulesAliases.Add(alias, rule.Id);
 				}
 			}
-
-			_mainRuleId = mainRuleId;
-			_recordSkippedRules = mainSettings.recordSkippedRules;
-
-			foreach (var pattern in tokenPatterns)
+			
+			for (int i = 0; i < tokenPatterns.Length; i++)
 			{
-				if (pattern.Parser != null)
-					throw new InvalidOperationException("Parser already set for a token pattern.");
-				pattern.Parser = this;
+				var token = tokenPatterns[i];
+				if (token.Parser != null)
+					throw new InvalidOperationException("Parser already set for a token.");
+				token.Id = i;
+				token.Parser = this;
 
-				foreach (var alias in pattern.Aliases)
+				foreach (var alias in token.Aliases)
 				{
 					if (_tokenPatternsAliases.ContainsKey(alias))
 						throw new InvalidOperationException("Alias already used by another token pattern.");
-					_tokenPatternsAliases.Add(alias, pattern.Id);
+					_tokenPatternsAliases.Add(alias, token.Id);
 				}
 			}
 
-			var initFlagsDict = tokenPatterns.Cast<ParserElement>().Concat(rules).ToDictionary(e => e,
-				initFlagsFactory ?? (e => ParserInitFlags.None));
+			_mainRuleId = mainRuleId;
+			_recordSkippedRules = MainSettings.recordSkippedRules;
+
+			ParserInitFlags TokenFactory(TokenPattern token)
+			{
+				return initFlagsFactory?.Invoke(token) ?? ParserInitFlags.None;
+			}
+			ParserInitFlags RuleFactory(ParserRule rule)
+			{
+				return initFlagsFactory?.Invoke(rule) ?? ParserInitFlags.None;
+			}
+
+			var initFlagsTokenMap = tokenPatterns.ToDictionary(t => t.Id, TokenFactory);
+			var initFlagsRuleMap = rules.ToDictionary(t => t.Id, RuleFactory);
 
 			foreach (var pattern in tokenPatterns)
-				pattern.PreInitializeInternal(initFlagsDict[pattern]);
+				pattern.PreInitializeInternal(initFlagsTokenMap[pattern.Id]);
 			foreach (var rule in rules)
-				rule.PreInitializeInternal(initFlagsDict[rule]);
+				rule.PreInitializeInternal(initFlagsRuleMap[rule.Id]);
 
 			foreach (var pattern in tokenPatterns)
-				pattern.InitializeInternal(initFlagsDict[pattern]);
+				pattern.InitializeInternal(initFlagsTokenMap[pattern.Id]);
 			foreach (var rule in rules)
-				rule.InitializeInternal(initFlagsDict[rule]);
+				rule.InitializeInternal(initFlagsRuleMap[rule.Id]);
 
 			foreach (var pattern in tokenPatterns)
-				pattern.PostInitializeInternal(initFlagsDict[pattern]);
+				pattern.PostInitializeInternal(initFlagsTokenMap[pattern.Id]);
 			foreach (var rule in rules)
-				rule.PostInitializeInternal(initFlagsDict[rule]);
+				rule.PostInitializeInternal(initFlagsRuleMap[rule.Id]);
 		}
 
 		/// <summary>
