@@ -104,16 +104,14 @@ namespace RCParsing
 		{
 			if (errors == null)
 				throw new ArgumentNullException(nameof(errors));
-			if (errors.Count == 0)
-				errors = new ParsingError[] { CreateError("Unknown error", context.position, out var error) };
 
 			Context = context;
 			Groups = groups;
 			Errors = Groups.Errors;
 
-			var errorMessages = Groups.Last.ErrorMessages;
+			var errorMessages = Groups.Last?.ErrorMessages ?? Array.Empty<string>();
 			LastErrorMessage = errorMessages.Count > 0 ? errorMessages[errorMessages.Count - 1] : string.Empty;
-			LastPosition = Groups.Last.Position;
+			LastPosition = Groups.Last?.Position ?? context.position;
 		}
 
 		private static ParsingError CreateError(string message, int position, out ParsingError error)
@@ -129,7 +127,7 @@ namespace RCParsing
 			int maxGroups = Math.Min(flags == ErrorFormattingFlags.MoreGroups ? 5 : 1, groups.Count);
 
 			if (maxGroups == 0)
-				return string.Empty;
+				return "Unknown error.";
 
 			string header = maxGroups > 1
 				? "One or more errors occured during parsing:"

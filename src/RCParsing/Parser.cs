@@ -204,12 +204,9 @@ namespace RCParsing
 		/// Creates a <see cref="ParsingException"/> from the current parser context.
 		/// </summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		private ParsingException ExceptionFromContext(ParserContext context)
+		private static ParsingException ExceptionFromContext(ParserContext context)
 		{
-			var errors = context.errors;
-			if (errors.Count == 0)
-				return new ParsingException(context, "Unknown error.");
-			return new ParsingException(context, errors);
+			return new ParsingException(context);
 		}
 
 		/// <summary>
