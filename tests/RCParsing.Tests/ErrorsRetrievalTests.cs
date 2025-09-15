@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using RCParsing.Building;
+using RCParsing.ParserRules;
 
 namespace RCParsing.Tests
 {
@@ -12,6 +13,39 @@ namespace RCParsing.Tests
 	/// </summary>
 	public class ErrorsRetrievalTests
 	{
+		private static void FillWithJSON(ParserBuilder builder)
+		{
+			builder.Settings.SkipWhitespaces();
+
+			builder.CreateRule("object")
+				.Literal("{")
+				.ZeroOrMoreSeparated(v => v.Rule("pair"), s => s.Literal(","))
+				.Literal("}");
+
+			builder.CreateRule("pair")
+				.Token("string")
+				.Literal(":")
+				.Rule("value");
+
+			builder.CreateRule("value")
+				.Choice(
+					c => c.Token("number"),
+					c => c.Token("string"),
+					c => c.Rule("array"),
+					c => c.Rule("object")
+				);
+
+			builder.CreateRule("array")
+				.Literal("[")
+				.ZeroOrMoreSeparated(v => v.Rule("value"), s => s.Literal(","))
+				.Literal("]");
+
+			builder.CreateToken("string").Literal("\"").EscapedTextPrefix('\\', '\"').Literal("\"").Pass(1);
+			builder.CreateToken("number").Number<double>();
+
+			builder.CreateMainRule().Rule("object").EOF();
+		}
+
 		[Fact]
 		public void NoGroupsWhenIgnoring()
 		{
@@ -26,6 +60,7 @@ namespace RCParsing.Tests
 			var exception = Assert.Throws<ParsingException>(() => parser.Parse("1a"));
 			Assert.Empty(exception.Groups);
 			Assert.Null(exception.Groups.Last);
+			Assert.Equal("Unknown error.", exception.Message);
 		}
 
 		[Fact]
@@ -66,36 +101,7 @@ namespace RCParsing.Tests
 		{
 			// We use simplified JSON here
 			var builder = new ParserBuilder();
-			builder.Settings.SkipWhitespaces();
-
-			builder.CreateRule("object")
-				.Literal("{")
-				.ZeroOrMoreSeparated(v => v.Rule("pair"), s => s.Literal(","))
-				.Literal("}");
-
-			builder.CreateRule("pair")
-				.Token("string")
-				.Literal(":")
-				.Rule("value");
-
-			builder.CreateRule("value")
-				.Choice(
-					c => c.Token("number"),
-					c => c.Token("string"),
-					c => c.Rule("array"),
-					c => c.Rule("object")
-				);
-
-			builder.CreateRule("array")
-				.Literal("[")
-				.ZeroOrMoreSeparated(v => v.Rule("value"), s => s.Literal(","))
-				.Literal("]");
-
-			builder.CreateToken("string").Literal("\"").EscapedTextPrefix('\\', '\"').Literal("\"").Pass(1);
-			builder.CreateToken("number").Number<double>();
-
-			builder.CreateMainRule().Rule("object").EOF();
-
+			FillWithJSON(builder);
 			var parser = builder.Build();
 
 			var invalidInput = """
@@ -236,6 +242,114 @@ namespace RCParsing.Tests
 			second = exception.Groups.First(g => g.Column == 4);
 			Assert.Contains("whitespaces", first.Expected.ToString());
 			Assert.Contains("=", second.Expected.ToString());
+		}
+
+		[Fact]
+		public void VariousTabSizes()
+		{
+			var builder = new ParserBuilder();
+			builder.Settings.SetTabSize(4);
+			FillWithJSON(builder);
+			var parser = builder.Build();
+
+			var invalidInput = """
+			{
+				"key1": [1 2],
+				"key2": "value"
+			}
+			""";
+			var exception = Assert.Throws<ParsingException>(() => parser.Parse(invalidInput));
+			Assert.Equal(16, exception.Groups.Last!.VisualColumn);
+
+			// NEXT
+
+			builder = new ParserBuilder();
+			builder.Settings.SetTabSize(2);
+			FillWithJSON(builder);
+			parser = builder.Build();
+
+			invalidInput = """
+			{
+				"key1": [1 2],
+				"key2": "value"
+			}
+			""";
+			exception = Assert.Throws<ParsingException>(() => parser.Parse(invalidInput));
+			Assert.Equal(14, exception.Groups.Last!.VisualColumn);
+
+			// NEXT
+
+			builder = new ParserBuilder();
+			builder.Settings.SetTabSize(2);
+			FillWithJSON(builder);
+			parser = builder.Build();
+
+			// Added space in second line
+			invalidInput = """
+			{
+			 	"key1": [1 2],
+				"key2": "value"
+			}
+			""";
+			exception = Assert.Throws<ParsingException>(() => parser.Parse(invalidInput));
+			Assert.Equal(14, exception.Groups.Last!.VisualColumn);
+
+			// NEXT
+
+			builder = new ParserBuilder();
+			builder.Settings.SetTabSize(2);
+			FillWithJSON(builder);
+			parser = builder.Build();
+
+			// Added another space in second line
+			invalidInput = """
+			{
+			  	"key1": [1 2],
+				"key2": "value"
+			}
+			""";
+			exception = Assert.Throws<ParsingException>(() => parser.Parse(invalidInput));
+			Assert.Equal(16, exception.Groups.Last!.VisualColumn);
+		}
+
+		[Fact]
+		public void StackTraceWriting()
+		{
+			var builder = new ParserBuilder();
+			builder.Settings.WriteStackTrace();
+			FillWithJSON(builder);
+			var parser = builder.Build();
+
+			var invalidInput = """
+			{
+				"key1": [1 2],
+				"key2": "value"
+			}
+			""";
+
+			// Should fail in the array, after the first number
+			var exception = Assert.Throws<ParsingException>(() => parser.Parse(invalidInput));
+
+			// It expects the ',' first, then ']' (that will not be checked here)
+			var stackTrace = exception.Groups.Last!.Expected[0].StackTrace!;
+
+			var frame0 = stackTrace[0]; // Token rule: literal ','
+			var frame1 = stackTrace[1]; // The list of values
+			var frame2 = stackTrace[2]; // 'array'
+			var frame3 = stackTrace[3]; // 'value'
+			var frame4 = stackTrace[4]; // 'pair'
+			var frame5 = stackTrace[5]; // The list of pairs
+			var frame6 = stackTrace[6]; // 'object'
+			var frame7 = stackTrace[7]; // Our main rule!
+
+			Assert.True(frame0.Rule is TokenParserRule);
+			Assert.True(frame1.Rule is SeparatedRepeatParserRule);
+			Assert.True(frame2.Rule is SequenceParserRule && frame2.Rule.Alias == "array");
+			Assert.True(frame3.Rule is ChoiceParserRule && frame3.Rule.Alias == "value");
+			Assert.True(frame4.Rule is SequenceParserRule && frame4.Rule.Alias == "pair");
+			Assert.True(frame5.Rule is SeparatedRepeatParserRule);
+			Assert.True(frame6.Rule is SequenceParserRule && frame6.Rule.Alias == "object");
+			Assert.True(frame7.Rule is SequenceParserRule && frame7.RuleId == parser.MainRuleId);
 		}
 	}
 }

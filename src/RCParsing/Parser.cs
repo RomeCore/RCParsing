@@ -45,6 +45,16 @@ namespace RCParsing
 		public ParserSettings GlobalSettings { get; }
 
 		/// <summary>
+		/// Gets the main rule ID that used by default, or -1 if not specified,
+		/// </summary>
+		public int MainRuleId => _mainRuleId;
+		
+		/// <summary>
+		/// Gets the main rule that used by default, if any.
+		/// </summary>
+		public ParserRule? MainRule => _mainRuleId == -1 ? null : Rules[_mainRuleId];
+
+		/// <summary>
 		/// Initializes a new instance of the <see cref="Parser"/> class.
 		/// </summary>
 		/// <param name="tokenPatterns">The token patterns to use. </param>
@@ -195,7 +205,7 @@ namespace RCParsing
 		/// <exception cref="ArgumentOutOfRangeException">Thrown if the provided ID is out of range.</exception>
 		public ParserRule GetRule(int id)
 		{
-			if (id >= 0 && id < TokenPatterns.Length)
+			if (id >= 0 && id < Rules.Length)
 				return Rules[id];
 			throw new ArgumentOutOfRangeException(nameof(id), "Invalid rule ID.");
 		}
@@ -300,7 +310,8 @@ namespace RCParsing
 
 			var skipRule = Rules[settings.skipRule];
 			var skipSettings = settings;
-			skipRule.AdvanceContext(ref context, ref skipSettings, out var childSkipSettings);
+			var skipContext = context;
+			skipRule.AdvanceContext(ref skipContext, ref skipSettings, out var childSkipSettings);
 			skipSettings.skipRule = -1;
 			childSkipSettings.skipRule = -1;
 			bool record = _recordSkippedRules;
@@ -430,7 +441,8 @@ namespace RCParsing
 
 			var skipRule = Rules[settings.skipRule];
 			var skipSettings = settings;
-			skipRule.AdvanceContext(ref context, ref skipSettings, out var childSkipSettings);
+			var skipContext = context;
+			skipRule.AdvanceContext(ref skipContext, ref skipSettings, out var childSkipSettings);
 			skipSettings.skipRule = -1;
 			childSkipSettings.skipRule = -1;
 			bool record = MainSettings.recordSkippedRules;

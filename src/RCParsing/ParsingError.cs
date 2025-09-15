@@ -37,7 +37,7 @@ namespace RCParsing
 		/// <summary>
 		/// Gets the stack frame that describes the state of the parser when the error occurred.
 		/// </summary>
-		public readonly ParserStackFrame? stackFrame;
+		public readonly IntermediateParserStackFrame? stackFrame;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="ParsingError"/> struct.
@@ -48,7 +48,7 @@ namespace RCParsing
 		/// <param name="elementId">The ID of the element (rule or token) that caused the error or been expected at this position.</param>
 		/// <param name="isToken">A value indicating whether the element that caused the error is a token.</param>
 		/// <param name="stackFrame">The stack frame that describes the state of the parser when the error occurred.</param>
-		public ParsingError(int position, int passedBarriers, string? message = null, int elementId = -1, bool isToken = false, ParserStackFrame? stackFrame = null)
+		public ParsingError(int position, int passedBarriers, string? message = null, int elementId = -1, bool isToken = false, IntermediateParserStackFrame? stackFrame = null)
 		{
 			this.position = position;
 			this.passedBarriers = passedBarriers;

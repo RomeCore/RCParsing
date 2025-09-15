@@ -43,12 +43,16 @@ namespace RCParsing.ParserRules
 
 		protected override void PreInitialize(ParserInitFlags initFlags)
 		{
+			base.PreInitialize(initFlags);
+
 			_pattern = Parser.TokenPatterns[TokenPatternId];
 			ParsedValueFactory ??= _pattern.DefaultParsedValueFactory;
 		}
 
 		protected override void Initialize(ParserInitFlags initFlags)
 		{
+			base.Initialize(initFlags);
+
 			ParsedRule ParseIgnoringBarriers(ref ParserContext ctx, ref ParserSettings stng, ref ParserSettings chStng)
 			{
 				var match = _pattern.Match(ctx.input, ctx.position, ctx.maxPosition, ctx.parserParameter);

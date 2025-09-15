@@ -225,6 +225,16 @@ namespace RCParsing.Building
 		}
 
 		/// <summary>
+		/// Sets the tab size, mostly used for debugging and better error display.
+		/// </summary>
+		/// <returns>Current instance for method chaining.</returns>
+		public ParserSettingsBuilder SetTabSize(int tabSize = 4)
+		{
+			_mainSettings.tabSize = tabSize;
+			return this;
+		}
+
+		/// <summary>
 		/// Sets the barrier tokens to be ignored while parsing.
 		/// </summary>
 		/// <param name="ignore">Whether to ignore barrier tokens or not.</param>

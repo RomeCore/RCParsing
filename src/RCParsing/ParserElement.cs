@@ -22,6 +22,11 @@ namespace RCParsing
 		/// Gets the aliases for this parser element.
 		/// </summary>
 		public ImmutableList<string> Aliases { get; internal set; } = ImmutableList<string>.Empty;
+		
+		/// <summary>
+		/// Gets the last alias for this parser element.
+		/// </summary>
+		public string? Alias => Aliases.Count != 0 ? Aliases[Aliases.Count - 1] : null;
 
 		/// <summary>
 		/// Gets the parser that contains this parser element.
