@@ -149,8 +149,8 @@ namespace RCParsing.Tests
 				.SkipWhitespaces();
 
 			// Add the 'INDENT' and 'DEDENT' barrier tokenizer
-			// 'INDENT' is emmited when indentation grows
-			// And 'DEDENT' is emmited when indentation cuts
+			// 'INDENT' is emitted when indentation grows
+			// And 'DEDENT' is emitted when indentation cuts
 			// They are indentation delta tokens
 			builder.BarrierTokenizers
 				.AddIndent(indentSize: 4, "INDENT", "DEDENT");
@@ -254,6 +254,9 @@ namespace RCParsing.Tests
 			Assert.Throws<ParsingException>(() => parser.ParseRule("custom_rule", "y", parameter: 'x'));
 		}
 
+		/// <summary>
+		/// The Habr article test
+		/// </summary>
 		[Fact]
 		public void SimplifiedYAML()
 		{

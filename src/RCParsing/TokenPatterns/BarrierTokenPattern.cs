@@ -33,7 +33,7 @@ namespace RCParsing.TokenPatterns
 
 		public override string ToStringOverride(int remainingDepth)
 		{
-			return $"virtual '{MainAlias}'";
+			return $"barrier '{MainAlias}'";
 		}
 
 		public override bool Equals(object? obj)

@@ -117,8 +117,10 @@ namespace RCParsing.TokenPatterns
 
 		public override string ToStringOverride(int remainingDepth)
 		{
+			if (MinLength == 1 && MaxLength == -1)
+				return "identifier";
 			string range = MaxLength == -1 ? $"{MinLength}.." : $"{MinLength}..{MaxLength}";
-			return $"identifier{{{range}}}";
+			return $"identifier[{range}]";
 		}
 
 		public override bool Equals(object? obj)

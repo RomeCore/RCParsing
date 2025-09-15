@@ -149,9 +149,9 @@ namespace RCParsing.ParserRules
 		{
 			string alias = Aliases.Count > 0 ? $" '{Aliases.Last()}'" : string.Empty;
 			if (!string.IsNullOrEmpty(alias))
-				return $"{alias} {GetTokenPattern(TokenPatternId).ToString(remainingDepth)}";
+				return $"{alias} {TokenPattern.ToString(remainingDepth)}";
 
-			return GetTokenPattern(TokenPatternId).ToString(remainingDepth);
+			return TokenPattern.ToString(remainingDepth);
 		}
 
 		public override string ToStackTraceString(int remainingDepth, int childIndex)

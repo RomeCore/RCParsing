@@ -54,7 +54,7 @@ namespace RCParsing.TokenPatterns
 
 		public override string ToStringOverride(int remainingDepth)
 		{
-			return $"regex: '{RegexPattern}'";
+			return $"regex '{RegexPattern}'";
 		}
 
 		public override bool Equals(object? obj)

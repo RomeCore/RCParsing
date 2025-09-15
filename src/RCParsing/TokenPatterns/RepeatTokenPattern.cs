@@ -100,8 +100,8 @@ namespace RCParsing.TokenPatterns
 		public override string ToStringOverride(int remainingDepth)
 		{
 			if (remainingDepth <= 0)
-				return $"repeat{{{MinCount}..{(MaxCount == -1 ? "" : MaxCount)}}}...";
-			return $"repeat{{{MinCount}..{(MaxCount == -1 ? "" : MaxCount)}}}: " +
+				return $"repeat[{MinCount}..{(MaxCount == -1 ? "" : MaxCount)}]...";
+			return $"repeat[{MinCount}..{(MaxCount == -1 ? "" : MaxCount)}]: " +
 				$"{GetTokenPattern(TokenPattern).ToString(remainingDepth - 1)}";
 		}
 

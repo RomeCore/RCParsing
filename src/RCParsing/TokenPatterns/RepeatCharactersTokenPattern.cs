@@ -67,7 +67,7 @@ namespace RCParsing.TokenPatterns
 
 		public override string ToStringOverride(int remainingDepth)
 		{
-			return $"repeat predicate{{{MinCount}..{(MaxCount == -1 ? "" : MaxCount)}}}";
+			return $"repeat predicate[{MinCount}..{(MaxCount == -1 ? "" : MaxCount)}]";
 		}
 
 		public override bool Equals(object? obj)

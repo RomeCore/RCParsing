@@ -10,6 +10,9 @@ using RCParsing.Building;
 
 namespace RCParsing.Tests
 {
+	/// <summary>
+	/// The first set of tests here, may contain lots of 'Regex' tokens.
+	/// </summary>
 	public class ParserRuleTests
 	{
 		[Fact]

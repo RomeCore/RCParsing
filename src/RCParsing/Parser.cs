@@ -98,6 +98,7 @@ namespace RCParsing
 			}
 
 			_mainRuleId = mainRuleId;
+			_recordSkippedRules = mainSettings.recordSkippedRules;
 
 			foreach (var pattern in tokenPatterns)
 			{
@@ -225,6 +226,47 @@ namespace RCParsing
 			throw ExceptionFromContext(context);
 		}
 
+		private readonly bool _recordSkippedRules;
+
+		static bool TrySkip(ref ParserContext context, ParserRule skipRule,
+				ref ParserSettings skipSettings, ref ParserSettings childSkipSettings, bool record)
+		{
+			if (context.position >= context.maxPosition)
+				return false;
+			if (context.shared.positionsToAvoidSkipping[context.position])
+				return false;
+
+			var parsedSkipRule = skipRule.Parse(context, skipSettings, childSkipSettings);
+			int newPosition = parsedSkipRule.startIndex + parsedSkipRule.length;
+
+			if (parsedSkipRule.success && newPosition != context.position)
+			{
+				context.position = newPosition;
+				if (record)
+					context.skippedRules.Add(parsedSkipRule);
+				return true;
+			}
+			return false;
+		}
+
+		static ParsedRule Parse(ParserRule rule, ref ParserContext context,
+				ref ParserSettings settings, ref ParserSettings childSettings)
+		{
+			var parsedRule = rule.Parse(context, settings, childSettings);
+			if (parsedRule.success)
+				context.successPositions[parsedRule.startIndex] = true;
+			return parsedRule;
+		}
+
+		static bool TryParse(ParserRule rule, ref ParserContext context,
+				ref ParserSettings settings, ref ParserSettings childSettings, out ParsedRule parsedRule)
+		{
+			parsedRule = rule.Parse(context, settings, childSettings);
+			if (parsedRule.success)
+				context.successPositions[parsedRule.startIndex] = true;
+			return parsedRule.success;
+		}
+
 		/// <summary>
 		/// Tries to parse the given input using the specified rule identifier and parser context.
 		/// </summary>
@@ -237,27 +279,10 @@ namespace RCParsing
 			var rule = Rules[ruleId];
 			rule.AdvanceContext(ref context, ref settings, out var childSettings);
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			ParsedRule Parse()
-			{
-				var parsedRule = rule.Parse(context, settings, childSettings);
-				if (parsedRule.success && parsedRule.startIndex < context.maxPosition)
-					context.successPositions[parsedRule.startIndex] = true;
-				return parsedRule;
-			}
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			bool TryParse(out ParsedRule result)
-			{
-				var parsedRule = rule.Parse(context, settings, childSettings);
-				if (parsedRule.success && parsedRule.startIndex < context.maxPosition)
-					context.successPositions[parsedRule.startIndex] = true;
-				result = parsedRule;
-				return parsedRule.success;
-			}
-
-			if (settings.skipRule == -1 || settings.skippingStrategy == ParserSkippingStrategy.Default)
-				return Parse();
+			if (settings.skipRule == -1 ||
+				settings.skippingStrategy == ParserSkippingStrategy.Default ||
+				context.positionsToAvoidSkipping[context.position])
+				return Parse(rule, ref context, ref settings, ref childSettings);
 
 			// Skip rule preparation
 
@@ -266,74 +291,49 @@ namespace RCParsing
 			skipRule.AdvanceContext(ref context, ref skipSettings, out var childSkipSettings);
 			skipSettings.skipRule = -1;
 			childSkipSettings.skipRule = -1;
-			bool record = MainSettings.recordSkippedRules;
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			bool TrySkip()
-			{
-				if (context.position >= context.maxPosition)
-					return false;
-				if (context.shared.positionsToAvoidSkipping[context.position])
-					return false;
-
-				var parsedSkipRule = skipRule.Parse(context, skipSettings, childSkipSettings);
-				int newPosition = parsedSkipRule.startIndex + parsedSkipRule.length;
-
-				if (parsedSkipRule.success && newPosition != context.position)
-				{
-					context.position = newPosition;
-					if (record)
-						context.skippedRules.Add(parsedSkipRule);
-					return true;
-				}
-				return false;
-			}
+			bool record = _recordSkippedRules;
 
 			switch (settings.skippingStrategy)
 			{
 				case ParserSkippingStrategy.SkipBeforeParsing:
 
-					if (TrySkip())
-					{
-						if (context.position < context.maxPosition)
-							context.shared.positionsToAvoidSkipping[context.position] = true;
-					}
-					return Parse();
+					TrySkip(ref context, skipRule, ref skipSettings, ref childSkipSettings, record);
+					context.shared.positionsToAvoidSkipping[context.position] = true;
+					return Parse(rule, ref context, ref settings, ref childSettings);
 
 				case ParserSkippingStrategy.SkipBeforeParsingLazy:
 
 					// Alternate: Skip -> TryParse -> Skip -> TryParse ... until TryParse succeeds
 					while (true)
 					{
-						if (TrySkip())
+						if (TrySkip(ref context, skipRule, ref skipSettings, ref childSkipSettings, record))
 						{
-							if (TryParse(out var res))
+							if (TryParse(rule, ref context, ref settings, ref childSettings, out var res))
 							{
 								return res;
 							}
 							continue;
 						}
-						return Parse();
+						return Parse(rule, ref context, ref settings, ref childSettings);
 					}
 
 				case ParserSkippingStrategy.SkipBeforeParsingGreedy:
 
-					int c = 0;
-					while (TrySkip()) { c++; }
-					if (c > 0 && context.position < context.maxPosition)
-						context.shared.positionsToAvoidSkipping[context.position] = true;
-					return Parse();
+					while (TrySkip(ref context, skipRule, ref skipSettings, ref childSkipSettings, record))
+					{
+					}
+					context.shared.positionsToAvoidSkipping[context.position] = true;
+					return Parse(rule, ref context, ref settings, ref childSettings);
 
 				case ParserSkippingStrategy.TryParseThenSkip:
 
-					if (TryParse(out var result))
+					if (TryParse(rule, ref context, ref settings, ref childSettings, out var result))
 						return result;
 
-					if (TrySkip())
+					if (TrySkip(ref context, skipRule, ref skipSettings, ref childSkipSettings, record))
 					{
-						if (context.position < context.maxPosition)
-							context.shared.positionsToAvoidSkipping[context.position] = true;
-						return Parse();
+						context.shared.positionsToAvoidSkipping[context.position] = true;
+						return Parse(rule, ref context, ref settings, ref childSettings);
 					}
 
 					return ParsedRule.Fail;
@@ -342,37 +342,37 @@ namespace RCParsing
 
 					// First try parse (handled above in TryParseThenSkip pattern),
 					// then alternate Skip -> TryParse -> Skip -> TryParse ... until success or nothing consumes
-					if (TryParse(out var firstResult))
+					if (TryParse(rule, ref context, ref settings, ref childSettings, out var firstResult))
 					{
 						return firstResult;
 					}
 
 					while (true)
 					{
-						if (TrySkip())
+						if (TrySkip(ref context, skipRule, ref skipSettings, ref childSkipSettings, record))
 						{
-							if (TryParse(out var res))
+							if (TryParse(rule, ref context, ref settings, ref childSettings, out var res))
 							{
 								return res;
 							}
 							continue;
 						}
-						if (context.position < context.maxPosition)
-							context.shared.positionsToAvoidSkipping[context.position] = true;
+						context.shared.positionsToAvoidSkipping[context.position] = true;
 						return ParsedRule.Fail;
 					}
 
 				case ParserSkippingStrategy.TryParseThenSkipGreedy:
 
 					// Try parse; if failed, greedily skip then parse once
-					if (TryParse(out var firstRes))
+					if (TryParse(rule, ref context, ref settings, ref childSettings, out var firstRes))
 						return firstRes;
 
-					while (TrySkip()) { }
-					if (context.position < context.maxPosition)
-						context.shared.positionsToAvoidSkipping[context.position] = true;
+					while (TrySkip(ref context, skipRule, ref skipSettings, ref childSkipSettings, record))
+					{
+					}
+					context.shared.positionsToAvoidSkipping[context.position] = true;
 
-					return Parse();
+					return Parse(rule, ref context, ref settings, ref childSettings);
 
 				default:
 					throw new ParsingException(context, "Invalid skipping strategy.");
@@ -392,30 +392,13 @@ namespace RCParsing
 			var rule = Rules[ruleId];
 			rule.AdvanceContext(ref context, ref settings, out var childSettings);
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			ParsedRule Parse()
-			{
-				var parsedRule = rule.Parse(context, settings, childSettings);
-				if (parsedRule.success && parsedRule.startIndex < context.maxPosition)
-					context.successPositions[parsedRule.startIndex] = true;
-				return parsedRule;
-			}
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			bool TryParse(out ParsedRule result)
-			{
-				var parsedRule = rule.Parse(context, settings, childSettings);
-				if (parsedRule.success && parsedRule.startIndex < context.maxPosition)
-					context.successPositions[parsedRule.startIndex] = true;
-				result = parsedRule;
-				return parsedRule.success;
-			}
-
-			if (settings.skipRule == -1 || settings.skippingStrategy == ParserSkippingStrategy.Default)
+			if (settings.skipRule == -1 ||
+				settings.skippingStrategy == ParserSkippingStrategy.Default ||
+				context.positionsToAvoidSkipping[context.position])
 			{
 				while (context.position < context.maxPosition)
 				{
-					var parsed = Parse();
+					var parsed = Parse(rule, ref context, ref settings, ref childSettings);
 
 					if (parsed.success)
 					{
@@ -440,27 +423,6 @@ namespace RCParsing
 			childSkipSettings.skipRule = -1;
 			bool record = MainSettings.recordSkippedRules;
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			bool TrySkip()
-			{
-				if (context.position >= context.maxPosition)
-					return false;
-				if (context.shared.positionsToAvoidSkipping[context.position])
-					return false;
-
-				var parsedSkipRule = skipRule.Parse(context, skipSettings, childSkipSettings);
-				int newPosition = parsedSkipRule.startIndex + parsedSkipRule.length;
-
-				if (parsedSkipRule.success && newPosition != context.position)
-				{
-					context.position = newPosition;
-					if (record)
-						context.skippedRules.Add(parsedSkipRule);
-					return true;
-				}
-				return false;
-			}
-
 			switch (settings.skippingStrategy)
 			{
 				case ParserSkippingStrategy.SkipBeforeParsing:
@@ -468,12 +430,9 @@ namespace RCParsing
 					while (context.position < context.maxPosition)
 					{
 						// Skip -> Parse
-						if (TrySkip())
-						{
-							if (context.position < context.maxPosition)
-								context.shared.positionsToAvoidSkipping[context.position] = true;
-						}
-						var parsed = Parse();
+						TrySkip(ref context, skipRule, ref skipSettings, ref childSkipSettings, record);
+						context.shared.positionsToAvoidSkipping[context.position] = true;
+						var parsed = Parse(rule, ref context, ref settings, ref childSettings);
 
 						if (parsed.success)
 						{
@@ -495,9 +454,9 @@ namespace RCParsing
 					while (context.position < context.maxPosition)
 					{
 						// Alternate: Skip -> TryParse -> Skip -> TryParse ... until TryParse succeeds
-						if (TrySkip())
+						if (TrySkip(ref context, skipRule, ref skipSettings, ref childSkipSettings, record))
 						{
-							if (TryParse(out var parsed))
+							if (TryParse(rule, ref context, ref settings, ref childSettings, out var parsed))
 							{
 								yield return parsed;
 								if (overlap)
@@ -508,10 +467,9 @@ namespace RCParsing
 							}
 						}
 
-						if (TryParse(out var parsed1))
+						if (TryParse(rule, ref context, ref settings, ref childSettings, out var parsed1))
 						{
-							if (context.position < context.maxPosition)
-								context.shared.positionsToAvoidSkipping[context.position] = true;
+							context.shared.positionsToAvoidSkipping[context.position] = true;
 
 							yield return parsed1;
 							if (overlap)
@@ -521,8 +479,7 @@ namespace RCParsing
 							continue;
 						}
 
-						if (context.position < context.maxPosition)
-							context.shared.positionsToAvoidSkipping[context.position] = true;
+						context.shared.positionsToAvoidSkipping[context.position] = true;
 						context.position++;
 					}
 					yield break;
@@ -532,13 +489,12 @@ namespace RCParsing
 					while (context.position < context.maxPosition)
 					{
 						// Skip ->  Skip -> Skip ... until Skip fails
-						while (TrySkip())
+						while (TrySkip(ref context, skipRule, ref skipSettings, ref childSkipSettings, record))
 						{
 						}
-						if (context.position < context.maxPosition)
-							context.shared.positionsToAvoidSkipping[context.position] = true;
+						context.shared.positionsToAvoidSkipping[context.position] = true;
 
-						if (TryParse(out var parsed))
+						if (TryParse(rule, ref context, ref settings, ref childSettings, out var parsed))
 						{
 							yield return parsed;
 							if (overlap)
@@ -556,7 +512,7 @@ namespace RCParsing
 					// Parse -> Skip -> Parse
 					while (context.position < context.maxPosition)
 					{
-						if (TryParse(out var parsed))
+						if (TryParse(rule, ref context, ref settings, ref childSettings, out var parsed))
 						{
 							yield return parsed;
 							if (overlap)
@@ -566,12 +522,11 @@ namespace RCParsing
 							continue;
 						}
 
-						if (TrySkip())
+						if (TrySkip(ref context, skipRule, ref skipSettings, ref childSkipSettings, record))
 						{
-							if (context.position < context.maxPosition)
-								context.shared.positionsToAvoidSkipping[context.position] = true;
+							context.shared.positionsToAvoidSkipping[context.position] = true;
 
-							if (TryParse(out parsed))
+							if (TryParse(rule, ref context, ref settings, ref childSettings, out parsed))
 							{
 								yield return parsed;
 								if (overlap)
@@ -582,8 +537,7 @@ namespace RCParsing
 							}
 						}
 
-						if (context.position < context.maxPosition)
-							context.shared.positionsToAvoidSkipping[context.position] = true;
+						context.shared.positionsToAvoidSkipping[context.position] = true;
 						context.position++;
 					}
 					yield break;
@@ -594,7 +548,7 @@ namespace RCParsing
 					// then alternate Skip -> TryParse -> Skip -> TryParse ... until success or nothing consumes
 					while (context.position < context.maxPosition)
 					{
-						if (TryParse(out var parsed))
+						if (TryParse(rule, ref context, ref settings, ref childSettings, out var parsed))
 						{
 							yield return parsed;
 							if (overlap)
@@ -604,9 +558,9 @@ namespace RCParsing
 							continue;
 						}
 
-						while (TrySkip())
+						while (TrySkip(ref context, skipRule, ref skipSettings, ref childSkipSettings, record))
 						{
-							if (TryParse(out parsed))
+							if (TryParse(rule, ref context, ref settings, ref childSettings, out parsed))
 							{
 								yield return parsed;
 								if (overlap)
@@ -617,8 +571,7 @@ namespace RCParsing
 							}
 						}
 
-						if (context.position < context.maxPosition)
-							context.shared.positionsToAvoidSkipping[context.position] = true;
+						context.shared.positionsToAvoidSkipping[context.position] = true;
 						context.position++;
 					}
 					yield break;
@@ -628,7 +581,7 @@ namespace RCParsing
 					// Try parse; if failed, greedily skip then parse once
 					while (context.position < context.maxPosition)
 					{
-						if (TryParse(out var parsed))
+						if (TryParse(rule, ref context, ref settings, ref childSettings, out var parsed))
 						{
 							yield return parsed;
 							if (overlap)
@@ -638,13 +591,12 @@ namespace RCParsing
 							continue;
 						}
 
-						while (TrySkip())
+						while (TrySkip(ref context, skipRule, ref skipSettings, ref childSkipSettings, record))
 						{
 						}
-						if (context.position < context.maxPosition)
-							context.shared.positionsToAvoidSkipping[context.position] = true;
+						context.shared.positionsToAvoidSkipping[context.position] = true;
 
-						if (TryParse(out parsed))
+						if (TryParse(rule, ref context, ref settings, ref childSettings, out parsed))
 						{
 							yield return parsed;
 							if (overlap)
