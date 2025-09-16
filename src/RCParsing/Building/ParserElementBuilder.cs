@@ -381,6 +381,19 @@ namespace RCParsing.Building
 		/// <summary>
 		/// Adds a regular expression token to the current sequence.
 		/// </summary>
+		/// <param name="regex">The constructed regular expression, it's recommended to prepend the '\G' into a pattern.</param>
+		/// <param name="factory">The factory function to create a parsed value.</param>
+		/// <param name="config">The action to configure the local settings for this token.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T Regex(Regex regex, Func<ParsedRuleResultBase, object?>? factory = null,
+			Action<ParserLocalSettingsBuilder>? config = null)
+		{
+			return Token(new RegexTokenPattern(regex), factory, config);
+		}
+
+		/// <summary>
+		/// Adds a regular expression token to the current sequence.
+		/// </summary>
 		/// <param name="regex">The regular expression.</param>
 		/// <param name="options">The regular expression options. <see cref="RegexOptions.Compiled"/> by default.</param>
 		/// <param name="factory">The factory function to create a parsed value.</param>

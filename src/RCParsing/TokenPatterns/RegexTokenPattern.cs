@@ -14,9 +14,9 @@ namespace RCParsing.TokenPatterns
 	public class RegexTokenPattern : TokenPattern
 	{
 		/// <summary>
-		/// The regular expression pattern string to match.
+		/// The regular expression pattern string to match. If this token is constructed directly (without providing a pattern), returns <see langword="null"/>.
 		/// </summary>
-		public string RegexPattern { get; }
+		public string? RegexPattern { get; }
 		
 		/// <summary>
 		/// The regular expression to match.
@@ -34,6 +34,18 @@ namespace RCParsing.TokenPatterns
 				throw new ArgumentException("Pattern cannot be null or empty.", nameof(pattern));
 			RegexPattern = pattern;
 			Regex = new Regex($"\\G{RegexPattern}", options);
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="RegexTokenPattern"/> class.
+		/// </summary>
+		/// <param name="regex">The constructed regular expression, it's recommended to prepend the '\G' into a pattern.</param>
+		public RegexTokenPattern(Regex regex)
+		{
+			if (regex == null)
+				throw new ArgumentNullException(nameof(regex));
+			RegexPattern = null;
+			Regex = regex;
 		}
 
 		protected override HashSet<char>? FirstCharsCore => null;
