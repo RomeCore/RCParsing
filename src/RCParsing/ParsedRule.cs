@@ -27,6 +27,11 @@ namespace RCParsing
 		public bool excludeFromAst { readonly get => element.excludeFromAst; set => element.excludeFromAst = value; }
 
 		/// <summary>
+		/// The value indicating whether this rule represents a token.
+		/// </summary>
+		public bool isToken;
+
+		/// <summary>
 		/// The ID of the child token pattern that was parsed.
 		/// </summary>
 		public int ruleId { readonly get => element.elementId; set => element.elementId = value; }
@@ -52,19 +57,9 @@ namespace RCParsing
 		public object? intermediateValue { readonly get => element.intermediateValue; set => element.intermediateValue = value; }
 
 		/// <summary>
-		/// The ID of the rule that was parsed. Or -1 if it is not a token.
-		/// </summary>
-		public int tokenId;
-
-		/// <summary>
 		/// Gets the parsed element information associated with this rule.
 		/// </summary>
 		public ParsedElement element;
-
-		/// <summary>
-		/// Gets the value indicating whether this rule represents a token.
-		/// </summary>
-		public readonly bool isToken => tokenId != -1;
 
 		/// <summary>
 		/// Gets the occurency index of this rule within its parent rule. -1 by default.
@@ -82,7 +77,6 @@ namespace RCParsing
 		public static readonly ParsedRule Fail = new()
 		{
 			element = ParsedElement.Fail,
-			tokenId = -1,
 			ruleId = -1
 		};
 
@@ -90,19 +84,18 @@ namespace RCParsing
 		/// Creates a parsed rule that represents success token.
 		/// </summary>
 		/// <param name="ruleId">The ID of the rule that was parsed.</param>
-		/// <param name="tokenId">The ID of the token pattern that was parsed.</param>
 		/// <param name="startIndex">The starting index of the token in the input text.</param>
 		/// <param name="length">The length of the token in the input text.</param>
 		/// <param name="passedBarriers">The count of passed barrier tokens.</param>
 		/// <param name="intermediateValue">The intermediate value associated with this token.</param>
 		/// <returns>A parsed rule that represents success token.</returns>
-		public static ParsedRule Token(int ruleId, int tokenId, int startIndex, int length, int passedBarriers, object? intermediateValue)
+		public static ParsedRule Token(int ruleId, int startIndex, int length, int passedBarriers, object? intermediateValue)
 		{
 			return new ParsedRule
 			{
+				isToken = true,
 				element = new ParsedElement(ruleId, startIndex, length, intermediateValue),
 				passedBarriers = passedBarriers,
-				tokenId = tokenId,
 				occurency = -1
 			};
 		}
@@ -123,7 +116,6 @@ namespace RCParsing
 			{
 				element = new ParsedElement(ruleId, startIndex, length, intermediateValue),
 				passedBarriers = passedBarriers,
-				tokenId = -1,
 				occurency = -1,
 				children = children
 			};

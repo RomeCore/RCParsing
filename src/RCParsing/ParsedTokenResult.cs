@@ -93,23 +93,6 @@ namespace RCParsing
 		}
 
 		/// <summary>
-		/// Initializes a new instance of the <see cref="ParsedTokenResult"/> class.
-		/// </summary>
-		/// <param name="parent">The parent result of this rule, if any.</param>
-		/// <param name="context">The parser context used for parsing.</param>
-		/// <param name="result">The parsed token object containing the result of the parse.</param>
-		/// <param name="tokenId">The unique identifier for the token that was parsed.</param>
-		public ParsedTokenResult(ParsedRuleResultBase? parent, ParserContext context, ParsedElement result, int tokenId)
-		{
-			Parent = parent;
-			Context = context;
-			result.elementId = tokenId;
-			Result = result;
-
-			_textLazy = new Utils.LazyValue<string>(() => Context.input.Substring(Result.startIndex, Result.length));
-		}
-
-		/// <summary>
 		/// Gets the intermediate value associated with this token as an instance of type <typeparamref name="T"/>.
 		/// </summary>
 		/// <typeparam name="T">The type of value to retrieve.</typeparam>

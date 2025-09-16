@@ -6,6 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using RCParsing.ParserRules;
 using RCParsing.TokenPatterns;
 using RCParsing.Utils;
 
@@ -91,8 +92,23 @@ namespace RCParsing
 		public override ParsedRule Result { get; }
 
 		private ParsedTokenResult? _token;
-		public override ParsedTokenResult? Token => Result.isToken ? _token ??=
-			new ParsedTokenResult(this, Context, Result.element, Result.tokenId) : null;
+		public override ParsedTokenResult? Token
+		{
+			get
+			{
+				if (_token != null)
+					return _token;
+
+				if (IsToken)
+				{
+					var element = Result.element;
+					var context = Context;
+					element.elementId = TokenId;
+					return _token = new ParsedTokenResult(this, context, Result.element);
+				}
+				return null;
+			}
+		}
 
 		private string _text;
 		public override string Text => _text ??= Context.input.Substring(Result.startIndex, Result.length);
@@ -154,10 +170,11 @@ namespace RCParsing
 			if (optimization.HasFlag(ParseTreeOptimization.RemoveWhitespaceNodes))
 				rawChildren = rawChildren.Where(c => !context.input.AsSpan(c.startIndex, c.length).IsWhiteSpace());
 
+			var tokenId = rule.isToken ? ((TokenParserRule)link.context.parser.Rules[rule.ruleId]).TokenPatternId : -1;
 			if (optimization.HasFlag(ParseTreeOptimization.RemovePureLiterals))
 				rawChildren = rawChildren.Where(c => !(c.isToken && (
-					context.parser.TokenPatterns[c.tokenId] is LiteralTokenPattern ||
-					context.parser.TokenPatterns[c.tokenId] is LiteralCharTokenPattern)));
+					context.parser.TokenPatterns[tokenId] is LiteralTokenPattern ||
+					context.parser.TokenPatterns[tokenId] is LiteralCharTokenPattern)));
 
 			if (optimization.HasFlag(ParseTreeOptimization.MergeSingleChildRules))
 			{
