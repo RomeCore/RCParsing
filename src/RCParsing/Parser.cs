@@ -421,6 +421,34 @@ namespace RCParsing
 			var rule = Rules[ruleId];
 			rule.AdvanceContext(ref context, ref settings, out var childSettings);
 
+			if (MainSettings.useOptimizedWhitespaceSkip)
+			{
+				while (context.position < context.maxPosition)
+				{
+					if (char.IsWhiteSpace(context.input[context.position]))
+					{
+						context.position++;
+						continue;
+					}
+
+					var parsed = Parse(rule, ref context, ref settings, ref childSettings);
+
+					if (parsed.success)
+					{
+						yield return parsed;
+						if (overlap)
+							context.position++;
+						else
+							context.position = parsed.startIndex + parsed.length;
+					}
+					else
+					{
+						context.position++;
+					}
+				}
+				yield break;
+			}
+
 			if (settings.skipRule == -1 ||
 				settings.skippingStrategy == ParserSkippingStrategy.Default ||
 				context.positionsToAvoidSkipping[context.position])

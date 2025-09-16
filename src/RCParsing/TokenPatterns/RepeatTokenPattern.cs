@@ -67,32 +67,53 @@ namespace RCParsing.TokenPatterns
 
 		public override ParsedElement Match(string input, int position, int barrierPosition, object? parserParameter)
 		{
-			var tokens = new List<ParsedElement>();
-			var initialPosition = position;
-
-			for (int i = 0; i < MaxCount || MaxCount == -1; i++)
+			if (PassageFunction == null)
 			{
-				ParsedElement matchedToken = _pattern.Match(input, position, barrierPosition, parserParameter);
-				if (!matchedToken.success || matchedToken.startIndex + matchedToken.length == position)
+				var initialPosition = position;
+				int count = 0;
+
+				for (int i = 0; i < MaxCount || MaxCount == -1; i++)
 				{
-					break;
+					ParsedElement matchedToken = _pattern.Match(input, position, barrierPosition, parserParameter);
+					if (!matchedToken.success || matchedToken.startIndex + matchedToken.length == position)
+					{
+						break;
+					}
+
+					position = matchedToken.startIndex + matchedToken.length;
+					count++;
 				}
 
-				position = matchedToken.startIndex + matchedToken.length;
-				tokens.Add(matchedToken);
+				if (count < this.MinCount)
+					return ParsedElement.Fail;
+
+				return new ParsedElement(Id, initialPosition, position - initialPosition);
 			}
-
-			if (tokens.Count < this.MinCount)
-				return ParsedElement.Fail;
-
-			object? intermediateValue = null;
-			if (PassageFunction != null)
+			else
 			{
-				var intermediateValues = new ListSelectWrapper<ParsedElement, object?>(tokens, t => t.intermediateValue);
-				intermediateValue = PassageFunction(intermediateValues);
-			}
+				var tokens = new List<ParsedElement>();
+				var initialPosition = position;
 
-			return new ParsedElement(Id, initialPosition, position - initialPosition, intermediateValue);
+				for (int i = 0; i < MaxCount || MaxCount == -1; i++)
+				{
+					ParsedElement matchedToken = _pattern.Match(input, position, barrierPosition, parserParameter);
+					if (!matchedToken.success || matchedToken.startIndex + matchedToken.length == position)
+					{
+						break;
+					}
+
+					position = matchedToken.startIndex + matchedToken.length;
+					tokens.Add(matchedToken);
+				}
+
+				if (tokens.Count < this.MinCount)
+					return ParsedElement.Fail;
+
+				var intermediateValues = new ListSelectWrapper<ParsedElement, object?>(tokens, t => t.intermediateValue);
+				var intermediateValue = PassageFunction(intermediateValues);
+
+				return new ParsedElement(Id, initialPosition, position - initialPosition, intermediateValue);
+			}
 		}
 
 

@@ -51,29 +51,47 @@ namespace RCParsing.TokenPatterns
 
 		public override ParsedElement Match(string input, int position, int barrierPosition, object? parserParameter)
 		{
-			var initialPosition = position;
-			ParsedElement[]? tokens = null;
-
-			for (int i = 0; i < _patterns.Length; i++)
+			if (PassageFunction == null)
 			{
-				var pattern = _patterns[i];
-				var token = pattern.Match(input, position, barrierPosition, parserParameter);
-				if (!token.success)
-					return ParsedElement.Fail;
+				var initialPosition = position;
 
-				tokens ??= new ParsedElement[TokenPatterns.Length];
-				tokens[i] = token;
-				position = token.startIndex + token.length;
+				for (int i = 0; i < _patterns.Length; i++)
+				{
+					var pattern = _patterns[i];
+					var token = pattern.Match(input, position, barrierPosition, parserParameter);
+					if (!token.success)
+						return ParsedElement.Fail;
+
+					position = token.startIndex + token.length;
+				}
+
+				return new ParsedElement(Id, initialPosition, position - initialPosition);
 			}
-
-			object? intermediateValue = null;
-			if (PassageFunction != null)
+			else
 			{
+				var initialPosition = position;
+				ParsedElement[]? tokens = null;
+
+				for (int i = 0; i < _patterns.Length; i++)
+				{
+					var pattern = _patterns[i];
+					var token = pattern.Match(input, position, barrierPosition, parserParameter);
+					if (!token.success)
+						return ParsedElement.Fail;
+
+					if (PassageFunction != null)
+					{
+						tokens ??= new ParsedElement[TokenPatterns.Length];
+						tokens[i] = token;
+					}
+					position = token.startIndex + token.length;
+				}
+
 				var intermediateValues = new ListSelectWrapper<ParsedElement, object?>(tokens, t => t.intermediateValue);
-				intermediateValue = PassageFunction(intermediateValues);
-			}
+				var intermediateValue = PassageFunction(intermediateValues);
 
-			return new ParsedElement(Id, initialPosition, position - initialPosition, intermediateValue);
+				return new ParsedElement(Id, initialPosition, position - initialPosition, intermediateValue);
+			}
 		}
 
 

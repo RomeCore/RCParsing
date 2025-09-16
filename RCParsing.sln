@@ -20,6 +20,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RCParsing.Benchmarks.Expres
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SyntaxColorizer", "samples\SyntaxColorizer\SyntaxColorizer.csproj", "{5961F887-4672-488F-96D3-014BCCCED3E5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RCParsing.Benchmarks.Regex", "benchmarks\RCParsing.Benchmarks.Regex\RCParsing.Benchmarks.Regex.csproj", "{FC6F949F-A4D2-41C6-B553-A13E1AECCCCC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -50,6 +52,10 @@ Global
 		{5961F887-4672-488F-96D3-014BCCCED3E5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5961F887-4672-488F-96D3-014BCCCED3E5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5961F887-4672-488F-96D3-014BCCCED3E5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FC6F949F-A4D2-41C6-B553-A13E1AECCCCC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FC6F949F-A4D2-41C6-B553-A13E1AECCCCC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FC6F949F-A4D2-41C6-B553-A13E1AECCCCC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FC6F949F-A4D2-41C6-B553-A13E1AECCCCC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
