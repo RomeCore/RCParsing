@@ -79,7 +79,12 @@ namespace RCParsing
 		/// <summary>
 		/// Gets a parsed rule that represents failure.
 		/// </summary>
-		public static ParsedRule Fail { get; } = new ParsedRule { element = ParsedElement.Fail, tokenId = -1 };
+		public static readonly ParsedRule Fail = new()
+		{
+			element = ParsedElement.Fail,
+			tokenId = -1,
+			ruleId = -1
+		};
 
 		/// <summary>
 		/// Creates a parsed rule that represents success token.

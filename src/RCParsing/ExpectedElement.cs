@@ -19,7 +19,7 @@
 		/// <summary>
 		/// Gets the last alias of the parser element that was expected.
 		/// </summary>
-		public string? Alias => Element.Aliases.Count > 0 ? Element.Aliases[0] : null;
+		public string? Alias => Element.Alias;
 
 		/// <summary>
 		/// Gets the error message that was ommited when element was failed to parse.

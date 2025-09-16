@@ -31,7 +31,8 @@ namespace RCParsing
 		/// <summary>
 		/// Gets the token result if the parsed result represents a token. Otherwise, returns null.
 		/// </summary>
-		public virtual ParsedTokenResult? Token => IsToken ? new ParsedTokenResult(this, Context, Result.element, Result.tokenId) : null;
+		public virtual ParsedTokenResult? Token => IsToken ?
+			new ParsedTokenResult(this, Context, Result.element, Result.tokenId) : null;
 
 		/// <summary>
 		/// Gets value indicating whether the parsing operation was successful.

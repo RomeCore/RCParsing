@@ -71,7 +71,7 @@ namespace RCParsing
 		/// <summary>
 		/// Gets a parsed element that represents failure.
 		/// </summary>
-		public static readonly ParsedElement Fail = new ParsedElement
+		public static readonly ParsedElement Fail = new()
 		{
 			success = false,
 			excludeFromAst = false,

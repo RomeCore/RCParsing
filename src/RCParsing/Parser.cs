@@ -5,6 +5,8 @@ using System.Data;
 using System.Data.Common;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using RCParsing.ParserRules;
+using RCParsing.TokenPatterns;
 
 namespace RCParsing
 {
@@ -128,7 +130,6 @@ namespace RCParsing
 			}
 
 			_mainRuleId = mainRuleId;
-			_recordSkippedRules = MainSettings.recordSkippedRules;
 
 			ParserInitFlags TokenFactory(TokenPattern token)
 			{
@@ -248,14 +249,12 @@ namespace RCParsing
 			throw ExceptionFromContext(context);
 		}
 
-		private readonly bool _recordSkippedRules;
-
 		static bool TrySkip(ref ParserContext context, ParserRule skipRule,
 				ref ParserSettings skipSettings, ref ParserSettings childSkipSettings, bool record)
 		{
-			if (context.position >= context.maxPosition)
-				return false;
 			if (context.shared.positionsToAvoidSkipping[context.position])
+				return false;
+			if (context.position >= context.maxPosition)
 				return false;
 
 			var parsedSkipRule = skipRule.Parse(context, skipSettings, childSkipSettings);
@@ -301,6 +300,13 @@ namespace RCParsing
 			var rule = Rules[ruleId];
 			rule.AdvanceContext(ref context, ref settings, out var childSettings);
 
+			if (MainSettings.useOptimizedWhitespaceSkip)
+			{
+				while (context.position < context.maxPosition && char.IsWhiteSpace(context.input[context.position]))
+					context.position++;
+				return Parse(rule, ref context, ref settings, ref childSettings);
+			}
+
 			if (settings.skipRule == -1 ||
 				settings.skippingStrategy == ParserSkippingStrategy.Default ||
 				context.positionsToAvoidSkipping[context.position])
@@ -314,7 +320,7 @@ namespace RCParsing
 			skipRule.AdvanceContext(ref skipContext, ref skipSettings, out var childSkipSettings);
 			skipSettings.skipRule = -1;
 			childSkipSettings.skipRule = -1;
-			bool record = _recordSkippedRules;
+			bool record = MainSettings.recordSkippedRules;
 
 			switch (settings.skippingStrategy)
 			{

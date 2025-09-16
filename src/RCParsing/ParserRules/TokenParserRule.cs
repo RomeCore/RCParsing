@@ -133,18 +133,6 @@ namespace RCParsing.ParserRules
 
 		public override ParsedRule Parse(ParserContext context, ParserSettings settings, ParserSettings childSettings)
 		{
-			if (parseIgnoringBarriers)
-			{
-				var match = _pattern.Match(context.input, context.position, context.maxPosition, context.parserParameter);
-				if (!match.success)
-				{
-					RecordError(ref context, ref settings, "Failed to parse token");
-					return ParsedRule.Fail;
-				}
-
-				return ParsedRule.Token(Id, TokenPatternId, match.startIndex, match.length, context.passedBarriers, match.intermediateValue);
-			}
-
 			return parseFunction(ref context, ref settings, ref childSettings);
 		}
 

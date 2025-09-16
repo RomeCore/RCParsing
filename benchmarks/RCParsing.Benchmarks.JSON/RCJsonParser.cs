@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -89,7 +90,12 @@ namespace RCParsing.Benchmarks.JSON
 		static RCJsonParser()
 		{
 			var builder = new ParserBuilder();
-			builder.Settings.UseInlining().UseFirstCharacterMatch().IgnoreErrors().UseLightAST();
+			builder.Settings
+				.UseInlining() // Reduces abstraction level, redirecting calls from Parser directly to rule
+				.UseFirstCharacterMatch() // Enables lookahead based on first-character sets
+				.IgnoreErrors() // Disables error recording
+				.UseLightAST() // Enables a more lightweight version of AST, reducing allocations
+				.SkipWhitespacesOptimized(); // Enables direct whitespace skipping in Parser
 			FillWithRules(builder);
 			parser = builder.Build();
 		}

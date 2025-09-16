@@ -13,7 +13,7 @@ namespace RCParsing.Benchmarks.Expressions
 
 		static void FillWithRules(ParserBuilder builder)
 		{
-			builder.Settings.SkipWhitespaces();
+			builder.Settings.SkipWhitespacesOptimized();
 
 			builder.CreateRule("term")
 				.Choice(

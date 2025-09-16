@@ -19,6 +19,7 @@ namespace RCParsing.Benchmarks.DifferentConfigurations
 	{
 		private readonly Parser
 			defaultParser,
+			whitespaceOptParser,
 			inlinedParser,
 			lookaheadParser,
 			ignoreErrorsParser,
@@ -39,6 +40,11 @@ namespace RCParsing.Benchmarks.DifferentConfigurations
 			builder.Settings.UseInlining();
 			RCJsonParser.FillWithRules(builder);
 			inlinedParser = builder.Build();
+			
+			builder = new ParserBuilder();
+			builder.Settings.SkipWhitespacesOptimized();
+			RCJsonParser.FillWithRules(builder);
+			whitespaceOptParser = builder.Build();
 
 			builder = new ParserBuilder();
 			builder.Settings.UseFirstCharacterMatch();
@@ -71,7 +77,7 @@ namespace RCParsing.Benchmarks.DifferentConfigurations
 			memoizedParser = builder.Build();
 
 			builder = new ParserBuilder();
-			builder.Settings.UseInlining().UseFirstCharacterMatch().IgnoreErrors();
+			builder.Settings.UseInlining().UseFirstCharacterMatch().IgnoreErrors().SkipWhitespacesOptimized();
 			RCJsonParser.FillWithRules(builder);
 			fastestParser = builder.Build();
 
@@ -93,6 +99,12 @@ namespace RCParsing.Benchmarks.DifferentConfigurations
 			var ast = defaultParser.Parse(TestJSONs.bigJson); // Do not calculate value from AST
 		}
 
+		[Benchmark, BenchmarkCategory("json")]
+		public void OptimizedWhitespaces()
+		{
+			var value = whitespaceOptParser.Parse<object>(TestJSONs.bigJson);
+		}
+		
 		[Benchmark, BenchmarkCategory("json")]
 		public void Inlined()
 		{
