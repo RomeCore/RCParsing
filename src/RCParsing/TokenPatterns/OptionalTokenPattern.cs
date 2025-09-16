@@ -39,9 +39,9 @@ namespace RCParsing.TokenPatterns
 		{
 			var token = _pattern.Match(input, position, barrierPosition, parserParameter);
 			if (token.success)
-				return new ParsedElement(Id, token.startIndex, token.length, token.intermediateValue);
+				return new ParsedElement(token.startIndex, token.length, token.intermediateValue);
 			else
-				return new ParsedElement(Id, position, 0);
+				return new ParsedElement(position, 0);
 		}
 
 

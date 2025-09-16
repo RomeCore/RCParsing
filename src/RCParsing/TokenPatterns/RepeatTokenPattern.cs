@@ -87,7 +87,7 @@ namespace RCParsing.TokenPatterns
 				if (count < this.MinCount)
 					return ParsedElement.Fail;
 
-				return new ParsedElement(Id, initialPosition, position - initialPosition);
+				return new ParsedElement(initialPosition, position - initialPosition);
 			}
 			else
 			{
@@ -112,7 +112,7 @@ namespace RCParsing.TokenPatterns
 				var intermediateValues = new ListSelectWrapper<ParsedElement, object?>(tokens, t => t.intermediateValue);
 				var intermediateValue = PassageFunction(intermediateValues);
 
-				return new ParsedElement(Id, initialPosition, position - initialPosition, intermediateValue);
+				return new ParsedElement(initialPosition, position - initialPosition, intermediateValue);
 			}
 		}
 

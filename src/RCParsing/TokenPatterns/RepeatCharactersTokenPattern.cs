@@ -62,7 +62,7 @@ namespace RCParsing.TokenPatterns
 			if (count < MinCount)
 				return ParsedElement.Fail;
 
-			return new ParsedElement(Id, initialPosition, count);
+			return new ParsedElement(initialPosition, count);
 		}
 
 		public override string ToStringOverride(int remainingDepth)

@@ -21,12 +21,10 @@ namespace RCParsing.TokenPatterns
 		{
 			int initialPosition = position;
 			while (position < barrierPosition && char.IsWhiteSpace(input[position]))
-			{
 				position++;
-			}
 
 			if (initialPosition < position)
-				return new ParsedElement(Id, initialPosition, position - initialPosition);
+				return new ParsedElement(initialPosition, position - initialPosition);
 
 			return ParsedElement.Fail;
 		}

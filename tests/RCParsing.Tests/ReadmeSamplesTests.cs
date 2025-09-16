@@ -239,7 +239,7 @@ namespace RCParsing.Tests
 					return ParsedElement.Fail;
 
 				// Capture the character
-				return new ParsedElement(elementId: self.Id,
+				return new ParsedElement(
 					startIndex: start,
 					length: 1,
 					intermediateValue: "my intermediate value!");

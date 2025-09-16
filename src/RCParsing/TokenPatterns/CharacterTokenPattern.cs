@@ -31,7 +31,7 @@ namespace RCParsing.TokenPatterns
 		{
 			if (position < barrierPosition && CharacterPredicate(input[position]))
 			{
-				return new ParsedElement(Id, position, 1);
+				return new ParsedElement(position, 1);
 			}
 
 			return ParsedElement.Fail;

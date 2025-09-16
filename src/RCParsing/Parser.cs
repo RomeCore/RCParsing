@@ -758,7 +758,7 @@ namespace RCParsing
 				throw new ArgumentException("Invalid token pattern alias", nameof(tokenPatternAlias));
 
 			var parsedToken = MatchToken(tokenPatternId, context.input, context.position, context.maxPosition, parameter);
-			return new ParsedTokenResult(null, context, parsedToken);
+			return new ParsedTokenResult(null, context, parsedToken, tokenPatternId);
 		}
 
 		/// <summary>
@@ -778,7 +778,7 @@ namespace RCParsing
 
 			var context = CreateContext(input, parameter);
 			var parsedToken = MatchToken(tokenPatternId, context.input, context.position, context.maxPosition, parameter);
-			return new ParsedTokenResult(null, context, parsedToken);
+			return new ParsedTokenResult(null, context, parsedToken, tokenPatternId);
 		}
 
 		/// <summary>
@@ -799,7 +799,7 @@ namespace RCParsing
 
 			var context = CreateContext(input, startIndex, parameter);
 			var parsedToken = MatchToken(tokenPatternId, context.input, context.position, context.maxPosition, parameter);
-			return new ParsedTokenResult(null, context, parsedToken);
+			return new ParsedTokenResult(null, context, parsedToken, tokenPatternId);
 		}
 
 		/// <summary>
@@ -821,7 +821,7 @@ namespace RCParsing
 
 			var context = CreateContext(input, startIndex, length, parameter);
 			var parsedToken = MatchToken(tokenPatternId, context.input, context.position, context.maxPosition, parameter);
-			return new ParsedTokenResult(null, context, parsedToken);
+			return new ParsedTokenResult(null, context, parsedToken, tokenPatternId);
 		}
 
 

@@ -62,7 +62,7 @@ namespace RCParsing.TokenPatterns
 		{
 			if (_root.TryGetLongestMatch(input, position, barrierPosition, out var matchedLiteral, out int matchedLength))
 			{
-				return new ParsedElement(Id, position, matchedLength, matchedLiteral);
+				return new ParsedElement(position, matchedLength, matchedLiteral);
 			}
 
 			return ParsedElement.Fail;

@@ -112,7 +112,7 @@ namespace RCParsing.TokenPatterns
 				return ParsedElement.Fail;
 			}
 
-			return new ParsedElement(Id, startPos, length);
+			return new ParsedElement(startPos, length);
 		}
 
 		public override string ToStringOverride(int remainingDepth)

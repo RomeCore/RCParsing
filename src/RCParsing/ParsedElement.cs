@@ -7,6 +7,8 @@ using RCParsing.TokenPatterns;
 
 namespace RCParsing
 {
+#pragma warning disable IDE1006 // Naming styles
+
 	/// <summary>
 	/// Represents a parsed element in the input text.
 	/// </summary>
@@ -15,17 +17,7 @@ namespace RCParsing
 		/// <summary>
 		/// The value indicates whether the parsing was successful.
 		/// </summary>
-		public bool success;
-
-		/// <summary>
-		/// The value indicating that this element should be excluded from AST.
-		/// </summary>
-		public bool excludeFromAst;
-
-		/// <summary>
-		/// The ID of the element that was parsed.
-		/// </summary>
-		public int elementId;
+		public readonly bool success => startIndex >= 0;
 
 		/// <summary>
 		/// The starting index of the element in the input text.
@@ -54,15 +46,11 @@ namespace RCParsing
 		/// <summary>
 		/// Initializes a new instance of the successful <see cref="ParsedElement"/> struct.
 		/// </summary>
-		/// <param name="elementId">The ID of the element that was parsed.</param>
 		/// <param name="startIndex">The starting index of the element in the input text.</param>
 		/// <param name="length">The length of the element in the input text.</param>
 		/// <param name="intermediateValue">The intermediate value associated with this token.</param>
-		public ParsedElement(int elementId, int startIndex, int length, object? intermediateValue = null)
+		public ParsedElement(int startIndex, int length, object? intermediateValue = null)
 		{
-			this.success = true;
-			this.excludeFromAst = false;
-			this.elementId = elementId;
 			this.startIndex = startIndex;
 			this.length = length;
 			this.intermediateValue = intermediateValue;
@@ -71,14 +59,9 @@ namespace RCParsing
 		/// <summary>
 		/// Gets a parsed element that represents failure.
 		/// </summary>
-		public static readonly ParsedElement Fail = new()
+		public static readonly ParsedElement Fail = new ParsedElement
 		{
-			success = false,
-			excludeFromAst = false,
-			elementId = -1,
-			startIndex = -1,
-			length = 0,
-			intermediateValue = null
+			startIndex = -1
 		};
 	}
 }

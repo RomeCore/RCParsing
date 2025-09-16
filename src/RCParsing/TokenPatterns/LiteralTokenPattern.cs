@@ -46,7 +46,7 @@ namespace RCParsing.TokenPatterns
 				return ParsedElement.Fail;
 
 			if (input.AsSpan(position, Literal.Length).Equals(Literal.AsSpan(), Comparison))
-				return new ParsedElement(Id, position, Literal.Length, Literal);
+				return new ParsedElement(position, Literal.Length, Literal);
 
 			return ParsedElement.Fail;
 		}

@@ -390,7 +390,7 @@ namespace RCParsing.TokenPatterns
 					break;
 			}
 
-			return new ParsedElement(Id, startPos, length, value);
+			return new ParsedElement(startPos, length, value);
 		}
 
 		public override string ToStringOverride(int remainingDepth)

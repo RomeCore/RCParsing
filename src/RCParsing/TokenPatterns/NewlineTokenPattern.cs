@@ -23,8 +23,8 @@ namespace RCParsing.TokenPatterns
 			{
 				int nextPos = position + 1;
 				if (nextPos < barrierPosition && input[nextPos] == '\n')
-					return new ParsedElement(Id, position, 2);
-				return new ParsedElement(Id, position, 1);
+					return new ParsedElement(position, 2);
+				return new ParsedElement(position, 1);
 			}
 
 			return ParsedElement.Fail;

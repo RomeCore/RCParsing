@@ -41,8 +41,7 @@ namespace RCParsing
 				{
 					var element = Result.element;
 					var context = Context;
-					element.elementId = TokenId;
-					return new ParsedTokenResult(this, context, Result.element);
+					return new ParsedTokenResult(this, context, Result.element, TokenId);
 				}
 				return null;
 			}
@@ -56,12 +55,12 @@ namespace RCParsing
 		/// <summary>
 		/// Gets value indicating whether the parsed result represents a token.
 		/// </summary>
-		public bool IsToken => Result.isToken;
+		public bool IsToken => Context.parser.Rules[RuleId] is TokenParserRule;
 
 		/// <summary>
 		/// Gets the token pattern ID if this parsed rule represents a token.
 		/// </summary>
-		public int TokenId => Result.isToken ? ((TokenParserRule)Context.parser.Rules[Result.ruleId]).TokenPatternId : -1;
+		public int TokenId => Context.parser.Rules[RuleId] is TokenParserRule trule ? trule.TokenPatternId : -1;
 
 		/// <summary>
 		/// Gets the unique identifier for the parser rule that was parsed.

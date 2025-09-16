@@ -59,7 +59,7 @@ namespace RCParsing.TokenPatterns
 			if (!match.Success || match.Index != position)
 				return ParsedElement.Fail;
 			else
-				return new ParsedElement(Id, position, match.Length, match);
+				return new ParsedElement(position, match.Length, match);
 		}
 
 

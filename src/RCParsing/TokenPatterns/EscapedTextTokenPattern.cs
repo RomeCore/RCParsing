@@ -260,7 +260,7 @@ namespace RCParsing.TokenPatterns
 				return ParsedElement.Fail;
 			}
 
-			return new ParsedElement(Id, start, length, sb.ToString());
+			return new ParsedElement(start, length, sb.ToString());
 		}
 
 

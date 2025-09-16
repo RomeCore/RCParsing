@@ -103,8 +103,7 @@ namespace RCParsing
 				{
 					var element = Result.element;
 					var context = Context;
-					element.elementId = TokenId;
-					return _token = new ParsedTokenResult(this, context, Result.element);
+					return _token = new ParsedTokenResult(this, context, Result.element, TokenId);
 				}
 				return null;
 			}
@@ -170,11 +169,17 @@ namespace RCParsing
 			if (optimization.HasFlag(ParseTreeOptimization.RemoveWhitespaceNodes))
 				rawChildren = rawChildren.Where(c => !context.input.AsSpan(c.startIndex, c.length).IsWhiteSpace());
 
-			var tokenId = rule.isToken ? ((TokenParserRule)link.context.parser.Rules[rule.ruleId]).TokenPatternId : -1;
 			if (optimization.HasFlag(ParseTreeOptimization.RemovePureLiterals))
-				rawChildren = rawChildren.Where(c => !(c.isToken && (
-					context.parser.TokenPatterns[tokenId] is LiteralTokenPattern ||
-					context.parser.TokenPatterns[tokenId] is LiteralCharTokenPattern)));
+			{
+				rawChildren = rawChildren.Where(c =>
+				{
+					var tokenId = link.context.parser.Rules[c.ruleId] is TokenParserRule trule ? trule.TokenPatternId : -1;
+					bool isToken = tokenId != -1;
+					return !(isToken && (
+						context.parser.TokenPatterns[tokenId] is LiteralTokenPattern ||
+						context.parser.TokenPatterns[tokenId] is LiteralCharTokenPattern));
+				});
+			}
 
 			if (optimization.HasFlag(ParseTreeOptimization.MergeSingleChildRules))
 			{

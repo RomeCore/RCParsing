@@ -52,14 +52,14 @@ namespace RCParsing.TokenPatterns
 			{
 				if (Literal == input[position])
 				{
-					return new ParsedElement(Id, position, 1, Literal);
+					return new ParsedElement(position, 1, Literal);
 				}
 			}
 			else
 			{
 				if (input.AsSpan(position, 1).Equals(charPool.AsSpan(), Comparison))
 				{
-					return new ParsedElement(Id, position, 1, Literal);
+					return new ParsedElement(position, 1, Literal);
 				}
 			}
 

@@ -46,10 +46,7 @@ namespace RCParsing.TokenPatterns
 			{
 				var token = Parser.TokenPatterns[tokenId].Match(input, position, barrierPosition, parserParameter);
 				if (token.success)
-				{
-					token.elementId = Id;
 					return token;
-				}
 			}
 
 			return ParsedElement.Fail;

@@ -19,22 +19,12 @@ namespace RCParsing
 		/// <summary>
 		/// The value indicates whether the parsing was successful.
 		/// </summary>
-		public bool success { readonly get => element.success; set => element.success = value; }
-
-		/// <summary>
-		/// The value indicating that this element should be excluded from AST.
-		/// </summary>
-		public bool excludeFromAst { readonly get => element.excludeFromAst; set => element.excludeFromAst = value; }
-
-		/// <summary>
-		/// The value indicating whether this rule represents a token.
-		/// </summary>
-		public bool isToken;
+		public readonly bool success => element.success;
 
 		/// <summary>
 		/// The ID of the child token pattern that was parsed.
 		/// </summary>
-		public int ruleId { readonly get => element.elementId; set => element.elementId = value; }
+		public int ruleId;
 
 		/// <summary>
 		/// The starting index of the rule in the input text.
@@ -93,10 +83,9 @@ namespace RCParsing
 		{
 			return new ParsedRule
 			{
-				isToken = true,
-				element = new ParsedElement(ruleId, startIndex, length, intermediateValue),
-				passedBarriers = passedBarriers,
-				occurency = -1
+				ruleId = ruleId,
+				element = new ParsedElement(startIndex, length, intermediateValue),
+				passedBarriers = passedBarriers
 			};
 		}
 
@@ -114,9 +103,9 @@ namespace RCParsing
 		{
 			return new ParsedRule
 			{
-				element = new ParsedElement(ruleId, startIndex, length, intermediateValue),
+				ruleId = ruleId,
+				element = new ParsedElement(startIndex, length, intermediateValue),
 				passedBarriers = passedBarriers,
-				occurency = -1,
 				children = children
 			};
 		}

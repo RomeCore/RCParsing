@@ -26,7 +26,7 @@ namespace RCParsing.TokenPatterns
 			}
 
 			if (initialPosition < position)
-				return new ParsedElement(Id, initialPosition, position - initialPosition);
+				return new ParsedElement(initialPosition, position - initialPosition);
 
 			return ParsedElement.Fail;
 		}
