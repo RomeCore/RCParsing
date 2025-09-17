@@ -369,5 +369,108 @@ namespace RCParsing.Building
 		{
 			return Choice(choices, null, null);
 		}
+
+		/// <summary>
+		/// Adds a repeatable token pattern to the current sequence with specified minimum and maximum occurrences, separated by a provided separator.
+		/// </summary>
+		/// <param name="builderAction">The token builder action to build the repeatable token.</param>
+		/// <param name="separatorBuilderAction">The token builder action to build the separator token.</param>
+		/// <param name="min">The minimum number of times the token can be repeated.</param>
+		/// <param name="max">The maximum number of times the token can be repeated. -1 indicates no upper limit.</param>
+		/// <param name="allowTrailingSeparator">Whether to allow a trailing separator.</param>
+		/// <param name="includeSeparatorsInResult">Whether separators should be included in the result intermediate values to put in the passage function.</param>
+		/// <param name="factory">The factory function to create a parsed value.</param>
+		/// <param name="config">The action to configure the local settings for this token.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if builder action have not added any elements.</exception>
+		public TokenBuilder RepeatSeparated(Action<TokenBuilder> builderAction,
+			Action<TokenBuilder> separatorBuilderAction, int min, int max,
+			bool allowTrailingSeparator = false, bool includeSeparatorsInResult = false,
+			Func<ParsedRuleResultBase, object?>? factory = null,
+			Action<ParserLocalSettingsBuilder>? config = null)
+		{
+			var builder = new TokenBuilder(ParserBuilder);
+			builderAction(builder);
+			if (!builder.CanBeBuilt)
+				throw new ParserBuildingException("Repeated child token pattern cannot be empty.");
+
+			var separatorBuilder = new TokenBuilder(ParserBuilder);
+			separatorBuilderAction(separatorBuilder);
+			if (!separatorBuilder.CanBeBuilt)
+				throw new ParserBuildingException("Separator child token pattern cannot be empty.");
+
+			return Token(new BuildableSeparatedRepeatTokenPattern
+			{
+				Child = builder.BuildingPattern.Value,
+				Separator = separatorBuilder.BuildingPattern.Value,
+				AllowTrailingSeparator = allowTrailingSeparator,
+				IncludeSeparatorsInResult = includeSeparatorsInResult,
+				MinCount = min,
+				MaxCount = max
+			}, factory, config);
+		}
+
+		/// <summary>
+		/// Adds a repeatable token pattern to the current sequence with specified minimum occurrences, separated by a provided separator.
+		/// </summary>
+		/// <param name="builderAction">The token builder action to build the repeatable token.</param>
+		/// <param name="separatorBuilderAction">The token builder action to build the separator token.</param>
+		/// <param name="min">The minimum number of times the token can be repeated.</param>
+		/// <param name="allowTrailingSeparator">Whether to allow a trailing separator.</param>
+		/// <param name="includeSeparatorsInResult">Whether separators should be included in the result intermediate values to put in the passage function.</param>
+		/// <param name="factory">The factory function to create a parsed value.</param>
+		/// <param name="config">The action to configure the local settings for this token.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if builder action have not added any elements.</exception>
+		public TokenBuilder RepeatSeparated(Action<TokenBuilder> builderAction,
+			Action<TokenBuilder> separatorBuilderAction, int min,
+			bool allowTrailingSeparator = false, bool includeSeparatorsInResult = false,
+			Func<ParsedRuleResultBase, object?>? factory = null,
+			Action<ParserLocalSettingsBuilder>? config = null)
+		{
+			return RepeatSeparated(builderAction, separatorBuilderAction, min, -1,
+				allowTrailingSeparator, includeSeparatorsInResult, factory, config);
+		}
+
+		/// <summary>
+		/// Adds a repeatable token pattern to the current sequence that matches zero or more occurrences of the child pattern, separated by a provided separator.
+		/// </summary>
+		/// <param name="builderAction">The token builder action to build the repeatable token.</param>
+		/// <param name="separatorBuilderAction">The token builder action to build the separator token.</param>
+		/// <param name="allowTrailingSeparator">Whether to allow a trailing separator.</param>
+		/// <param name="includeSeparatorsInResult">Whether separators should be included in the result intermediate values to put in the passage function.</param>
+		/// <param name="factory">The factory function to create a parsed value.</param>
+		/// <param name="config">The action to configure the local settings for this token.</param>
+		/// <exception cref="ParserBuildingException">Thrown if builder action have not added any elements.</exception>
+		public TokenBuilder ZeroOrMoreSeparated(Action<TokenBuilder> builderAction,
+			Action<TokenBuilder> separatorBuilderAction,
+			bool allowTrailingSeparator = false, bool includeSeparatorsInResult = false,
+			Func<ParsedRuleResultBase, object?>? factory = null,
+			Action<ParserLocalSettingsBuilder>? config = null)
+		{
+			return RepeatSeparated(builderAction, separatorBuilderAction, 0, -1,
+				allowTrailingSeparator, includeSeparatorsInResult, factory, config);
+		}
+
+		/// <summary>
+		/// Adds a repeatable token pattern to the current sequence that matches one or more occurrences of the child pattern, separated by a provided separator.
+		/// </summary>
+		/// <param name="builderAction">The token builder action to build the repeatable token.</param>
+		/// <param name="separatorBuilderAction">The token builder action to build the separator token.</param>
+		/// <param name="allowTrailingSeparator">Whether to allow a trailing separator.</param>
+		/// <param name="includeSeparatorsInResult">Whether separators should be included in the result intermediate values to put in the passage function.</param>
+		/// <param name="factory">The factory function to create a parsed value.</param>
+		/// <param name="config">The action to configure the local settings for this token.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if builder action have not added any elements.</exception>
+		public TokenBuilder OneOrMoreSeparated(Action<TokenBuilder> builderAction,
+			Action<TokenBuilder> separatorBuilderAction,
+			bool allowTrailingSeparator = false, bool includeSeparatorsInResult = false,
+			Func<ParsedRuleResultBase, object?>? factory = null,
+			Action<ParserLocalSettingsBuilder>? config = null)
+		{
+			return RepeatSeparated(builderAction, separatorBuilderAction, 1, -1,
+				allowTrailingSeparator, includeSeparatorsInResult, factory, config);
+		}
 	}
 }

@@ -35,7 +35,8 @@ namespace RCParsing.Building.TokenPatterns
 		public bool AllowTrailingSeparator { get; set; } = false;
 
 		/// <summary>
-		/// Gets or sets a value indicating whether separators should be included in the result children rules.
+		/// Gets or sets a value indicating whether separators should be included in the
+		/// result intermediate values to provide them to passage function.
 		/// </summary>
 		public bool IncludeSeparatorsInResult { get; set; } = false;
 
