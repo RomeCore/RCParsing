@@ -4,7 +4,7 @@ using System.Data;
 using System.Linq;
 using System.Text;
 
-namespace RCParsing.TokenPatterns
+namespace RCParsing.TokenPatterns.Combinators
 {
 	/// <summary>
 	/// A token pattern that repeats a specified element token with a separator token between elements.

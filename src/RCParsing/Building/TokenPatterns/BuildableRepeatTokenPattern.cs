@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using RCParsing.TokenPatterns;
+using RCParsing.TokenPatterns.Combinators;
 using RCParsing.Utils;
 
 namespace RCParsing.Building.TokenPatterns

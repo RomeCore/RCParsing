@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.Text;
 using System.Text.RegularExpressions;
 using RCParsing.TokenPatterns;
+using RCParsing.TokenPatterns.Combinators;
 
 namespace RCParsing
 {

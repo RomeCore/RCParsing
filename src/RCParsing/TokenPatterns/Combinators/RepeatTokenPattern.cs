@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using RCParsing.Utils;
 
-namespace RCParsing.TokenPatterns
+namespace RCParsing.TokenPatterns.Combinators
 {
 	/// <summary>
 	/// Represents a token pattern that repeats a specific token multiple times.
@@ -88,7 +88,7 @@ namespace RCParsing.TokenPatterns
 					count++;
 				}
 
-				if (count < this.MinCount)
+				if (count < MinCount)
 					return ParsedElement.Fail;
 
 				return new ParsedElement(initialPosition, position - initialPosition);
@@ -111,7 +111,7 @@ namespace RCParsing.TokenPatterns
 					tokens.Add(matchedToken);
 				}
 
-				if (tokens.Count < this.MinCount)
+				if (tokens.Count < MinCount)
 					return ParsedElement.Fail;
 
 				var intermediateValues = new ListSelectWrapper<ParsedElement, object?>(tokens, t => t.intermediateValue);

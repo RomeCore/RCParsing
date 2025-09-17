@@ -5,7 +5,7 @@ using System.Linq;
 using System.Net;
 using RCParsing.Utils;
 
-namespace RCParsing.TokenPatterns
+namespace RCParsing.TokenPatterns.Combinators
 {
 	/// <summary>
 	/// Matches a sequence of token patterns in order.

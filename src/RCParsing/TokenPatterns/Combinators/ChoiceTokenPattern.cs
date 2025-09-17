@@ -5,7 +5,7 @@ using System.Collections.Immutable;
 using System.Text;
 using RCParsing.Utils;
 
-namespace RCParsing.TokenPatterns
+namespace RCParsing.TokenPatterns.Combinators
 {
 	/// <summary>
 	/// Matches one of several token patterns.
