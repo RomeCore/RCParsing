@@ -12,7 +12,7 @@ using Newtonsoft.Json.Linq;
 namespace RCParsing.Benchmarks.JSON
 {
 	[MemoryDiagnoser]
-	[SimpleJob(RuntimeMoniker.Net80, iterationCount: 5, warmupCount: 2)]
+	[SimpleJob(RuntimeMoniker.Net80, iterationCount: 7, warmupCount: 2)]
 	[GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory)]
 	public class ParserCombinatorJSONBenchmarks
 	{
@@ -29,12 +29,12 @@ namespace RCParsing.Benchmarks.JSON
 		}
 
 		[Benchmark, BenchmarkCategory("short")]
-		public void JsonShort_RCParsing_CombinatorMode()
+		public void JsonShort_RCParsing_Token()
 		{
 			var value = RCCombinatorJsonParser.Parse(TestJSONs.shortJson);
 		}
 
-		/*[Benchmark, BenchmarkCategory("short")]
+		[Benchmark, BenchmarkCategory("short")]
 		public void JsonShort_SystemTextJson()
 		{
 			var value = JsonNode.Parse(TestJSONs.shortJson);
@@ -44,7 +44,7 @@ namespace RCParsing.Benchmarks.JSON
 		public void JsonShort_NewtonsoftJson()
 		{
 			var value = JToken.Parse(TestJSONs.shortJson);
-		}*/
+		}
 
 		[Benchmark, BenchmarkCategory("short")]
 		public void JsonShort_Parlot()
@@ -84,7 +84,7 @@ namespace RCParsing.Benchmarks.JSON
 			var value = RCCombinatorJsonParser.Parse(TestJSONs.bigJson);
 		}
 
-		/*[Benchmark, BenchmarkCategory("big")]
+		[Benchmark, BenchmarkCategory("big")]
 		public void JsonBig_SystemTextJson()
 		{
 			var value = JsonNode.Parse(TestJSONs.bigJson);
@@ -94,7 +94,7 @@ namespace RCParsing.Benchmarks.JSON
 		public void JsonBig_NewtonsoftJson()
 		{
 			var value = JToken.Parse(TestJSONs.bigJson);
-		}*/
+		}
 
 		[Benchmark, BenchmarkCategory("big")]
 		public void JsonBig_Parlot()

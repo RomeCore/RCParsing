@@ -21,7 +21,7 @@ namespace RCParsing.Benchmarks.Expressions
 		}
 		
 		[Benchmark, BenchmarkCategory("short")]
-		public void ExpressionShort_RCParsing_CombinatorMode()
+		public void ExpressionShort_RCParsing_Token()
 		{
 			var value = RCCombinatorExpressionParser.Parse(TestExpressions.shortExpression);
 		}
