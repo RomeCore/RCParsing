@@ -185,10 +185,16 @@ namespace RCParsing
 		/// <param name="position">The starting position in the input string to match against.</param>
 		/// <param name="barrierPosition">The position in the input string to stop matching at.</param>
 		/// <param name="parserParameter">The optional parameter to pass to the token pattern. Can be used to pass additional information to the custom token patterns.</param>
+		/// <param name="calculateIntermediateValue">
+		/// Whether to calculate intermediate value.
+		/// Will be <see langword="false"/> when it will be ignored and should not be calculated.
+		/// </param>
 		/// <returns>The parsed token containing the result of the match operation or <see cref="ParsedElement.Fail"/> if the match failed.</returns>
-		protected ParsedElement TryMatchToken(int tokenId, string input, int position, int barrierPosition, object? parserParameter)
+		protected ParsedElement TryMatchToken(int tokenId, string input, int position,
+			int barrierPosition, object? parserParameter, bool calculateIntermediateValue)
 		{
-			return Parser.MatchToken(tokenId, input, position, barrierPosition, parserParameter);
+			return Parser.MatchToken(tokenId, input, position, barrierPosition,
+				parserParameter, calculateIntermediateValue);
 		}
 
 		/// <summary>

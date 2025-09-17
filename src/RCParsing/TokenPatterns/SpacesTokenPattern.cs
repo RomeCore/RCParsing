@@ -16,8 +16,10 @@ namespace RCParsing.TokenPatterns
 		{
 		}
 
+
+
 		public override ParsedElement Match(string input, int position, int barrierPosition,
-			object? parserParameter)
+			object? parserParameter, bool calculateIntermediateValue)
 		{
 			int initialPosition = position;
 			while (position < barrierPosition && (input[position] == ' ' || input[position] == '\t'))
@@ -30,6 +32,8 @@ namespace RCParsing.TokenPatterns
 
 			return ParsedElement.Fail;
 		}
+
+
 
 		protected override HashSet<char>? FirstCharsCore => new(new[] { ' ', '\t' });
 

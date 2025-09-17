@@ -204,11 +204,12 @@ namespace RCParsing.TokenPatterns
 
 
 
-		public override ParsedElement Match(string input, int position, int barrierPosition, object? parserParameter)
+		public override ParsedElement Match(string input, int position, int barrierPosition,
+			object? parserParameter, bool calculateIntermediateValue)
 		{
 			int start = position;
 			int pos = start;
-			var sb = new StringBuilder();
+			var sb = calculateIntermediateValue ? new StringBuilder() : null;
 
 			while (pos < barrierPosition)
 			{
@@ -216,7 +217,7 @@ namespace RCParsing.TokenPatterns
 				//    If found — apply replacement and continue.
 				if (_escape.TryGetLongestMatch(input, pos, barrierPosition, out var replacement, out int escapeConsumed))
 				{
-					sb.Append(replacement as string ?? string.Empty);
+					sb?.Append(replacement as string ?? string.Empty);
 					pos += escapeConsumed;
 					continue;
 				}
@@ -248,7 +249,7 @@ namespace RCParsing.TokenPatterns
 				}
 
 				// 4) Append normal character and advance.
-				sb.Append(input[pos]);
+				sb?.Append(input[pos]);
 				pos++;
 			}
 
@@ -260,7 +261,7 @@ namespace RCParsing.TokenPatterns
 				return ParsedElement.Fail;
 			}
 
-			return new ParsedElement(start, length, sb.ToString());
+			return new ParsedElement(start, length, sb?.ToString());
 		}
 
 

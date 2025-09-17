@@ -17,7 +17,7 @@ namespace RCParsing.TokenPatterns
 		}
 
 		public override ParsedElement Match(string input, int position, int barrierPosition,
-			object? parserParameter)
+			object? parserParameter, bool calculateIntermediateValue)
 		{
 			if (position < barrierPosition && input[position] == '\r')
 			{

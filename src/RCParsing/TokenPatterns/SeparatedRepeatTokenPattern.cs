@@ -96,27 +96,20 @@ namespace RCParsing.TokenPatterns
 
 
 
-		public override ParsedElement Match(string input, int position, int barrierPosition, object? parserParameter)
+		private ParsedElement MatchWithoutCalculation(string input, int position, int barrierPosition, object? parserParameter)
 		{
-			List<object>? elements = null;
 			var initialPosition = position;
-
-			// Try to parse the first element (if required - error if not found; if optional - may return empty result)
-			var firstElement = _token.Match(input, position, barrierPosition, parserParameter);
+			var firstElement = _token.Match(input, position, barrierPosition, parserParameter, false);
 			if (!firstElement.success)
 			{
-				// No first element found
-				// If minCount == 0 — OK: empty sequence (but first check if there's a separator at the start)
 				if (MinCount == 0)
 				{
-					// If there is a separator at the start — this is an error (unexpected leading separator)
-					var sepAtStart = _separator.Match(input, position, barrierPosition, parserParameter);
+					var sepAtStart = _separator.Match(input, position, barrierPosition,
+						parserParameter, true);
 					if (sepAtStart.success)
 						return ParsedElement.Fail;
 
-					// No elements and no separator — return successful empty result
-					return new ParsedElement(initialPosition, position - initialPosition,
-						PassageFunction?.Invoke(elements as IReadOnlyList<object> ?? Array.Empty<object>()));
+					return new ParsedElement(initialPosition, position - initialPosition);
 				}
 				else
 				{
@@ -124,45 +117,108 @@ namespace RCParsing.TokenPatterns
 				}
 			}
 
-			// We have the first element
 			if (firstElement.length == 0)
+				return ParsedElement.Fail;
+
+			int count = 1;
+			position = firstElement.startIndex + firstElement.length;
+
+			while (MaxCount == -1 || count < MaxCount)
+			{
+				var parsedSep = _separator.Match(input, position, barrierPosition, parserParameter, false);
+				if (!parsedSep.success)
+					break;
+
+				if (parsedSep.length == 0)
+					return ParsedElement.Fail;
+
+				if (IncludeSeparatorsInResult)
+					count++;
+
+				position = parsedSep.startIndex + parsedSep.length;
+
+				var nextElement = _token.Match(input, position, barrierPosition, parserParameter, false);
+				if (!nextElement.success)
+				{
+					if (AllowTrailingSeparator)
+					{
+						break;
+					}
+					else
+					{
+						return ParsedElement.Fail;
+					}
+				}
+
+				if (nextElement.length == 0)
+				{
+					return ParsedElement.Fail;
+				}
+
+				count++;
+				position = nextElement.startIndex + nextElement.length;
+			}
+
+			if (count < MinCount)
 			{
 				return ParsedElement.Fail;
 			}
+
+			return new ParsedElement(initialPosition, position - initialPosition);
+		}
+		
+		private ParsedElement MatchWithCalculation(string input, int position, int barrierPosition, object? parserParameter)
+		{
+			List<object>? elements = null;
+			var initialPosition = position;
+
+			var firstElement = _token.Match(input, position, barrierPosition, parserParameter, true);
+			if (!firstElement.success)
+			{
+				if (MinCount == 0)
+				{
+					var sepAtStart = _separator.Match(input, position, barrierPosition,
+						parserParameter, true);
+					if (sepAtStart.success)
+						return ParsedElement.Fail;
+
+					return new ParsedElement(initialPosition, position - initialPosition,
+						PassageFunction(elements as IReadOnlyList<object> ?? Array.Empty<object>()));
+				}
+				else
+				{
+					return ParsedElement.Fail;
+				}
+			}
+
+			if (firstElement.length == 0)
+				return ParsedElement.Fail;
 
 			elements ??= new List<object>();
 			elements.Add(firstElement.intermediateValue);
 			position = firstElement.startIndex + firstElement.length;
 
-			// Parse "separator + element" until limit reached
 			while (MaxCount == -1 || elements.Count < MaxCount)
 			{
-				// Try to parse the separator
-				var parsedSep = _separator.Match(input, position, barrierPosition, parserParameter);
+				var parsedSep = _separator.Match(input, position, barrierPosition, parserParameter, true);
 				if (!parsedSep.success)
-					break; // no separator — end of sequence
+					break;
 
 				if (parsedSep.length == 0)
 				{
 					return ParsedElement.Fail;
 				}
 
-				// Include separator in result if requested
 				if (IncludeSeparatorsInResult)
 					elements.Add(parsedSep);
 
-				// Separator successfully parsed — position already updated inside TryParseRule, but update again for safety:
 				position = parsedSep.startIndex + parsedSep.length;
 
-				// Try to parse the next element
-				var nextElement = _token.Match(input, position, barrierPosition, parserParameter); ;
+				var nextElement = _token.Match(input, position, barrierPosition, parserParameter, true);
 				if (!nextElement.success)
 				{
-					// Separator was found, but next element is missing
 					if (AllowTrailingSeparator)
 					{
-						// Trailing separator allowed — consider separator consumed and stop.
-						// Keep childContext.position after separator as is and exit loop.
 						break;
 					}
 					else
@@ -178,19 +234,26 @@ namespace RCParsing.TokenPatterns
 
 				elements.Add(nextElement);
 				position = nextElement.startIndex + nextElement.length;
-
-				// loop continues — try to find next separator + element
 			}
 
-			// Check minimum count
 			if (elements.Count < MinCount)
 			{
 				return ParsedElement.Fail;
 			}
 
-			return new ParsedElement(initialPosition, position - initialPosition,
-				PassageFunction?.Invoke(elements as IReadOnlyList<object> ?? Array.Empty<object>()));
+			return new ParsedElement(initialPosition, position - initialPosition, PassageFunction(elements));
 		}
+
+		public override ParsedElement Match(string input, int position, int barrierPosition,
+			object? parserParameter, bool calculateIntermediateValue)
+		{
+			if (calculateIntermediateValue && PassageFunction != null)
+				return MatchWithCalculation(input, position, barrierPosition, parserParameter);
+			else
+				return MatchWithoutCalculation(input, position, barrierPosition, parserParameter);
+		}
+
+
 
 		public override string ToStringOverride(int remainingDepth)
 		{

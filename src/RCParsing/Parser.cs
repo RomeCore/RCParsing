@@ -224,10 +224,11 @@ namespace RCParsing
 		/// Matches the given input using the specified token identifier and parser context.
 		/// </summary>
 		/// <returns>A parsed token object containing the result of the match.</returns>
-		internal ParsedElement MatchToken(int tokenPatternId, string input, int position, int barrierPosition, object? parameter)
+		internal ParsedElement MatchToken(int tokenPatternId, string input, int position,
+			int barrierPosition, object? parameter, bool calculateIntermediateValue)
 		{
 			var tokenPattern = TokenPatterns[tokenPatternId];
-			return tokenPattern.Match(input, position, barrierPosition, parameter);
+			return tokenPattern.Match(input, position, barrierPosition, parameter, calculateIntermediateValue);
 		}
 
 		/// <summary>
@@ -757,7 +758,8 @@ namespace RCParsing
 			if (!_tokenPatternsAliases.TryGetValue(tokenPatternAlias, out var tokenPatternId))
 				throw new ArgumentException("Invalid token pattern alias", nameof(tokenPatternAlias));
 
-			var parsedToken = MatchToken(tokenPatternId, context.input, context.position, context.maxPosition, parameter);
+			var parsedToken = MatchToken(tokenPatternId, context.input, context.position,
+				context.maxPosition, parameter, true);
 			return new ParsedTokenResult(null, context, parsedToken, tokenPatternId);
 		}
 
@@ -777,7 +779,8 @@ namespace RCParsing
 				throw new ArgumentException("Invalid token pattern alias", nameof(tokenPatternAlias));
 
 			var context = CreateContext(input, parameter);
-			var parsedToken = MatchToken(tokenPatternId, context.input, context.position, context.maxPosition, parameter);
+			var parsedToken = MatchToken(tokenPatternId, context.input, context.position,
+				context.maxPosition, parameter, true);
 			return new ParsedTokenResult(null, context, parsedToken, tokenPatternId);
 		}
 
@@ -798,7 +801,8 @@ namespace RCParsing
 				throw new ArgumentException("Invalid token pattern alias", nameof(tokenPatternAlias));
 
 			var context = CreateContext(input, startIndex, parameter);
-			var parsedToken = MatchToken(tokenPatternId, context.input, context.position, context.maxPosition, parameter);
+			var parsedToken = MatchToken(tokenPatternId, context.input, context.position,
+				context.maxPosition, parameter, true);
 			return new ParsedTokenResult(null, context, parsedToken, tokenPatternId);
 		}
 
@@ -820,7 +824,8 @@ namespace RCParsing
 				throw new ArgumentException("Invalid token pattern alias", nameof(tokenPatternAlias));
 
 			var context = CreateContext(input, startIndex, length, parameter);
-			var parsedToken = MatchToken(tokenPatternId, context.input, context.position, context.maxPosition, parameter);
+			var parsedToken = MatchToken(tokenPatternId, context.input, context.position,
+				context.maxPosition, parameter, true);
 			return new ParsedTokenResult(null, context, parsedToken, tokenPatternId);
 		}
 

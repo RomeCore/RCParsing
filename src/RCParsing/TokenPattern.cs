@@ -29,8 +29,13 @@ namespace RCParsing
 		/// Can be length of input text or an index to next barrier token.
 		/// </param>
 		/// <param name="parserParameter">The optional context parameter to pass to the pattern.</param>
+		/// <param name="calculateIntermediateValue">
+		/// Whether to calculate intermediate value.
+		/// Will be <see langword="false"/> when it will be ignored and should not be calculated.
+		/// </param>
 		/// <returns>The parsed element containing the result of the match.</returns>
-		public abstract ParsedElement Match(string input, int position, int barrierPosition, object? parserParameter);
+		public abstract ParsedElement Match(string input, int position, int barrierPosition,
+			object? parserParameter, bool calculateIntermediateValue);
 
 		public override bool Equals(object? obj)
 		{

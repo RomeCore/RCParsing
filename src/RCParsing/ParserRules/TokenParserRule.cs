@@ -55,7 +55,8 @@ namespace RCParsing.ParserRules
 
 			ParsedRule ParseIgnoringBarriers(ref ParserContext ctx, ref ParserSettings stng, ref ParserSettings chStng)
 			{
-				var match = _pattern.Match(ctx.input, ctx.position, ctx.maxPosition, ctx.parserParameter);
+				var match = _pattern.Match(ctx.input, ctx.position, ctx.maxPosition,
+					ctx.parserParameter, true);
 				if (!match.success)
 				{
 					RecordError(ref ctx, ref stng, "Failed to parse token");
@@ -95,7 +96,7 @@ namespace RCParsing.ParserRules
 				int maxPos = ctx.barrierTokens.GetNextBarrierPosition(ctx.position, ctx.passedBarriers);
 				if (maxPos == -1) maxPos = ctx.maxPosition;
 
-				var match = _pattern.Match(ctx.input, ctx.position, maxPos, ctx.parserParameter);
+				var match = _pattern.Match(ctx.input, ctx.position, maxPos, ctx.parserParameter, true);
 				if (!match.success)
 				{
 					RecordError(ref ctx, ref stng, "Failed to parse token.");

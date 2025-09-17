@@ -41,7 +41,8 @@ namespace RCParsing.TokenPatterns
 
 
 
-		public override ParsedElement Match(string input, int position, int barrierPosition, object? parserParameter)
+		public override ParsedElement Match(string input, int position, int barrierPosition,
+			object? parserParameter, bool calculateIntermediateValue)
 		{
 			if (position + 1 > barrierPosition)
 			{
@@ -52,14 +53,14 @@ namespace RCParsing.TokenPatterns
 			{
 				if (Literal == input[position])
 				{
-					return new ParsedElement(position, 1, Literal);
+					return new ParsedElement(position, 1, calculateIntermediateValue ? Literal : null);
 				}
 			}
 			else
 			{
 				if (input.AsSpan(position, 1).Equals(charPool.AsSpan(), Comparison))
 				{
-					return new ParsedElement(position, 1, Literal);
+					return new ParsedElement(position, 1, calculateIntermediateValue ? Literal : null);
 				}
 			}
 

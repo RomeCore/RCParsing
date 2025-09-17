@@ -50,7 +50,8 @@ namespace RCParsing.TokenPatterns
 
 
 
-		public override ParsedElement Match(string input, int position, int barrierPosition, object? parserParameter)
+		public override ParsedElement Match(string input, int position, int barrierPosition,
+			object? parserParameter, bool calculateIntermediateValue)
 		{
 			int initialPosition = position;
 			while (position < barrierPosition &&
@@ -64,6 +65,8 @@ namespace RCParsing.TokenPatterns
 
 			return new ParsedElement(initialPosition, count);
 		}
+
+
 
 		public override string ToStringOverride(int remainingDepth)
 		{

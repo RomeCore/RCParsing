@@ -49,25 +49,10 @@ namespace RCParsing.TokenPatterns
 			_patterns = TokenPatterns.Select(p => GetTokenPattern(p)).ToArray();
 		}
 
-		public override ParsedElement Match(string input, int position, int barrierPosition, object? parserParameter)
+		public override ParsedElement Match(string input, int position, int barrierPosition,
+			object? parserParameter, bool calculateIntermediateValue)
 		{
-			if (PassageFunction == null)
-			{
-				var initialPosition = position;
-
-				for (int i = 0; i < _patterns.Length; i++)
-				{
-					var pattern = _patterns[i];
-					var token = pattern.Match(input, position, barrierPosition, parserParameter);
-					if (!token.success)
-						return ParsedElement.Fail;
-
-					position = token.startIndex + token.length;
-				}
-
-				return new ParsedElement(initialPosition, position - initialPosition);
-			}
-			else
+			if (calculateIntermediateValue && PassageFunction != null)
 			{
 				var initialPosition = position;
 				ParsedElement[]? tokens = null;
@@ -75,7 +60,7 @@ namespace RCParsing.TokenPatterns
 				for (int i = 0; i < _patterns.Length; i++)
 				{
 					var pattern = _patterns[i];
-					var token = pattern.Match(input, position, barrierPosition, parserParameter);
+					var token = pattern.Match(input, position, barrierPosition, parserParameter, true);
 					if (!token.success)
 						return ParsedElement.Fail;
 
@@ -91,6 +76,22 @@ namespace RCParsing.TokenPatterns
 				var intermediateValue = PassageFunction(intermediateValues);
 
 				return new ParsedElement(initialPosition, position - initialPosition, intermediateValue);
+			}
+			else
+			{
+				var initialPosition = position;
+
+				for (int i = 0; i < _patterns.Length; i++)
+				{
+					var pattern = _patterns[i];
+					var token = pattern.Match(input, position, barrierPosition, parserParameter, false);
+					if (!token.success)
+						return ParsedElement.Fail;
+
+					position = token.startIndex + token.length;
+				}
+
+				return new ParsedElement(initialPosition, position - initialPosition);
 			}
 		}
 

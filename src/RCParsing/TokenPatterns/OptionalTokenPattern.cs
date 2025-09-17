@@ -35,9 +35,12 @@ namespace RCParsing.TokenPatterns
 			_pattern = GetTokenPattern(TokenPattern);
 		}
 
-		public override ParsedElement Match(string input, int position, int barrierPosition, object? parserParameter)
+
+
+		public override ParsedElement Match(string input, int position, int barrierPosition,
+			object? parserParameter, bool calculateIntermediateValue)
 		{
-			var token = _pattern.Match(input, position, barrierPosition, parserParameter);
+			var token = _pattern.Match(input, position, barrierPosition, parserParameter, calculateIntermediateValue);
 			if (token.success)
 				return new ParsedElement(token.startIndex, token.length, token.intermediateValue);
 			else
