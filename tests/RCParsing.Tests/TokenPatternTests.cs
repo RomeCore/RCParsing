@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using RCParsing.Building;
+using RCParsing.TokenPatterns;
 
 namespace RCParsing.Tests
 {
@@ -205,6 +206,107 @@ namespace RCParsing.Tests
 			// check intermediate match (child token) is available in children if your wrapper exposes it;
 			// specifically check final transformed Value equals inner content
 			Assert.Equal("hello", (res.IntermediateValue as Match)!.Value);
+		}
+
+		[Fact]
+		public void CombinatorJsonParsing()
+		{
+			var builder = new ParserBuilder();
+
+			builder.CreateToken("string")
+				.Between(
+					b => b.Literal('"'),
+					b => b.TextUntil('"'),
+					b => b.Literal('"'));
+
+			builder.CreateToken("number")
+				.Number<double>(NumberFlags.Integer);
+
+			builder.CreateToken("boolean")
+				.Map<string>(b => b.LiteralChoice("true", "false"), m => m == "true");
+
+			builder.CreateToken("null")
+				.Literal("null", _ => null);
+
+			builder.CreateToken("value")
+				.SkipWhitespaces(b =>
+					b.Choice(
+						c => c.Token("string"),
+						c => c.Token("number"),
+						c => c.Token("boolean"),
+						c => c.Token("null"),
+						c => c.Token("array"),
+						c => c.Token("object")
+				));
+
+			builder.CreateToken("value_list")
+				.ZeroOrMoreSeparated(
+					b => b.Token("value"),
+					b => b.SkipWhitespaces(b => b.Literal(',')))
+				.Pass(v =>
+				{
+					return v.ToArray();
+				});
+
+			builder.CreateToken("array")
+				.Between(
+					b => b.Literal('['),
+					b => b.Token("value_list"),
+					b => b.SkipWhitespaces(b => b.Literal(']')));
+
+			builder.CreateToken("pair")
+				.SkipWhitespaces(b => b.Token("string"))
+				.SkipWhitespaces(b => b.Literal(':'))
+				.Token("value")
+				.Pass(v =>
+				{
+					return KeyValuePair.Create((string)v[0], v[2]);
+				});
+
+			builder.CreateToken("pair_list")
+				.ZeroOrMoreSeparated(
+					b => b.Token("pair"),
+					b => b.SkipWhitespaces(b => b.Literal(',')))
+				.Pass(v =>
+				{
+					return v.Cast<KeyValuePair<string, object>>().ToDictionary();
+				});
+
+			builder.CreateToken("object")
+				.Between(
+					b => b.Literal('{'),
+					b => b.Token("pair_list"),
+					b => b.SkipWhitespaces(b => b.Literal('}')));
+
+			builder.CreateMainRule("content")
+				.Token("value") // 0
+				.EOF()
+				.TransformSelect(index: 0);
+
+			var parser = builder.Build();
+
+			var json =
+			"""
+			{
+				"id": 1,
+				"name": "Sample Data",
+				"created": "2023-01-01T00:00:00", // This is a comment
+				"tags": ["tag1", "tag2", "tag3"],
+				"isActive": true,
+				"nested": {
+					"value": 123.456,
+					"description": "Nested description"
+				}
+			}
+			""";
+
+			var result = parser.Parse<Dictionary<string, object>>(json);
+			Assert.Equal(1, (double)result["id"]);
+			Assert.Equal(["tag1", "tag2", "tag3"], (object[])result["tags"]);
+			Assert.True((bool)result["isActive"]);
+			var nested = (Dictionary<string, object>)result["nested"];
+			Assert.Equal(123.456, (double)nested["value"]);
+			Assert.Equal("Nested description", nested["description"].ToString());
 		}
 	}
 }
