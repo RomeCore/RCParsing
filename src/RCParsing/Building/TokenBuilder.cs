@@ -472,5 +472,234 @@ namespace RCParsing.Building
 			return RepeatSeparated(builderAction, separatorBuilderAction, 1, -1,
 				allowTrailingSeparator, includeSeparatorsInResult, factory, config);
 		}
+
+		/// <summary>
+		/// Adds a token pattern that matches a sequence of three elements, passing middle element's intermediate value up.
+		/// </summary>
+		/// <param name="firstBuilderAction">The token builder action to build the first token.</param>
+		/// <param name="middleBuilderAction">The token builder action to build the middle token.</param>
+		/// <param name="lastBuilderAction">The token builder action to build the last token.</param>
+		/// <param name="factory">The factory function to create a parsed value.</param>
+		/// <param name="config">The action to configure the local settings for this token.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if any builder action have not added any elements.</exception>
+		public TokenBuilder Between(Action<TokenBuilder> firstBuilderAction,
+			Action<TokenBuilder> middleBuilderAction, Action<TokenBuilder> lastBuilderAction,
+			Func<ParsedRuleResultBase, object?>? factory = null,
+			Action<ParserLocalSettingsBuilder>? config = null)
+		{
+			var firstBuilder = new TokenBuilder(ParserBuilder);
+			firstBuilderAction(firstBuilder);
+			if (!firstBuilder.CanBeBuilt)
+				throw new ParserBuildingException("First token pattern cannot be empty.");
+
+			var middleBuilder = new TokenBuilder(ParserBuilder);
+			middleBuilderAction(middleBuilder);
+			if (!middleBuilder.CanBeBuilt)
+				throw new ParserBuildingException("Middle token pattern cannot be empty.");
+
+			var lastBuilder = new TokenBuilder(ParserBuilder);
+			lastBuilderAction(lastBuilder);
+			if (!lastBuilder.CanBeBuilt)
+				throw new ParserBuildingException("Last token pattern cannot be empty.");
+
+			return Token(new BuildableBetweenTokenPattern
+			{
+				First = firstBuilder.BuildingPattern.Value,
+				Middle = middleBuilder.BuildingPattern.Value,
+				Last = lastBuilder.BuildingPattern.Value
+			}, factory, config);
+		}
+
+		/// <summary>
+		/// Adds a token pattern that matches a sequence of two elements, passing the first element's intermediate value up.
+		/// </summary>
+		/// <param name="firstBuilderAction">The token builder action to build the first token.</param>
+		/// <param name="secondBuilderAction">The token builder action to build the second token.</param>
+		/// <param name="factory">The factory function to create a parsed value.</param>
+		/// <param name="config">The action to configure the local settings for this token.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if any builder action have not added any elements.</exception>
+		public TokenBuilder First(Action<TokenBuilder> firstBuilderAction,
+			Action<TokenBuilder> secondBuilderAction,
+			Func<ParsedRuleResultBase, object?>? factory = null,
+			Action<ParserLocalSettingsBuilder>? config = null)
+		{
+			var firstBuilder = new TokenBuilder(ParserBuilder);
+			firstBuilderAction(firstBuilder);
+			if (!firstBuilder.CanBeBuilt)
+				throw new ParserBuildingException("First token pattern cannot be empty.");
+
+			var secondBuilder = new TokenBuilder(ParserBuilder);
+			secondBuilderAction(secondBuilder);
+			if (!secondBuilder.CanBeBuilt)
+				throw new ParserBuildingException("Second token pattern cannot be empty.");
+
+			return Token(new BuildableFirstTokenPattern
+			{
+				First = firstBuilder.BuildingPattern.Value,
+				Second = secondBuilder.BuildingPattern.Value
+			}, factory, config);
+		}
+
+		/// <summary>
+		/// Adds a token pattern that matches a sequence of two elements, passing the second element's intermediate value up.
+		/// </summary>
+		/// <param name="firstBuilderAction">The token builder action to build the first token.</param>
+		/// <param name="secondBuilderAction">The token builder action to build the second token.</param>
+		/// <param name="factory">The factory function to create a parsed value.</param>
+		/// <param name="config">The action to configure the local settings for this token.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if any builder action have not added any elements.</exception>
+		public TokenBuilder Second(Action<TokenBuilder> firstBuilderAction,
+			Action<TokenBuilder> secondBuilderAction,
+			Func<ParsedRuleResultBase, object?>? factory = null,
+			Action<ParserLocalSettingsBuilder>? config = null)
+		{
+			var firstBuilder = new TokenBuilder(ParserBuilder);
+			firstBuilderAction(firstBuilder);
+			if (!firstBuilder.CanBeBuilt)
+				throw new ParserBuildingException("First token pattern cannot be empty.");
+
+			var secondBuilder = new TokenBuilder(ParserBuilder);
+			secondBuilderAction(secondBuilder);
+			if (!secondBuilder.CanBeBuilt)
+				throw new ParserBuildingException("Second token pattern cannot be empty.");
+
+			return Token(new BuildableSecondTokenPattern
+			{
+				First = firstBuilder.BuildingPattern.Value,
+				Second = secondBuilder.BuildingPattern.Value
+			}, factory, config);
+		}
+
+		/// <summary>
+		/// Adds a token pattern that matches a child pattern while skipping any whitespace characters before it.
+		/// </summary>
+		/// <param name="builderAction">The token builder action to build the child token.</param>
+		/// <param name="factory">The factory function to create a parsed value.</param>
+		/// <param name="config">The action to configure the local settings for this token.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if builder action have not added any elements.</exception>
+		public TokenBuilder SkipWhitespaces(Action<TokenBuilder> builderAction,
+			Func<ParsedRuleResultBase, object?>? factory = null,
+			Action<ParserLocalSettingsBuilder>? config = null)
+		{
+			var builder = new TokenBuilder(ParserBuilder);
+			builderAction(builder);
+			if (!builder.CanBeBuilt)
+				throw new ParserBuildingException("Child token pattern cannot be empty.");
+
+			return Token(new BuildableSkipWhitespacesTokenPattern
+			{
+				Pattern = builder.BuildingPattern.Value
+			}, factory, config);
+		}
+
+		/// <summary>
+		/// Adds a token pattern that matches a single element, always returning a fixed intermediate value.
+		/// </summary>
+		/// <param name="builderAction">The token builder action to build the child token.</param>
+		/// <param name="value">The fixed intermediate value to return upon successful match.</param>
+		/// <param name="factory">The factory function to create a parsed value.</param>
+		/// <param name="config">The action to configure the local settings for this token.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if builder action have not added any elements.</exception>
+		public TokenBuilder Return(Action<TokenBuilder> builderAction, object? value,
+			Func<ParsedRuleResultBase, object?>? factory = null,
+			Action<ParserLocalSettingsBuilder>? config = null)
+		{
+			var builder = new TokenBuilder(ParserBuilder);
+			builderAction(builder);
+			if (!builder.CanBeBuilt)
+				throw new ParserBuildingException("Child token pattern cannot be empty.");
+
+			return Token(new BuildableReturnTokenPattern
+			{
+				Child = builder.BuildingPattern.Value,
+				Value = value
+			}, factory, config);
+		}
+
+		/// <summary>
+		/// Adds a token pattern that matches a single element, transforming its intermediate value with a provided function.
+		/// </summary>
+		/// <param name="builderAction">The token builder action to build the child token.</param>
+		/// <param name="mapper">The transformation function applied to the child's intermediate value.</param>
+		/// <param name="factory">The factory function to create a parsed value.</param>
+		/// <param name="config">The action to configure the local settings for this token.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if builder action have not added any elements.</exception>
+		public TokenBuilder Map(Action<TokenBuilder> builderAction, Func<object?, object?> mapper,
+			Func<ParsedRuleResultBase, object?>? factory = null,
+			Action<ParserLocalSettingsBuilder>? config = null)
+		{
+			var builder = new TokenBuilder(ParserBuilder);
+			builderAction(builder);
+			if (!builder.CanBeBuilt)
+				throw new ParserBuildingException("Child token pattern cannot be empty.");
+
+			return Token(new BuildableMapTokenPattern
+			{
+				Child = builder.BuildingPattern.Value,
+				Mapper = mapper
+			}, factory, config);
+		}
+
+		/// <summary>
+		/// Adds a token pattern that matches a single element, transforming its intermediate value with a provided function.
+		/// </summary>
+		/// <param name="builderAction">The token builder action to build the child token.</param>
+		/// <param name="mapper">The transformation function applied to the child's intermediate value.</param>
+		/// <param name="factory">The factory function to create a parsed value.</param>
+		/// <param name="config">The action to configure the local settings for this token.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if builder action have not added any elements.</exception>
+		public TokenBuilder Map<T>(Action<TokenBuilder> builderAction, Func<T, object?> mapper,
+			Func<ParsedRuleResultBase, object?>? factory = null,
+			Action<ParserLocalSettingsBuilder>? config = null)
+		{
+			var builder = new TokenBuilder(ParserBuilder);
+			builderAction(builder);
+			if (!builder.CanBeBuilt)
+				throw new ParserBuildingException("Child token pattern cannot be empty.");
+
+			return Token(new BuildableMapTokenPattern
+			{
+				Child = builder.BuildingPattern.Value,
+				Mapper = v => mapper((T)v)
+			}, factory, config);
+		}
+
+		/// <summary>
+		/// Adds a token pattern that matches a single element and captures its matched substring as intermediate value.
+		/// </summary>
+		/// <param name="builderAction">The token builder action to build the child token.</param>
+		/// <param name="trimStart">The number of characters to trim from the start of the captured text.</param>
+		/// <param name="trimEnd">The number of characters to trim from the end of the captured text.</param>
+		/// <param name="factory">The factory function to create a parsed value.</param>
+		/// <param name="config">The action to configure the local settings for this token.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if builder action have not added any elements.</exception>
+		public TokenBuilder CaptureText(Action<TokenBuilder> builderAction,
+			int trimStart = 0, int trimEnd = 0,
+			Func<ParsedRuleResultBase, object?>? factory = null,
+			Action<ParserLocalSettingsBuilder>? config = null)
+		{
+			if (trimStart < 0) throw new ArgumentOutOfRangeException(nameof(trimStart));
+			if (trimEnd < 0) throw new ArgumentOutOfRangeException(nameof(trimEnd));
+
+			var builder = new TokenBuilder(ParserBuilder);
+			builderAction(builder);
+			if (!builder.CanBeBuilt)
+				throw new ParserBuildingException("Child token pattern cannot be empty.");
+
+			return Token(new BuildableCaptureTextTokenPattern
+			{
+				Child = builder.BuildingPattern.Value,
+				TrimStart = trimStart,
+				TrimEnd = trimEnd
+			}, factory, config);
+		}
 	}
 }
