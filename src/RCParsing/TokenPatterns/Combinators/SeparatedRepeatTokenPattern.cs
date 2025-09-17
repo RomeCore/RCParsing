@@ -210,7 +210,7 @@ namespace RCParsing.TokenPatterns.Combinators
 				}
 
 				if (IncludeSeparatorsInResult)
-					elements.Add(parsedSep);
+					elements.Add(parsedSep.intermediateValue);
 
 				position = parsedSep.startIndex + parsedSep.length;
 
@@ -232,7 +232,7 @@ namespace RCParsing.TokenPatterns.Combinators
 					return ParsedElement.Fail;
 				}
 
-				elements.Add(nextElement);
+				elements.Add(nextElement.intermediateValue);
 				position = nextElement.startIndex + nextElement.length;
 			}
 

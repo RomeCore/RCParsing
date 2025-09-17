@@ -11,6 +11,7 @@ namespace RCParsing.Benchmarks.JSON
 	public class RCCombinatorJsonParser
 	{
 		static Parser parser;
+		static TokenPattern valueTokenPattern;
 
 		public static void FillWithRules(ParserBuilder builder)
 		{
@@ -23,11 +24,14 @@ namespace RCParsing.Benchmarks.JSON
 			builder.CreateToken("number")
 				.Number<double>(NumberFlags.Integer);
 
-			builder.CreateToken("boolean")
-				.Map<string>(b => b.LiteralChoice("true", "false"), m => m == "true");
+			builder.CreateToken("true")
+				.Return(b => b.Literal("true"), true);
+
+			builder.CreateToken("false")
+				.Return(b => b.Literal("false"), false);
 
 			builder.CreateToken("null")
-				.Literal("null", _ => null);
+				.Return(b => b.Literal("null"), null);
 
 			builder.CreateToken("value")
 				.SkipWhitespaces(b =>
@@ -52,12 +56,12 @@ namespace RCParsing.Benchmarks.JSON
 
 			builder.CreateToken("array")
 				.Between(
-					b => b.SkipWhitespaces(b => b.Literal('[')),
+					b => b.Literal('['),
 					b => b.Token("value_list"),
 					b => b.SkipWhitespaces(b => b.Literal(']')));
 
 			builder.CreateToken("pair")
-				.Token("string")
+				.SkipWhitespaces(b => b.Token("string"))
 				.SkipWhitespaces(b => b.Literal(':'))
 				.Token("value")
 				.Pass(v =>
@@ -76,26 +80,26 @@ namespace RCParsing.Benchmarks.JSON
 
 			builder.CreateToken("object")
 				.Between(
-					b => b.SkipWhitespaces(b => b.Literal('{')),
+					b => b.Literal('{'),
 					b => b.Token("pair_list"),
 					b => b.SkipWhitespaces(b => b.Literal('}')));
 
 			builder.CreateMainRule("content")
-				.Rule("value") // 0
-				.EOF()
-				.TransformSelect(index: 0);
+				.Token("value");
 		}
 
 		static RCCombinatorJsonParser()
 		{
 			var builder = new ParserBuilder();
+			builder.Settings.UseFirstCharacterMatch();
 			FillWithRules(builder);
 			parser = builder.Build();
+			valueTokenPattern = parser.GetTokenPattern("value");
 		}
 
-		public static object ParseInlined(string text)
+		public static object Parse(string text)
 		{
-			return parser.Parse<object>(text);
+			return valueTokenPattern.Match(text, 0, text.Length, null, true).intermediateValue;
 		}
 	}
 }

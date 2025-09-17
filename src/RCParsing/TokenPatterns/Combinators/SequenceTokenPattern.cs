@@ -55,7 +55,7 @@ namespace RCParsing.TokenPatterns.Combinators
 			if (calculateIntermediateValue && PassageFunction != null)
 			{
 				var initialPosition = position;
-				ParsedElement[]? tokens = null;
+				object?[]? intermediateValues = null;
 
 				for (int i = 0; i < _patterns.Length; i++)
 				{
@@ -66,13 +66,12 @@ namespace RCParsing.TokenPatterns.Combinators
 
 					if (PassageFunction != null)
 					{
-						tokens ??= new ParsedElement[TokenPatterns.Length];
-						tokens[i] = token;
+						intermediateValues ??= new object?[TokenPatterns.Length];
+						intermediateValues[i] = token.intermediateValue;
 					}
 					position = token.startIndex + token.length;
 				}
 
-				var intermediateValues = new ListSelectWrapper<ParsedElement, object?>(tokens, t => t.intermediateValue);
 				var intermediateValue = PassageFunction(intermediateValues);
 
 				return new ParsedElement(initialPosition, position - initialPosition, intermediateValue);

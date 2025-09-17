@@ -43,6 +43,8 @@ namespace RCParsing.TokenPatterns.Combinators
 			Last = last;
 		}
 
+		protected override HashSet<char>? FirstCharsCore => GetTokenPattern(First).FirstChars;
+
 
 
 		private TokenPattern _first, _middle, _last;

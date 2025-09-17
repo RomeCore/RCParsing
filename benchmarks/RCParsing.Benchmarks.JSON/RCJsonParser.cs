@@ -82,9 +82,7 @@ namespace RCParsing.Benchmarks.JSON
 				.Transform<string, Ignored, object>((k, _, v) => new KeyValuePair<string, object>(k, v));
 
 			builder.CreateMainRule("content")
-				.Rule("value") // 0
-				.EOF()
-				.TransformSelect(index: 0);
+				.Rule("value");
 		}
 
 		static RCJsonParser()
@@ -100,7 +98,7 @@ namespace RCParsing.Benchmarks.JSON
 			parser = builder.Build();
 		}
 
-		public static object ParseInlined(string text)
+		public static object Parse(string text)
 		{
 			return parser.Parse<object>(text);
 		}

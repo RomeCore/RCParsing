@@ -1,4 +1,6 @@
-﻿namespace RCParsing.TokenPatterns.Combinators
+﻿using System.Collections.Generic;
+
+namespace RCParsing.TokenPatterns.Combinators
 {
 	/// <summary>
 	/// The token pattern that matches a single element, always returning a fixed intermediate value.
@@ -25,6 +27,8 @@
 			Child = child;
 			Value = value;
 		}
+
+		protected override HashSet<char>? FirstCharsCore => GetTokenPattern(Child).FirstChars;
 
 
 

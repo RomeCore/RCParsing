@@ -34,6 +34,8 @@ namespace RCParsing.TokenPatterns.Combinators
 			Second = second;
 		}
 
+
+
 		private TokenPattern _first = null!;
 		private TokenPattern _second = null!;
 
@@ -63,6 +65,8 @@ namespace RCParsing.TokenPatterns.Combinators
 
 			return new ParsedElement(initialPosition, position - initialPosition, first.intermediateValue);
 		}
+
+
 
 		public override string ToStringOverride(int remainingDepth)
 		{

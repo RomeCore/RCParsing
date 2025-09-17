@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using RCParsing.Utils;
 
 namespace RCParsing.TokenPatterns.Combinators
@@ -29,6 +30,8 @@ namespace RCParsing.TokenPatterns.Combinators
 			Child = child;
 			Mapper = mapper;
 		}
+
+		protected override HashSet<char>? FirstCharsCore => GetTokenPattern(Child).FirstChars;
 
 
 

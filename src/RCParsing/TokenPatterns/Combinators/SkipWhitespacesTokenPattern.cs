@@ -1,4 +1,6 @@
-﻿using RCParsing.Utils;
+﻿using System.Collections.Generic;
+using System.Linq;
+using RCParsing.Utils;
 
 namespace RCParsing.TokenPatterns.Combinators
 {
@@ -22,6 +24,11 @@ namespace RCParsing.TokenPatterns.Combinators
 			Pattern = pattern;
 		}
 
+		protected override HashSet<char>? FirstCharsCore => new (GetTokenPattern(Pattern).FirstChars
+			.Concat(new char[] { ' ', '\t', '\r', '\n' }));
+
+
+
 		private TokenPattern _pattern = null!;
 
 		protected override void PreInitialize(ParserInitFlags initFlags)
@@ -37,9 +44,7 @@ namespace RCParsing.TokenPatterns.Combinators
 
 			// Skip any whitespace characters
 			while (position < barrierPosition && char.IsWhiteSpace(input[position]))
-			{
 				position++;
-			}
 
 			// Match the child pattern at the new position
 			var result = _pattern.Match(input, position, barrierPosition, parserParameter,

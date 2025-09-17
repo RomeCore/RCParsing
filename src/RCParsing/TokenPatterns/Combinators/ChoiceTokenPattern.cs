@@ -40,15 +40,86 @@ namespace RCParsing.TokenPatterns.Combinators
 
 
 
+		private TokenPattern[] _choices = null!;
+		private TokenPattern[][]? _optimizedCandidates;
+		private TokenPattern[] _nonDeterministicCandidates;
+
+		protected override void PreInitialize(ParserInitFlags initFlags)
+		{
+			base.PreInitialize(initFlags);
+			_choices = Choices.Select(i => GetTokenPattern(i)).ToArray();
+		}
+
+		protected override void Initialize(ParserInitFlags initFlags)
+		{
+			base.Initialize(initFlags);
+
+			if (initFlags.HasFlag(ParserInitFlags.FirstCharacterMatch))
+			{
+				var candidatesByChar = new List<TokenPattern>[char.MaxValue + 1];
+				var nonDeterministic = new List<TokenPattern>();
+
+				foreach (var pattern in _choices)
+				{
+					var firstChars = pattern.FirstChars;
+					if (firstChars != null)
+					{
+						foreach (var ch in firstChars)
+						{
+							if (candidatesByChar[ch] == null)
+								candidatesByChar[ch] = new List<TokenPattern>();
+							candidatesByChar[ch]!.Add(pattern);
+						}
+					}
+					else
+					{
+						nonDeterministic.Add(pattern);
+					}
+				}
+
+				_optimizedCandidates = new TokenPattern[char.MaxValue + 1][];
+				for (int i = 0; i < candidatesByChar.Length; i++)
+				{
+					_optimizedCandidates[i] = candidatesByChar[i]?.ToArray() ?? Array.Empty<TokenPattern>();
+				}
+
+				_nonDeterministicCandidates = nonDeterministic.ToArray();
+			}
+		}
+
 		public override ParsedElement Match(string input, int position, int barrierPosition,
 			object? parserParameter, bool calculateIntermediateValue)
 		{
-			foreach (var tokenId in Choices)
+			if (_optimizedCandidates != null && position < barrierPosition)
 			{
-				var token = Parser.TokenPatterns[tokenId].Match(input, position, barrierPosition,
-					parserParameter, calculateIntermediateValue);
-				if (token.success)
-					return token;
+				var firstChar = input[position];
+				var candidates = _optimizedCandidates[firstChar];
+
+				for (int i = 0; i < candidates.Length; i++)
+				{
+					var result = candidates[i].Match(input, position, barrierPosition,
+						parserParameter, calculateIntermediateValue);
+					if (result.success)
+						return result;
+				}
+
+				for (int i = 0; i < _nonDeterministicCandidates.Length; i++)
+				{
+					var result = _nonDeterministicCandidates[i].Match(input, position, barrierPosition,
+						parserParameter, calculateIntermediateValue);
+					if (result.success)
+						return result;
+				}
+			}
+			else
+			{
+				for (int i = 0; i < _choices.Length; i++)
+				{
+					var result = _choices[i].Match(input, position, barrierPosition,
+						parserParameter, calculateIntermediateValue);
+					if (result.success)
+						return result;
+				}
 			}
 
 			return ParsedElement.Fail;

@@ -95,7 +95,7 @@ namespace RCParsing.TokenPatterns.Combinators
 			}
 			else
 			{
-				var tokens = new List<ParsedElement>();
+				var tokens = new List<object?>();
 				var initialPosition = position;
 
 				for (int i = 0; i < MaxCount || MaxCount == -1; i++)
@@ -114,8 +114,7 @@ namespace RCParsing.TokenPatterns.Combinators
 				if (tokens.Count < MinCount)
 					return ParsedElement.Fail;
 
-				var intermediateValues = new ListSelectWrapper<ParsedElement, object?>(tokens, t => t.intermediateValue);
-				var intermediateValue = PassageFunction(intermediateValues);
+				var intermediateValue = PassageFunction(tokens);
 
 				return new ParsedElement(initialPosition, position - initialPosition, intermediateValue);
 			}

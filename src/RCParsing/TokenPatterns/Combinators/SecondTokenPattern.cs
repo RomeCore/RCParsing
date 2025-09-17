@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using RCParsing.Utils;
 
 namespace RCParsing.TokenPatterns.Combinators
@@ -33,6 +34,10 @@ namespace RCParsing.TokenPatterns.Combinators
 			First = first;
 			Second = second;
 		}
+
+		protected override HashSet<char>? FirstCharsCore => GetTokenPattern(First).FirstChars;
+
+
 
 		private TokenPattern _first = null!;
 		private TokenPattern _second = null!;
