@@ -187,13 +187,12 @@ namespace RCParsing.Building
 		/// <exception cref="ParserBuildingException">Thrown if the current pattern is not a sequence or repeat or has fewer than two child elements.</exception>
 		public TokenBuilder Pass(Func<IReadOnlyList<object?>, object?>? passageFunction)
 		{
-			if (BuildingPattern?.AsT2() is BuildableSequenceTokenPattern sequence)
-				sequence.PassageFunction = passageFunction;
-			else if (BuildingPattern?.AsT2() is BuildableRepeatTokenPattern repeat)
-				repeat.PassageFunction = passageFunction;
+			if (BuildingPattern?.AsT2() is IPassageFunctionHolder passageHolder)
+				passageHolder.PassageFunction = passageFunction;
 			else
-				throw new ParserBuildingException("Passage function can only be set on a sequence or repeat token pattern " +
-					"(must be added at least two child elements or must be converted to a sequence first).");
+				throw new ParserBuildingException("Passage function can only be set on a several token " +
+					"patterns that matches variable amount of multiple children tokens, " +
+					"such as Sequence, Repeat, SeparatedRepeat");
 			return this;
 		}
 

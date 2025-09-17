@@ -10,7 +10,7 @@ using BenchmarkDotNet.Jobs;
 namespace RCParsing.Benchmarks.Expressions
 {
 	[MemoryDiagnoser]
-	[SimpleJob(RuntimeMoniker.Net80, iterationCount: 3, warmupCount: 2)]
+	[SimpleJob(RuntimeMoniker.Net80, iterationCount: 5, warmupCount: 2)]
 	[GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory)]
 	public class ParserCombinatorExpressionBenchmarks
 	{

@@ -12,7 +12,7 @@ using Newtonsoft.Json.Linq;
 namespace RCParsing.Benchmarks.JSON
 {
 	[MemoryDiagnoser]
-	[SimpleJob(RuntimeMoniker.Net80, iterationCount: 3, warmupCount: 2)]
+	[SimpleJob(RuntimeMoniker.Net80, iterationCount: 5, warmupCount: 2)]
 	[GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory)]
 	public class ParserCombinatorJSONBenchmarks
 	{

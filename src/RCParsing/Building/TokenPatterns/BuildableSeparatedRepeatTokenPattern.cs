@@ -2,22 +2,22 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using RCParsing.ParserRules;
+using RCParsing.TokenPatterns;
 using RCParsing.Utils;
 
-namespace RCParsing.Building.ParserRules
+namespace RCParsing.Building.TokenPatterns
 {
-	public class BuildableSeparatedRepeatParserRule : BuildableParserRule
+	public class BuildableSeparatedRepeatTokenPattern : BuildableTokenPattern, IPassageFunctionHolder
 	{
 		/// <summary>
 		/// Gets or sets the child pattern to repeat.
 		/// </summary>
-		public Or<string, BuildableParserRule> Child { get; set; } = string.Empty;
+		public Or<string, BuildableTokenPattern> Child { get; set; } = string.Empty;
 
 		/// <summary>
 		/// Gets or sets the separator pattern.
 		/// </summary>
-		public Or<string, BuildableParserRule> Separator { get; set; } = string.Empty;
+		public Or<string, BuildableTokenPattern> Separator { get; set; } = string.Empty;
 
 		/// <summary>
 		/// Gets or sets the minimum number of repetitions.
@@ -39,26 +39,30 @@ namespace RCParsing.Building.ParserRules
 		/// </summary>
 		public bool IncludeSeparatorsInResult { get; set; } = false;
 
-		public override IEnumerable<Or<string, BuildableParserRule>>? RuleChildren
+		/// <summary>
+		/// The function to pass the intermediate values from each pattern to the result intermediate value.
+		/// </summary>
+		public Func<IReadOnlyList<object?>, object?>? PassageFunction { get; set; } = null;
+
+		public override IEnumerable<Or<string, BuildableTokenPattern>>? TokenChildren
 			=> Child.WrapIntoEnumerable().Concat(Separator.WrapIntoEnumerable());
 
-		public override IEnumerable<Or<string, BuildableTokenPattern>>? TokenChildren => null;
-
-		protected override ParserRule BuildRule(List<int>? ruleChildren, List<int>? tokenChildren)
+		protected override TokenPattern BuildToken(List<int>? tokenChildren)
 		{
-			return new SeparatedRepeatParserRule(
-				ruleChildren[0],
-				ruleChildren[1],
+			return new SeparatedRepeatTokenPattern(
+				tokenChildren[0],
+				tokenChildren[1],
 				MinCount,
 				MaxCount,
 				AllowTrailingSeparator,
-				IncludeSeparatorsInResult);
+				IncludeSeparatorsInResult,
+				PassageFunction);
 		}
 
 		public override bool Equals(object? obj)
 		{
 			return base.Equals(obj) &&
-				   obj is BuildableSeparatedRepeatParserRule other &&
+				   obj is BuildableSeparatedRepeatTokenPattern other &&
 				   Child == other.Child &&
 				   Separator == other.Separator &&
 				   MinCount == other.MinCount &&

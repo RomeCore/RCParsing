@@ -10,7 +10,7 @@ namespace RCParsing.Building.TokenPatterns
 	/// <summary>
 	/// Represents a buildable sequence parser rule.
 	/// </summary>
-	public class BuildableSequenceTokenPattern : BuildableTokenPattern
+	public class BuildableSequenceTokenPattern : BuildableTokenPattern, IPassageFunctionHolder
 	{
 		/// <summary>
 		/// The elements of the sequence parser rule.
