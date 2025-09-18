@@ -7,9 +7,6 @@ on:
         description: 'Version for release:'
         required: false
         default: ''
-  pull_request:
-    types: [merged]
-    branches: [main, master]
 
 permissions:
   contents: write
