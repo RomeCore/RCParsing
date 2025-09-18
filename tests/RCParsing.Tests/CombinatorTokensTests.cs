@@ -17,7 +17,7 @@ namespace RCParsing.Tests
 			builder.CreateToken("string")
 				.Between(
 					b => b.Literal('"'),
-					b => b.TextUntil('"'),
+					b => b.CaptureText(b => b.ZeroOrMoreChars(c => c != '"')),
 					b => b.Literal('"'));
 
 			var parser = builder.Build();
@@ -129,7 +129,7 @@ namespace RCParsing.Tests
 			builder.CreateToken("string")
 				.Between(
 					b => b.Literal('"'),
-					b => b.TextUntil('"'),
+					b => b.CaptureText(b => b.ZeroOrMoreChars(c => c != '"')),
 					b => b.Literal('"'));
 
 			builder.CreateToken("number")

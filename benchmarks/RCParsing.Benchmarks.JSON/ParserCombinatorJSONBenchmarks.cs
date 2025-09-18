@@ -35,7 +35,7 @@ namespace RCParsing.Benchmarks.JSON
 		}
 
 		[Benchmark, BenchmarkCategory("short")]
-		public void JsonShort_RCParsing_CombinatorMode()
+		public void JsonShort_RCParsing_TokenCombination()
 		{
 			var value = RCCombinatorJsonParser.Parse(TestJSONs.shortJson);
 		}
@@ -91,7 +91,7 @@ namespace RCParsing.Benchmarks.JSON
 		}
 
 		[Benchmark, BenchmarkCategory("big")]
-		public void JsonBig_RCParsing_CombinatorMode()
+		public void JsonBig_RCParsing_TokenCombination()
 		{
 			var value = RCCombinatorJsonParser.Parse(TestJSONs.bigJson);
 		}

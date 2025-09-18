@@ -431,17 +431,17 @@ foreach (var price in prices)
 
 # Comparison with Other Parsing Libraries
 
-`RCParsing` is designed to outstand with unique features, and **easy** developer experience, speed is not the target, but it is good enough to compete with other fastest parser tools.
+`RCParsing` is designed to outstand with unique features, and **easy** developer experience, but it is good enough to compete with other fastest parser tools.
 
 ### Performance at a Glance (based on benchmarks)
 
-| Library        | Speed (Relative to RCParsing default mode)  | Speed (Relative to RCParsing token combination mode)  | Memory Efficiency |
-| :------------- | :------------------------------------------ | :---------------------------------------------------- | :---------------- |
-| **RCParsing**  | 1.00x (baseline)                            | **1.00x (baseline), ~3.00-5.00x faster than default** | High              |
-| **Parlot**     | **~3.55x-4.55x faster**                     | **~1.20x slower - ~1.55x faster**                     | **Excellent**     |
-| **Pidgin**     | ~1.05x-3.00x slower                         | ~3.20x-13.55x slower                                  | **Excellent**     |
-| **Superpower** | ~6.30x-6.50x slower                         | ~19.00x slower                                        | Medium            |
-| **Sprache**    | ~6.10x-6.50x slower                         | ~19.15x slower                                        | Very low          |
+| Library        | Speed (Relative to RCParsing default mode)  | Speed (Relative to RCParsing token combination style) | Memory Efficiency                      |
+| :------------- | :------------------------------------------ | :---------------------------------------------------- | :------------------------------------- |
+| **RCParsing**  | 1.00x (baseline)                            | **1.00x (baseline), ~5.00x faster than default**      | **High or Excellent** (based on style) |
+| **Parlot**     | **~3.50x-3.70x faster**                     | ~1.20x-1.45x slower                                   | **Excellent**                          |
+| **Pidgin**     | ~1.45x-3.00x slower                         | ~6.75x-13.55x slower                                  | **Excellent**                          |
+| **Superpower** | ~8.00x-8.10x slower                         | ~40.75x slower                                        | Medium                                 |
+| **Sprache**    | ~7.50x-8.10x slower                         | ~41.00x slower                                        | Very low                               |
 
 ### Feature Comparison
 
@@ -468,30 +468,30 @@ AMD Ryzen 5 5600 3.60GHz, 1 CPU, 12 logical and 6 physical cores
   [Host]     : .NET 8.0.18 (8.0.1825.31117), X64 RyuJIT AVX2
   Job-KTXINV : .NET 8.0.18 (8.0.1825.31117), X64 RyuJIT AVX2
 
-Runtime=.NET 8.0  IterationCount=3  WarmupCount=2
+Runtime=.NET 8.0  IterationCount=5  WarmupCount=2
 ```
 
 ## JSON
 
 The JSON value calculation with the typeset `Dictionary<string, object>`, `object[]`, `string`, `int` and `null`.
 
-| Method                             | Mean         | Error      | StdDev    | Ratio | RatioSD | Gen0     | Gen1    | Allocated  | Alloc Ratio |
-|----------------------------------- |-------------:|-----------:|----------:|------:|--------:|---------:|--------:|-----------:|------------:|
-| JsonBig_RCParsing                  |   184.187 us |  1.0224 us | 0.4539 us |  1.00 |    0.00 |  15.1367 |  4.8828 |  247.69 KB |        1.00 |
-| JsonBig_RCParsing_Optimized        |   126.629 us |  0.5114 us | 0.2271 us |  0.69 |    0.00 |  11.2305 |  2.9297 |   183.6 KB |        0.74 |
-| JsonBig_RCParsing_CombinatorMode   |    62.054 us |  1.0960 us | 0.4866 us |  0.34 |    0.00 |   4.3945 |  0.2441 |   72.51 KB |        0.29 |
-| JsonBig_Parlot                     |    40.535 us |  0.1462 us | 0.0649 us |  0.22 |    0.00 |   1.9531 |  0.1221 |   32.08 KB |        0.13 |
-| JsonBig_Pidgin                     |   202.380 us |  1.2544 us | 0.5570 us |  1.10 |    0.00 |   3.9063 |  0.2441 |   65.25 KB |        0.26 |
-| JsonBig_Superpower                 | 1,191.205 us |  3.5113 us | 1.5591 us |  6.47 |    0.02 |  39.0625 |  5.8594 |  638.31 KB |        2.58 |
-| JsonBig_Sprache                    | 1,199.835 us | 11.2303 us | 4.9863 us |  6.51 |    0.03 | 232.4219 | 27.3438 | 3808.34 KB |       15.38 |
-|                                    |              |            |           |       |         |          |         |            |             |
-| JsonShort_RCParsing                |    10.389 us |  0.0487 us | 0.0216 us |  1.00 |    0.00 |   0.7629 |  0.0153 |   12.63 KB |        1.00 |
-| JsonShort_RCParsing_Optimized      |     7.533 us |  0.2876 us | 0.1277 us |  0.73 |    0.01 |   0.6485 |  0.0076 |   10.66 KB |        0.84 |
-| JsonShort_RCParsing_CombinatorMode |     3.753 us |  0.0767 us | 0.0340 us |  0.36 |    0.00 |   0.2518 |       - |    4.23 KB |        0.33 |
-| JsonShort_Parlot                   |     2.243 us |  0.0218 us | 0.0078 us |  0.22 |    0.00 |   0.1144 |       - |    1.91 KB |        0.15 |
-| JsonShort_Pidgin                   |    10.875 us |  0.0246 us | 0.0088 us |  1.05 |    0.00 |   0.2136 |       - |    3.58 KB |        0.28 |
-| JsonShort_Superpower               |    65.126 us |  1.2002 us | 0.5329 us |  6.27 |    0.05 |   1.9531 |       - |   33.32 KB |        2.64 |
-| JsonShort_Sprache                  |    63.559 us |  1.1455 us | 0.5086 us |  6.12 |    0.05 |  12.6953 |  0.2441 |  208.17 KB |       16.49 |
+| Method                               | Mean         | Error      | StdDev     | Ratio | RatioSD | Gen0     | Gen1    | Allocated  | Alloc Ratio |
+|------------------------------------- |-------------:|-----------:|-----------:|------:|--------:|---------:|--------:|-----------:|------------:|
+| JsonBig_RCParsing                    |   150.510 us |  5.9708 us |  2.1292 us |  1.00 |    0.02 |  13.6719 |  4.3945 |  223.99 KB |        1.00 |
+| JsonBig_RCParsing_Optimized          |    94.158 us |  0.9837 us |  0.3508 us |  0.63 |    0.01 |   9.7656 |  2.4414 |  159.91 KB |        0.71 |
+| JsonBig_RCParsing_TokenCombination   |    30.257 us |  0.4361 us |  0.1936 us |  0.20 |    0.00 |   2.9602 |  0.2441 |   48.81 KB |        0.22 |
+| JsonBig_Parlot                       |    45.456 us |  0.8677 us |  0.3853 us |  0.30 |    0.00 |   1.9531 |  0.1221 |   32.08 KB |        0.14 |
+| JsonBig_Pidgin                       |   203.785 us |  0.6212 us |  0.2758 us |  1.35 |    0.02 |   3.9063 |  0.2441 |   65.25 KB |        0.29 |
+| JsonBig_Superpower                   | 1,201.028 us | 19.4509 us |  6.9364 us |  7.98 |    0.11 |  39.0625 |  5.8594 |  638.31 KB |        2.85 |
+| JsonBig_Sprache                      | 1,238.111 us | 33.6678 us | 14.9487 us |  8.23 |    0.14 | 232.4219 | 27.3438 | 3808.34 KB |       17.00 |
+|                                      |              |            |            |       |         |          |         |            |             |
+| JsonShort_RCParsing                  |     8.171 us |  0.0573 us |  0.0205 us |  1.00 |    0.00 |   0.6714 |  0.0153 |      11 KB |        1.00 |
+| JsonShort_RCParsing_Optimized        |     5.152 us |  0.0326 us |  0.0116 us |  0.63 |    0.00 |   0.5493 |  0.0076 |    9.03 KB |        0.82 |
+| JsonShort_RCParsing_TokenCombination |     1.504 us |  0.0144 us |  0.0064 us |  0.18 |    0.00 |   0.1583 |       - |     2.6 KB |        0.24 |
+| JsonShort_Parlot                     |     2.256 us |  0.0205 us |  0.0091 us |  0.28 |    0.00 |   0.1144 |       - |    1.91 KB |        0.17 |
+| JsonShort_Pidgin                     |    11.284 us |  0.5601 us |  0.1997 us |  1.38 |    0.02 |   0.2136 |       - |    3.58 KB |        0.33 |
+| JsonShort_Superpower                 |    64.991 us |  0.7441 us |  0.3304 us |  7.95 |    0.04 |   1.9531 |       - |   33.32 KB |        3.03 |
+| JsonShort_Sprache                    |    64.344 us |  3.0978 us |  1.3755 us |  7.87 |    0.16 |  12.6953 |  0.2441 |  208.17 KB |       18.92 |
 
 Notes:
 
@@ -506,19 +506,19 @@ Notes:
 
 The `int` value calculation from expression with parentheses `()`, spaces and operators `+-/*` with priorities.
 
-| Method                                   | Mean         | Error       | StdDev      | Ratio | RatioSD | Gen0    | Gen1    | Allocated | Alloc Ratio |
-|----------------------------------------- |-------------:|------------:|------------:|------:|--------:|--------:|--------:|----------:|------------:|
-| ExpressionBig_RCParsing                  | 244,257.0 ns | 3,449.39 ns |   895.80 ns |  1.00 |    0.00 | 24.1699 | 11.9629 |  408280 B |        1.00 |
-| ExpressionBig_RCParsing_Optimized        | 181,343.5 ns | 3,541.27 ns |   919.66 ns |  0.74 |    0.00 | 20.2637 |  9.0332 |  342656 B |        0.84 |
-| ExpressionBig_RCParsing_CombinatorMode   |  52,275.4 ns |   332.40 ns |    86.32 ns |  0.21 |    0.00 |  4.1504 |  0.0610 |   70288 B |        0.17 |
-| ExpressionBig_Parlot                     |  62,843.3 ns |   721.05 ns |   111.58 ns |  0.26 |    0.00 |  3.2959 |       - |   56608 B |        0.14 |
-| ExpressionBig_Pidgin                     | 695,858.1 ns | 5,250.39 ns | 1,363.51 ns |  2.85 |    0.01 |  0.9766 |       - |   23536 B |        0.06 |
-|                                          |              |             |             |       |         |         |         |           |             |
-| ExpressionShort_RCParsing                |   2,133.7 ns |    29.49 ns |     7.66 ns |  1.00 |    0.00 |  0.2174 |       - |    3680 B |        1.00 |
-| ExpressionShort_RCParsing_Optimized      |   1,620.9 ns |    42.12 ns |    10.94 ns |  0.76 |    0.01 |  0.2098 |       - |    3528 B |        0.96 |
-| ExpressionShort_RCParsing_CombinatorMode |     435.2 ns |    11.42 ns |     2.96 ns |  0.20 |    0.00 |  0.0391 |       - |     656 B |        0.18 |
-| ExpressionShort_Parlot                   |     596.8 ns |     5.76 ns |     0.89 ns |  0.28 |    0.00 |  0.0534 |       - |     896 B |        0.24 |
-| ExpressionShort_Pidgin                   |   6,418.5 ns |   111.36 ns |    28.92 ns |  3.01 |    0.02 |  0.0153 |       - |     344 B |        0.09 |
+| Method                                     | Mean         | Error       | StdDev    | Ratio | RatioSD | Gen0    | Gen1    | Allocated | Alloc Ratio |
+|------------------------------------------- |-------------:|------------:|----------:|------:|--------:|--------:|--------:|----------:|------------:|
+| ExpressionBig_RCParsing                    | 244,419.2 ns | 5,831.71 ns | 902.46 ns |  1.00 |    0.00 | 24.1699 | 11.9629 |  408280 B |        1.00 |
+| ExpressionBig_RCParsing_Optimized          | 175,608.8 ns | 1,598.11 ns | 415.02 ns |  0.72 |    0.00 | 20.2637 |  9.0332 |  342656 B |        0.84 |
+| ExpressionBig_RCParsing_TokenCombination   |  53,168.0 ns |   612.27 ns |  94.75 ns |  0.22 |    0.00 |  4.1504 |  0.0610 |   70288 B |        0.17 |
+| ExpressionBig_Parlot                       |  62,379.0 ns |   460.50 ns | 119.59 ns |  0.26 |    0.00 |  3.2959 |       - |   56608 B |        0.14 |
+| ExpressionBig_Pidgin                       | 735,510.6 ns | 3,462.74 ns | 899.26 ns |  3.01 |    0.01 |  0.9766 |       - |   23536 B |        0.06 |
+|                                            |              |             |           |       |         |         |         |           |             |
+| ExpressionShort_RCParsing                  |   2,130.1 ns |    78.86 ns |  12.20 ns |  1.00 |    0.01 |  0.2174 |       - |    3680 B |        1.00 |
+| ExpressionShort_RCParsing_Optimized        |   1,627.5 ns |    52.44 ns |   8.12 ns |  0.76 |    0.01 |  0.2098 |       - |    3528 B |        0.96 |
+| ExpressionShort_RCParsing_TokenCombination |     446.4 ns |    16.76 ns |   4.35 ns |  0.21 |    0.00 |  0.0391 |       - |     656 B |        0.18 |
+| ExpressionShort_Parlot                     |     612.1 ns |    17.06 ns |   4.43 ns |  0.29 |    0.00 |  0.0534 |       - |     896 B |        0.24 |
+| ExpressionShort_Pidgin                     |   6,282.3 ns |   120.52 ns |  18.65 ns |  2.95 |    0.02 |  0.0153 |       - |     344 B |        0.09 |
 
 Notes:
 
