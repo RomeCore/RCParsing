@@ -497,7 +497,7 @@ Notes:
 
 - `RCParsing` uses its default configuration, without any optimizations and settings applied.
 - `RCParsing_Optimized` uses `UseInlining()`, `UseFirstCharacterMatch()`, `IgnoreErrors()` and `SkipWhitespacesOptimized()` settings.
-- `RCParsing_CombinatorMode` uses complex manual tokens with immediate transformations instead of rules, and `UseFirstCharacterMatch()` setting.
+- `RCParsing_TokenCombination` uses complex manual tokens with immediate transformations instead of rules, and `UseFirstCharacterMatch()` setting.
 - `Parlot` uses `Compiled()` version of parser.
 - `JsonShort` methods uses ~20 lines of hardcoded (not generated) JSON with simple content.
 - `JsonBig` methods uses ~180 lines of hardcoded (not generated) JSON with various content (deep, long objects/arrays).
@@ -524,7 +524,7 @@ Notes:
 
 - `RCParsing` uses its default configuration, without any optimizations and settings applied.
 - `RCParsing_Optimized` uses `UseInlining()`, `IgnoreErrors()` and `SkipWhitespacesOptimized()` settings.
-- `RCParsing_CombinatorMode` uses complex manual tokens with immediate transformations instead of rules, and `UseFirstCharacterMatch()` setting.
+- `RCParsing_TokenCombination` uses complex manual tokens with immediate transformations instead of rules, and `UseFirstCharacterMatch()` setting.
 - `Parlot` uses `Compiled()` version of parser.
 - `ExpressionShort` methods uses single line with 4 operators of hardcoded (not generated) expression.
 - `ExpressionBig` methods uses single line with ~400 operators of hardcoded (not generated) expression.
