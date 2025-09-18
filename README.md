@@ -15,8 +15,9 @@ This library focuses on **Developer-experience (DX)** first, providing best tool
 
 - 🐍 **Hybrid Power**: Unique support for **barrier tokens** to parse indent-sensitive languages like Python and YAML.
 - 💪 **Regex on Steroids**: You can find all matches for target structure in the input text with detailed AST information and transformed value.
-- 🚫 **Lexerless Freedom**: No token priority headaches. Parse directly from raw text, even with keywords embedded in strings. Tokens are used just as lightweight matching primitives.
+- 🌀 **Lexerless Freedom**: No token priority headaches. Parse directly from raw text, even with keywords embedded in strings. Tokens are used just as lightweight matching primitives.
 - 🎨 **Fluent API**: Write parsers in C# that read like clean BNF grammars, boosting readability and maintainability compared to imperative or functional approaches.
+- 🧩 **Combinator Mode**: Unlock maximum performance by defining complex tokens with immediate value transformation, bypassing the AST construction entirely for a direct, allocation-free result. Perfect for high-speed parsing of well-defined formats.
 - 🐛 **Debug-Friendly**: Get detailed, actionable error messages with stack traces and precise source locations. Richest API for manual error information included.
 - ⚡ **Fast**: Performance is now on par with the fastest .NET parsing libraries (see benchmarks below).
 - 🌳 **Rich AST**: Parser makes an AST (Abstract Syntax Tree) from raw text, with ability to optimize, fully analyze and calculate the result value entirely lazy, reducing unnecessary allocations.
@@ -292,7 +293,7 @@ builder.Settings.UseFirstCharacterMatch();
 
 builder.CreateToken("string")
 	// 'Between' token pattern matches a sequence of three elements,
-	// but calculates and propogates intermediate value of second element
+	// but calculates and propagates intermediate value of second element
 	.Between(
 		b => b.Literal('"'),
 		b => b.TextUntil('"'),
@@ -446,14 +447,14 @@ foreach (var price in prices)
 
 This table highlights the unique architectural and usability features of each library.
 
-| Feature                    | RCParsing                     | Pidgin              | Parlot                 | Superpower          | ANTLR4             |
-| :------------------------- | :---------------------------- | :------------------ | :--------------------- | :------------------ | :----------------- |
-| **Architecture**           | **Scannerless hybrid**        | Scannerless         | Scannerless            | Lexer-based         | Lexer-based        |
-| **API**                    | **Fluent, labmda-based**      | Functional          | Fluent/functional      | Fluent/functional   | Grammar Files      |
-| **Barrier/complex Tokens** | **Yes, built-in or manual**   | None                | None                   | Yes, manual         | Yes, manual        |
-| **Skipping**               | **6 strategies, globally**    | Manual              | Global or manual       | Tokenizer-based     | Tokenizer-based    |
-| **Error Messages**         | **Extremely Detailed**        | Position/expected   | Manual messages        | Position/expected   | Position/expected  |
-| **Minimum .NET Target**    | **.NET Standard 2.0**         | .NET 7.0            | .NET Standard 2.0      | .NET Standard 2.0   | .NET Framework 4.5 |
+| Feature                    | RCParsing                                   | Pidgin              | Parlot                 | Superpower          | ANTLR4                        |
+| :------------------------- | :------------------------------------------ | :------------------ | :--------------------- | :------------------ | :---------------------------- |
+| **Architecture**           | **Scannerless hybrid**                      | Scannerless         | Scannerless            | Lexer-based         | **Lexer-based with modes**    |
+| **API**                    | **Fluent, lambda-based**                    | Functional          | Fluent/functional      | Fluent/functional   | **Grammar Files**             |
+| **Barrier/complex Tokens** | **Yes, built-in or manual**                 | None                | None                   | Yes, manual         | Yes, manual                   |
+| **Skipping**               | **6 strategies, globally**                  | Manual              | Global or manual       | Lexer-based         | Lexer-based                   |
+| **Error Messages**         | **Extremely Detailed, extendable with API** | Simple              | Manual messages        | Simple              | Simple by default, extendable |
+| **Minimum .NET Target**    | **.NET Standard 2.0**                       | .NET 7.0            | .NET Standard 2.0      | .NET Standard 2.0   | **.NET Framework 4.5**        |
 
 # Benchmarks
 
@@ -496,7 +497,7 @@ Notes:
 
 - `RCParsing` uses its default configuration, without any optimizations and settings applied.
 - `RCParsing_Optimized` uses `UseInlining()`, `UseFirstCharacterMatch()`, `IgnoreErrors()` and `SkipWhitespacesOptimized()` settings.
-- `RCParsing_CombinatorMode` uses complex manual tokens with immediate transformations instead of rules.
+- `RCParsing_CombinatorMode` uses complex manual tokens with immediate transformations instead of rules, and `UseFirstCharacterMatch()` setting.
 - `Parlot` uses `Compiled()` version of parser.
 - `JsonShort` methods uses ~20 lines of hardcoded (not generated) JSON with simple content.
 - `JsonBig` methods uses ~180 lines of hardcoded (not generated) JSON with various content (deep, long objects/arrays).
@@ -523,7 +524,7 @@ Notes:
 
 - `RCParsing` uses its default configuration, without any optimizations and settings applied.
 - `RCParsing_Optimized` uses `UseInlining()`, `IgnoreErrors()` and `SkipWhitespacesOptimized()` settings.
-- `RCParsing_CombinatorMode` uses complex manual tokens with immediate transformations instead of rules.
+- `RCParsing_CombinatorMode` uses complex manual tokens with immediate transformations instead of rules, and `UseFirstCharacterMatch()` setting.
 - `Parlot` uses `Compiled()` version of parser.
 - `ExpressionShort` methods uses single line with 4 operators of hardcoded (not generated) expression.
 - `ExpressionBig` methods uses single line with ~400 operators of hardcoded (not generated) expression.
