@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using RCParsing.Utils;
 
-namespace RCParsing.TokenPatterns
+namespace RCParsing.TokenPatterns.Combinators
 {
 	/// <summary>
 	/// Represents a token pattern that repeats a specific token multiple times.
@@ -65,34 +65,59 @@ namespace RCParsing.TokenPatterns
 			_pattern = GetTokenPattern(TokenPattern);
 		}
 
-		public override ParsedElement Match(string input, int position, int barrierPosition, object? parserParameter)
-		{
-			var tokens = new List<ParsedElement>();
-			var initialPosition = position;
 
-			for (int i = 0; i < MaxCount || MaxCount == -1; i++)
+
+		public override ParsedElement Match(string input, int position, int barrierPosition,
+			object? parserParameter, bool calculateIntermediateValue)
+		{
+			if (PassageFunction == null || !calculateIntermediateValue)
 			{
-				ParsedElement matchedToken = _pattern.Match(input, position, barrierPosition, parserParameter);
-				if (!matchedToken.success || matchedToken.startIndex + matchedToken.length == position)
+				var initialPosition = position;
+				int count = 0;
+
+				for (int i = 0; i < MaxCount || MaxCount == -1; i++)
 				{
-					break;
+					ParsedElement matchedToken = _pattern.Match(input, position, barrierPosition,
+						parserParameter, false);
+					if (!matchedToken.success || matchedToken.startIndex + matchedToken.length == position)
+					{
+						break;
+					}
+
+					position = matchedToken.startIndex + matchedToken.length;
+					count++;
 				}
 
-				position = matchedToken.startIndex + matchedToken.length;
-				tokens.Add(matchedToken);
+				if (count < MinCount)
+					return ParsedElement.Fail;
+
+				return new ParsedElement(initialPosition, position - initialPosition);
 			}
-
-			if (tokens.Count < this.MinCount)
-				return ParsedElement.Fail;
-
-			object? intermediateValue = null;
-			if (PassageFunction != null)
+			else
 			{
-				var intermediateValues = new ListSelectWrapper<ParsedElement, object?>(tokens, t => t.intermediateValue);
-				intermediateValue = PassageFunction(intermediateValues);
-			}
+				var tokens = new List<object?>();
+				var initialPosition = position;
 
-			return new ParsedElement(Id, initialPosition, position - initialPosition, intermediateValue);
+				for (int i = 0; i < MaxCount || MaxCount == -1; i++)
+				{
+					ParsedElement matchedToken = _pattern.Match(input, position, barrierPosition,
+						parserParameter, calculateIntermediateValue);
+					if (!matchedToken.success || matchedToken.startIndex + matchedToken.length == position)
+					{
+						break;
+					}
+
+					position = matchedToken.startIndex + matchedToken.length;
+					tokens.Add(matchedToken);
+				}
+
+				if (tokens.Count < MinCount)
+					return ParsedElement.Fail;
+
+				var intermediateValue = PassageFunction(tokens);
+
+				return new ParsedElement(initialPosition, position - initialPosition, intermediateValue);
+			}
 		}
 
 
@@ -100,8 +125,8 @@ namespace RCParsing.TokenPatterns
 		public override string ToStringOverride(int remainingDepth)
 		{
 			if (remainingDepth <= 0)
-				return $"repeat{{{MinCount}..{(MaxCount == -1 ? "" : MaxCount)}}}...";
-			return $"repeat{{{MinCount}..{(MaxCount == -1 ? "" : MaxCount)}}}: " +
+				return $"repeat[{MinCount}..{(MaxCount == -1 ? "" : MaxCount)}]...";
+			return $"repeat[{MinCount}..{(MaxCount == -1 ? "" : MaxCount)}]: " +
 				$"{GetTokenPattern(TokenPattern).ToString(remainingDepth - 1)}";
 		}
 

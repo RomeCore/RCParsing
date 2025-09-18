@@ -40,13 +40,14 @@ namespace RCParsing.TokenPatterns
 
 
 
-		public override ParsedElement Match(string input, int position, int barrierPosition, object? parserParameter)
+		public override ParsedElement Match(string input, int position, int barrierPosition,
+			object? parserParameter, bool calculateIntermediateValue)
 		{
 			if (position + Literal.Length > barrierPosition)
 				return ParsedElement.Fail;
 
 			if (input.AsSpan(position, Literal.Length).Equals(Literal.AsSpan(), Comparison))
-				return new ParsedElement(Id, position, Literal.Length, Literal);
+				return new ParsedElement(position, Literal.Length, Literal);
 
 			return ParsedElement.Fail;
 		}

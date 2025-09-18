@@ -149,8 +149,8 @@ namespace RCParsing.Tests
 				.SkipWhitespaces();
 
 			// Add the 'INDENT' and 'DEDENT' barrier tokenizer
-			// 'INDENT' is emmited when indentation grows
-			// And 'DEDENT' is emmited when indentation cuts
+			// 'INDENT' is emitted when indentation grows
+			// And 'DEDENT' is emitted when indentation cuts
 			// They are indentation delta tokens
 			builder.BarrierTokenizers
 				.AddIndent(indentSize: 4, "INDENT", "DEDENT");
@@ -239,7 +239,7 @@ namespace RCParsing.Tests
 					return ParsedElement.Fail;
 
 				// Capture the character
-				return new ParsedElement(elementId: self.Id,
+				return new ParsedElement(
 					startIndex: start,
 					length: 1,
 					intermediateValue: "my intermediate value!");
@@ -254,6 +254,121 @@ namespace RCParsing.Tests
 			Assert.Throws<ParsingException>(() => parser.ParseRule("custom_rule", "y", parameter: 'x'));
 		}
 
+		[Fact]
+		public void JSONTokenCombination()
+		{
+			var builder = new ParserBuilder();
+
+			// Use lookahead for 'Choice' tokens
+			builder.Settings.UseFirstCharacterMatch();
+
+			builder.CreateToken("string")
+				// 'Between' token pattern matches a sequence of three elements,
+				// but calculates and propogates intermediate value of second element
+				.Between(
+					b => b.Literal('"'),
+					b => b.TextUntil('"'),
+					b => b.Literal('"'));
+
+			builder.CreateToken("number")
+				.Number<double>();
+
+			builder.CreateToken("boolean")
+				// 'Map' token pattern applies intermediate value transformer to child's value
+				.Map<string>(b => b.LiteralChoice("true", "false"), m => m == "true");
+
+			builder.CreateToken("null")
+				// 'Return' does not calculates value for child element, just returns 'null' here
+				.Return(b => b.Literal("null"), null);
+
+			builder.CreateToken("value")
+				// Skip whitespaces before value token
+				.SkipWhitespaces(b =>
+					// 'Choice' token selects the matched token's value
+					b.Choice(
+						c => c.Token("string"),
+						c => c.Token("number"),
+						c => c.Token("boolean"),
+						c => c.Token("null"),
+						c => c.Token("array"),
+						c => c.Token("object")
+				));
+
+			builder.CreateToken("value_list")
+				.ZeroOrMoreSeparated(
+					b => b.Token("value"),
+					b => b.SkipWhitespaces(b => b.Literal(',')),
+					includeSeparatorsInResult: false)
+				// You can apply passage function for tokens that
+				// matches multiple and variable amount of child elements
+				.Pass(v =>
+				{
+					return v.ToArray();
+				});
+
+			builder.CreateToken("array")
+				.Between(
+					b => b.Literal('['),
+					b => b.Token("value_list"),
+					b => b.SkipWhitespaces(b => b.Literal(']')));
+
+			builder.CreateToken("pair")
+				.SkipWhitespaces(b => b.Token("string"))
+				.SkipWhitespaces(b => b.Literal(':'))
+				.Token("value")
+				.Pass(v =>
+				{
+					return KeyValuePair.Create((string)v[0]!, v[2]);
+				});
+
+			builder.CreateToken("pair_list")
+				.ZeroOrMoreSeparated(
+					b => b.Token("pair"),
+					b => b.SkipWhitespaces(b => b.Literal(',')))
+				.Pass(v =>
+				{
+					return v.Cast<KeyValuePair<string, object>>().ToDictionary();
+				});
+
+			builder.CreateToken("object")
+				.Between(
+					b => b.Literal('{'),
+					b => b.Token("pair_list"),
+					b => b.SkipWhitespaces(b => b.Literal('}')));
+
+			var parser = builder.Build();
+
+			var json =
+			"""
+			{
+				"id": 1,
+				"name": "Sample Data",
+				"created": "2023-01-01T00:00:00",
+				"tags": ["tag1", "tag2", "tag3"],
+				"isActive": true,
+				"nested": {
+					"value": 123.456,
+					"description": "Nested description"
+				}
+			}
+			""";
+
+			// Match the token directly and produce intermediate value
+			var result = parser.MatchToken<Dictionary<string, object>>("value", json);
+			Console.WriteLine(result["name"]); // Outputs: Sample data
+
+			Assert.Equal(1.0, result["id"]);
+			Assert.Equal(["tag1", "tag2", "tag3"], (object[])result["tags"]);
+			Assert.Equal("Sample Data", result["name"]);
+			Assert.True((bool)result["isActive"]);
+			var nested = (Dictionary<string, object>)result["nested"];
+			Assert.Equal(123.456, (double)nested["value"]);
+			Assert.Equal("Nested description", nested["description"].ToString());
+		}
+
+		/// <summary>
+		/// The Habr article test
+		/// </summary>
 		[Fact]
 		public void SimplifiedYAML()
 		{

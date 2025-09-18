@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using RCParsing.TokenPatterns;
+using RCParsing.TokenPatterns.Combinators;
 using RCParsing.Utils;
 
 namespace RCParsing.Building.TokenPatterns
@@ -10,7 +10,7 @@ namespace RCParsing.Building.TokenPatterns
 	/// <summary>
 	/// Represents a buildable sequence parser rule.
 	/// </summary>
-	public class BuildableSequenceTokenPattern : BuildableTokenPattern
+	public class BuildableSequenceTokenPattern : BuildableTokenPattern, IPassageFunctionHolder
 	{
 		/// <summary>
 		/// The elements of the sequence parser rule.

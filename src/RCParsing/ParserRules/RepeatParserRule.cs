@@ -107,8 +107,8 @@ namespace RCParsing.ParserRules
 			string alias = Aliases.Count > 0 ? $" '{Aliases.Last()}' " : string.Empty;
 
 			if (remainingDepth <= 0)
-				return $"Repeat{alias}{{{MinCount}..{(MaxCount == -1 ? "" : MaxCount)}}}...";
-			return $"Repeat{alias}{{{MinCount}..{(MaxCount == -1 ? "" : MaxCount)}}}: " +
+				return $"Repeat{alias}[{MinCount}..{(MaxCount == -1 ? "" : MaxCount)}]...";
+			return $"Repeat{alias}[{MinCount}..{(MaxCount == -1 ? "" : MaxCount)}]: " +
 				$"{GetRule(Rule).ToString(remainingDepth - 1)}";
 		}
 
@@ -117,8 +117,8 @@ namespace RCParsing.ParserRules
 			string alias = Aliases.Count > 0 ? $" '{Aliases.Last()}' " : string.Empty;
 
 			if (remainingDepth <= 0)
-				return $"Repeat{alias}{{{MinCount}..{(MaxCount == -1 ? "" : MaxCount)}}}...";
-			return $"Repeat{alias}{{{MinCount}..{(MaxCount == -1 ? "" : MaxCount)}}}: " +
+				return $"Repeat{alias}[{MinCount}..{(MaxCount == -1 ? "" : MaxCount)}]...";
+			return $"Repeat{alias}[{MinCount}..{(MaxCount == -1 ? "" : MaxCount)}]: " +
 				$"{GetRule(Rule).ToString(remainingDepth - 1)} <-- here";
 		}
 

@@ -10,6 +10,16 @@ namespace RCParsing
 	public abstract class TokenPattern : ParserElement
 	{
 		/// <summary>
+		/// Gets the parsed value factory that will be applied to parent rule.
+		/// </summary>
+		public Func<ParsedRuleResultBase, object?>? DefaultParsedValueFactory { get; internal set; } = null;
+
+		/// <summary>
+		/// Gets the local settings that will be applied to parent rule with each setting configurable by override modes.
+		/// </summary>
+		public ParserLocalSettings DefaultSettings { get; internal set; } = default;
+
+		/// <summary>
 		/// Tries to match the given context with this pattern.
 		/// </summary>
 		/// <param name="input">The input text to match.</param>
@@ -19,8 +29,13 @@ namespace RCParsing
 		/// Can be length of input text or an index to next barrier token.
 		/// </param>
 		/// <param name="parserParameter">The optional context parameter to pass to the pattern.</param>
+		/// <param name="calculateIntermediateValue">
+		/// Whether to calculate intermediate value.
+		/// Will be <see langword="false"/> when it will be ignored and should not be calculated.
+		/// </param>
 		/// <returns>The parsed element containing the result of the match.</returns>
-		public abstract ParsedElement Match(string input, int position, int barrierPosition, object? parserParameter);
+		public abstract ParsedElement Match(string input, int position, int barrierPosition,
+			object? parserParameter, bool calculateIntermediateValue);
 
 		public override bool Equals(object? obj)
 		{

@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using RCParsing.TokenPatterns;
+using RCParsing.TokenPatterns.Combinators;
 using RCParsing.Utils;
 
 namespace RCParsing.Building.TokenPatterns

@@ -13,16 +13,6 @@ namespace RCParsing.Building
 	public abstract class BuildableParserRule : BuildableParserElement
 	{
 		/// <summary>
-		/// Gets the parsed value factory associated with this rule.
-		/// </summary>
-		public Func<ParsedRuleResultBase, object?>? ParsedValueFactory { get; set; } = null;
-
-		/// <summary>
-		/// Gets the local settings builder for this parser rule.
-		/// </summary>
-		public ParserLocalSettingsBuilder Settings { get; } = new ParserLocalSettingsBuilder();
-
-		/// <summary>
 		/// Builds the parser rule with the given children.
 		/// </summary>
 		/// <param name="ruleChildren">The rule children IDs to build the parser rule with.</param>
@@ -33,21 +23,18 @@ namespace RCParsing.Building
 		public sealed override ParserElement Build(List<int>? ruleChildren, List<int>? tokenChildren)
 		{
 			var rule = BuildRule(ruleChildren, tokenChildren);
-			rule.ParsedValueFactory = ParsedValueFactory;
 			return rule;
 		}
 
 		public override bool Equals(object? obj)
 		{
 			return base.Equals(obj) &&
-				   obj is BuildableParserRule other &&
-				   Equals(ParsedValueFactory, other.ParsedValueFactory);
+				   obj is BuildableParserRule;
 		}
 
 		public override int GetHashCode()
 		{
 			int hashCode = base.GetHashCode();
-			hashCode = hashCode * 397 + (ParsedValueFactory?.GetHashCode() ?? 0) * 23;
 			return hashCode;
 		}
 	}

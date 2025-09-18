@@ -5,6 +5,8 @@ using System.Data;
 using System.Data.Common;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using RCParsing.ParserRules;
+using RCParsing.TokenPatterns;
 
 namespace RCParsing
 {
@@ -45,6 +47,16 @@ namespace RCParsing
 		public ParserSettings GlobalSettings { get; }
 
 		/// <summary>
+		/// Gets the main rule ID that used by default, or -1 if not specified,
+		/// </summary>
+		public int MainRuleId => _mainRuleId;
+		
+		/// <summary>
+		/// Gets the main rule that used by default, if any.
+		/// </summary>
+		public ParserRule? MainRule => _mainRuleId == -1 ? null : Rules[_mainRuleId];
+
+		/// <summary>
 		/// Initializes a new instance of the <see cref="Parser"/> class.
 		/// </summary>
 		/// <param name="tokenPatterns">The token patterns to use. </param>
@@ -59,7 +71,6 @@ namespace RCParsing
 			int mainRuleId = -1, ParserInitFlags initFlags = ParserInitFlags.None)
 
 			: this(tokenPatterns, rules, tokenizers, mainSettings, globalSettings, mainRuleId, e => initFlags)
-
 		{
 		}
 
@@ -77,16 +88,21 @@ namespace RCParsing
 			ImmutableArray<BarrierTokenizer> tokenizers, ParserMainSettings mainSettings, ParserSettings globalSettings,
 			int mainRuleId = -1, Func<ParserElement, ParserInitFlags>? initFlagsFactory = null)
 		{
+			if (mainSettings.tabSize <= 0)
+				mainSettings.tabSize = 4;
+
 			Rules = rules;
 			TokenPatterns = tokenPatterns;
 			Tokenizers = tokenizers;
 			MainSettings = mainSettings;
 			GlobalSettings = globalSettings;
 
-			foreach (var rule in rules)
+			for (int i = 0; i < rules.Length; i++)
 			{
+				var rule = rules[i];
 				if (rule.Parser != null)
 					throw new InvalidOperationException("Parser already set for a rule.");
+				rule.Id = i;
 				rule.Parser = this;
 
 				foreach (var alias in rule.Aliases)
@@ -96,40 +112,51 @@ namespace RCParsing
 					_rulesAliases.Add(alias, rule.Id);
 				}
 			}
-
-			_mainRuleId = mainRuleId;
-
-			foreach (var pattern in tokenPatterns)
+			
+			for (int i = 0; i < tokenPatterns.Length; i++)
 			{
-				if (pattern.Parser != null)
-					throw new InvalidOperationException("Parser already set for a token pattern.");
-				pattern.Parser = this;
+				var token = tokenPatterns[i];
+				if (token.Parser != null)
+					throw new InvalidOperationException("Parser already set for a token.");
+				token.Id = i;
+				token.Parser = this;
 
-				foreach (var alias in pattern.Aliases)
+				foreach (var alias in token.Aliases)
 				{
 					if (_tokenPatternsAliases.ContainsKey(alias))
 						throw new InvalidOperationException("Alias already used by another token pattern.");
-					_tokenPatternsAliases.Add(alias, pattern.Id);
+					_tokenPatternsAliases.Add(alias, token.Id);
 				}
 			}
 
-			var initFlagsDict = tokenPatterns.Cast<ParserElement>().Concat(rules).ToDictionary(e => e,
-				initFlagsFactory ?? (e => ParserInitFlags.None));
+			_mainRuleId = mainRuleId;
+
+			ParserInitFlags TokenFactory(TokenPattern token)
+			{
+				return initFlagsFactory?.Invoke(token) ?? ParserInitFlags.None;
+			}
+			ParserInitFlags RuleFactory(ParserRule rule)
+			{
+				return initFlagsFactory?.Invoke(rule) ?? ParserInitFlags.None;
+			}
+
+			var initFlagsTokenMap = tokenPatterns.ToDictionary(t => t.Id, TokenFactory);
+			var initFlagsRuleMap = rules.ToDictionary(t => t.Id, RuleFactory);
 
 			foreach (var pattern in tokenPatterns)
-				pattern.PreInitializeInternal(initFlagsDict[pattern]);
+				pattern.PreInitializeInternal(initFlagsTokenMap[pattern.Id]);
 			foreach (var rule in rules)
-				rule.PreInitializeInternal(initFlagsDict[rule]);
+				rule.PreInitializeInternal(initFlagsRuleMap[rule.Id]);
 
 			foreach (var pattern in tokenPatterns)
-				pattern.InitializeInternal(initFlagsDict[pattern]);
+				pattern.InitializeInternal(initFlagsTokenMap[pattern.Id]);
 			foreach (var rule in rules)
-				rule.InitializeInternal(initFlagsDict[rule]);
+				rule.InitializeInternal(initFlagsRuleMap[rule.Id]);
 
 			foreach (var pattern in tokenPatterns)
-				pattern.PostInitializeInternal(initFlagsDict[pattern]);
+				pattern.PostInitializeInternal(initFlagsTokenMap[pattern.Id]);
 			foreach (var rule in rules)
-				rule.PostInitializeInternal(initFlagsDict[rule]);
+				rule.PostInitializeInternal(initFlagsRuleMap[rule.Id]);
 		}
 
 		/// <summary>
@@ -179,7 +206,7 @@ namespace RCParsing
 		/// <exception cref="ArgumentOutOfRangeException">Thrown if the provided ID is out of range.</exception>
 		public ParserRule GetRule(int id)
 		{
-			if (id >= 0 && id < TokenPatterns.Length)
+			if (id >= 0 && id < Rules.Length)
 				return Rules[id];
 			throw new ArgumentOutOfRangeException(nameof(id), "Invalid rule ID.");
 		}
@@ -188,22 +215,20 @@ namespace RCParsing
 		/// Creates a <see cref="ParsingException"/> from the current parser context.
 		/// </summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		private ParsingException ExceptionFromContext(ParserContext context)
+		private static ParsingException ExceptionFromContext(ParserContext context)
 		{
-			var errors = context.errors;
-			if (errors.Count == 0)
-				return new ParsingException(context, "Unknown error.");
-			return new ParsingException(context, errors);
+			return new ParsingException(context);
 		}
 
 		/// <summary>
 		/// Matches the given input using the specified token identifier and parser context.
 		/// </summary>
 		/// <returns>A parsed token object containing the result of the match.</returns>
-		internal ParsedElement MatchToken(int tokenPatternId, string input, int position, int barrierPosition, object? parameter)
+		internal ParsedElement MatchToken(int tokenPatternId, string input, int position,
+			int barrierPosition, object? parameter, bool calculateIntermediateValue)
 		{
 			var tokenPattern = TokenPatterns[tokenPatternId];
-			return tokenPattern.Match(input, position, barrierPosition, parameter);
+			return tokenPattern.Match(input, position, barrierPosition, parameter, calculateIntermediateValue);
 		}
 
 		/// <summary>
@@ -225,6 +250,45 @@ namespace RCParsing
 			throw ExceptionFromContext(context);
 		}
 
+		static bool TrySkip(ref ParserContext context, ParserRule skipRule,
+				ref ParserSettings skipSettings, ref ParserSettings childSkipSettings, bool record)
+		{
+			if (context.shared.positionsToAvoidSkipping[context.position])
+				return false;
+			if (context.position >= context.maxPosition)
+				return false;
+
+			var parsedSkipRule = skipRule.Parse(context, skipSettings, childSkipSettings);
+			int newPosition = parsedSkipRule.startIndex + parsedSkipRule.length;
+
+			if (parsedSkipRule.success && newPosition != context.position)
+			{
+				context.position = newPosition;
+				if (record)
+					context.skippedRules.Add(parsedSkipRule);
+				return true;
+			}
+			return false;
+		}
+
+		static ParsedRule Parse(ParserRule rule, ref ParserContext context,
+				ref ParserSettings settings, ref ParserSettings childSettings)
+		{
+			var parsedRule = rule.Parse(context, settings, childSettings);
+			if (parsedRule.success)
+				context.successPositions[parsedRule.startIndex] = true;
+			return parsedRule;
+		}
+
+		static bool TryParse(ParserRule rule, ref ParserContext context,
+				ref ParserSettings settings, ref ParserSettings childSettings, out ParsedRule parsedRule)
+		{
+			parsedRule = rule.Parse(context, settings, childSettings);
+			if (parsedRule.success)
+				context.successPositions[parsedRule.startIndex] = true;
+			return parsedRule.success;
+		}
+
 		/// <summary>
 		/// Tries to parse the given input using the specified rule identifier and parser context.
 		/// </summary>
@@ -237,103 +301,69 @@ namespace RCParsing
 			var rule = Rules[ruleId];
 			rule.AdvanceContext(ref context, ref settings, out var childSettings);
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			ParsedRule Parse()
+			if (MainSettings.useOptimizedWhitespaceSkip)
 			{
-				var parsedRule = rule.Parse(context, settings, childSettings);
-				if (parsedRule.success && parsedRule.startIndex < context.maxPosition)
-					context.successPositions[parsedRule.startIndex] = true;
-				return parsedRule;
+				while (context.position < context.maxPosition && char.IsWhiteSpace(context.input[context.position]))
+					context.position++;
+				return Parse(rule, ref context, ref settings, ref childSettings);
 			}
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			bool TryParse(out ParsedRule result)
-			{
-				var parsedRule = rule.Parse(context, settings, childSettings);
-				if (parsedRule.success && parsedRule.startIndex < context.maxPosition)
-					context.successPositions[parsedRule.startIndex] = true;
-				result = parsedRule;
-				return parsedRule.success;
-			}
-
-			if (settings.skipRule == -1 || settings.skippingStrategy == ParserSkippingStrategy.Default)
-				return Parse();
+			if (settings.skipRule == -1 ||
+				settings.skippingStrategy == ParserSkippingStrategy.Default ||
+				context.positionsToAvoidSkipping[context.position])
+				return Parse(rule, ref context, ref settings, ref childSettings);
 
 			// Skip rule preparation
 
 			var skipRule = Rules[settings.skipRule];
 			var skipSettings = settings;
-			skipRule.AdvanceContext(ref context, ref skipSettings, out var childSkipSettings);
+			var skipContext = context;
+			skipRule.AdvanceContext(ref skipContext, ref skipSettings, out var childSkipSettings);
 			skipSettings.skipRule = -1;
 			childSkipSettings.skipRule = -1;
 			bool record = MainSettings.recordSkippedRules;
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			bool TrySkip()
-			{
-				if (context.position >= context.maxPosition)
-					return false;
-				if (context.shared.positionsToAvoidSkipping[context.position])
-					return false;
-
-				var parsedSkipRule = skipRule.Parse(context, skipSettings, childSkipSettings);
-				int newPosition = parsedSkipRule.startIndex + parsedSkipRule.length;
-
-				if (parsedSkipRule.success && newPosition != context.position)
-				{
-					context.position = newPosition;
-					if (record)
-						context.skippedRules.Add(parsedSkipRule);
-					return true;
-				}
-				return false;
-			}
 
 			switch (settings.skippingStrategy)
 			{
 				case ParserSkippingStrategy.SkipBeforeParsing:
 
-					if (TrySkip())
-					{
-						if (context.position < context.maxPosition)
-							context.shared.positionsToAvoidSkipping[context.position] = true;
-					}
-					return Parse();
+					TrySkip(ref context, skipRule, ref skipSettings, ref childSkipSettings, record);
+					context.shared.positionsToAvoidSkipping[context.position] = true;
+					return Parse(rule, ref context, ref settings, ref childSettings);
 
 				case ParserSkippingStrategy.SkipBeforeParsingLazy:
 
 					// Alternate: Skip -> TryParse -> Skip -> TryParse ... until TryParse succeeds
 					while (true)
 					{
-						if (TrySkip())
+						if (TrySkip(ref context, skipRule, ref skipSettings, ref childSkipSettings, record))
 						{
-							if (TryParse(out var res))
+							if (TryParse(rule, ref context, ref settings, ref childSettings, out var res))
 							{
 								return res;
 							}
 							continue;
 						}
-						return Parse();
+						return Parse(rule, ref context, ref settings, ref childSettings);
 					}
 
 				case ParserSkippingStrategy.SkipBeforeParsingGreedy:
 
-					int c = 0;
-					while (TrySkip()) { c++; }
-					if (c > 0 && context.position < context.maxPosition)
-						context.shared.positionsToAvoidSkipping[context.position] = true;
-					return Parse();
+					while (TrySkip(ref context, skipRule, ref skipSettings, ref childSkipSettings, record))
+					{
+					}
+					context.shared.positionsToAvoidSkipping[context.position] = true;
+					return Parse(rule, ref context, ref settings, ref childSettings);
 
 				case ParserSkippingStrategy.TryParseThenSkip:
 
-					if (TryParse(out var result))
+					if (TryParse(rule, ref context, ref settings, ref childSettings, out var result))
 						return result;
 
-					if (TrySkip())
+					if (TrySkip(ref context, skipRule, ref skipSettings, ref childSkipSettings, record))
 					{
-						if (context.position < context.maxPosition)
-							context.shared.positionsToAvoidSkipping[context.position] = true;
-						return Parse();
+						context.shared.positionsToAvoidSkipping[context.position] = true;
+						return Parse(rule, ref context, ref settings, ref childSettings);
 					}
 
 					return ParsedRule.Fail;
@@ -342,37 +372,37 @@ namespace RCParsing
 
 					// First try parse (handled above in TryParseThenSkip pattern),
 					// then alternate Skip -> TryParse -> Skip -> TryParse ... until success or nothing consumes
-					if (TryParse(out var firstResult))
+					if (TryParse(rule, ref context, ref settings, ref childSettings, out var firstResult))
 					{
 						return firstResult;
 					}
 
 					while (true)
 					{
-						if (TrySkip())
+						if (TrySkip(ref context, skipRule, ref skipSettings, ref childSkipSettings, record))
 						{
-							if (TryParse(out var res))
+							if (TryParse(rule, ref context, ref settings, ref childSettings, out var res))
 							{
 								return res;
 							}
 							continue;
 						}
-						if (context.position < context.maxPosition)
-							context.shared.positionsToAvoidSkipping[context.position] = true;
+						context.shared.positionsToAvoidSkipping[context.position] = true;
 						return ParsedRule.Fail;
 					}
 
 				case ParserSkippingStrategy.TryParseThenSkipGreedy:
 
 					// Try parse; if failed, greedily skip then parse once
-					if (TryParse(out var firstRes))
+					if (TryParse(rule, ref context, ref settings, ref childSettings, out var firstRes))
 						return firstRes;
 
-					while (TrySkip()) { }
-					if (context.position < context.maxPosition)
-						context.shared.positionsToAvoidSkipping[context.position] = true;
+					while (TrySkip(ref context, skipRule, ref skipSettings, ref childSkipSettings, record))
+					{
+					}
+					context.shared.positionsToAvoidSkipping[context.position] = true;
 
-					return Parse();
+					return Parse(rule, ref context, ref settings, ref childSettings);
 
 				default:
 					throw new ParsingException(context, "Invalid skipping strategy.");
@@ -392,30 +422,41 @@ namespace RCParsing
 			var rule = Rules[ruleId];
 			rule.AdvanceContext(ref context, ref settings, out var childSettings);
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			ParsedRule Parse()
-			{
-				var parsedRule = rule.Parse(context, settings, childSettings);
-				if (parsedRule.success && parsedRule.startIndex < context.maxPosition)
-					context.successPositions[parsedRule.startIndex] = true;
-				return parsedRule;
-			}
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			bool TryParse(out ParsedRule result)
-			{
-				var parsedRule = rule.Parse(context, settings, childSettings);
-				if (parsedRule.success && parsedRule.startIndex < context.maxPosition)
-					context.successPositions[parsedRule.startIndex] = true;
-				result = parsedRule;
-				return parsedRule.success;
-			}
-
-			if (settings.skipRule == -1 || settings.skippingStrategy == ParserSkippingStrategy.Default)
+			if (MainSettings.useOptimizedWhitespaceSkip)
 			{
 				while (context.position < context.maxPosition)
 				{
-					var parsed = Parse();
+					if (char.IsWhiteSpace(context.input[context.position]))
+					{
+						context.position++;
+						continue;
+					}
+
+					var parsed = Parse(rule, ref context, ref settings, ref childSettings);
+
+					if (parsed.success)
+					{
+						yield return parsed;
+						if (overlap)
+							context.position++;
+						else
+							context.position = parsed.startIndex + parsed.length;
+					}
+					else
+					{
+						context.position++;
+					}
+				}
+				yield break;
+			}
+
+			if (settings.skipRule == -1 ||
+				settings.skippingStrategy == ParserSkippingStrategy.Default ||
+				context.positionsToAvoidSkipping[context.position])
+			{
+				while (context.position < context.maxPosition)
+				{
+					var parsed = Parse(rule, ref context, ref settings, ref childSettings);
 
 					if (parsed.success)
 					{
@@ -435,31 +476,11 @@ namespace RCParsing
 
 			var skipRule = Rules[settings.skipRule];
 			var skipSettings = settings;
-			skipRule.AdvanceContext(ref context, ref skipSettings, out var childSkipSettings);
+			var skipContext = context;
+			skipRule.AdvanceContext(ref skipContext, ref skipSettings, out var childSkipSettings);
 			skipSettings.skipRule = -1;
 			childSkipSettings.skipRule = -1;
 			bool record = MainSettings.recordSkippedRules;
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			bool TrySkip()
-			{
-				if (context.position >= context.maxPosition)
-					return false;
-				if (context.shared.positionsToAvoidSkipping[context.position])
-					return false;
-
-				var parsedSkipRule = skipRule.Parse(context, skipSettings, childSkipSettings);
-				int newPosition = parsedSkipRule.startIndex + parsedSkipRule.length;
-
-				if (parsedSkipRule.success && newPosition != context.position)
-				{
-					context.position = newPosition;
-					if (record)
-						context.skippedRules.Add(parsedSkipRule);
-					return true;
-				}
-				return false;
-			}
 
 			switch (settings.skippingStrategy)
 			{
@@ -468,12 +489,9 @@ namespace RCParsing
 					while (context.position < context.maxPosition)
 					{
 						// Skip -> Parse
-						if (TrySkip())
-						{
-							if (context.position < context.maxPosition)
-								context.shared.positionsToAvoidSkipping[context.position] = true;
-						}
-						var parsed = Parse();
+						TrySkip(ref context, skipRule, ref skipSettings, ref childSkipSettings, record);
+						context.shared.positionsToAvoidSkipping[context.position] = true;
+						var parsed = Parse(rule, ref context, ref settings, ref childSettings);
 
 						if (parsed.success)
 						{
@@ -495,9 +513,9 @@ namespace RCParsing
 					while (context.position < context.maxPosition)
 					{
 						// Alternate: Skip -> TryParse -> Skip -> TryParse ... until TryParse succeeds
-						if (TrySkip())
+						if (TrySkip(ref context, skipRule, ref skipSettings, ref childSkipSettings, record))
 						{
-							if (TryParse(out var parsed))
+							if (TryParse(rule, ref context, ref settings, ref childSettings, out var parsed))
 							{
 								yield return parsed;
 								if (overlap)
@@ -508,10 +526,9 @@ namespace RCParsing
 							}
 						}
 
-						if (TryParse(out var parsed1))
+						if (TryParse(rule, ref context, ref settings, ref childSettings, out var parsed1))
 						{
-							if (context.position < context.maxPosition)
-								context.shared.positionsToAvoidSkipping[context.position] = true;
+							context.shared.positionsToAvoidSkipping[context.position] = true;
 
 							yield return parsed1;
 							if (overlap)
@@ -521,8 +538,7 @@ namespace RCParsing
 							continue;
 						}
 
-						if (context.position < context.maxPosition)
-							context.shared.positionsToAvoidSkipping[context.position] = true;
+						context.shared.positionsToAvoidSkipping[context.position] = true;
 						context.position++;
 					}
 					yield break;
@@ -532,13 +548,12 @@ namespace RCParsing
 					while (context.position < context.maxPosition)
 					{
 						// Skip ->  Skip -> Skip ... until Skip fails
-						while (TrySkip())
+						while (TrySkip(ref context, skipRule, ref skipSettings, ref childSkipSettings, record))
 						{
 						}
-						if (context.position < context.maxPosition)
-							context.shared.positionsToAvoidSkipping[context.position] = true;
+						context.shared.positionsToAvoidSkipping[context.position] = true;
 
-						if (TryParse(out var parsed))
+						if (TryParse(rule, ref context, ref settings, ref childSettings, out var parsed))
 						{
 							yield return parsed;
 							if (overlap)
@@ -556,7 +571,7 @@ namespace RCParsing
 					// Parse -> Skip -> Parse
 					while (context.position < context.maxPosition)
 					{
-						if (TryParse(out var parsed))
+						if (TryParse(rule, ref context, ref settings, ref childSettings, out var parsed))
 						{
 							yield return parsed;
 							if (overlap)
@@ -566,12 +581,11 @@ namespace RCParsing
 							continue;
 						}
 
-						if (TrySkip())
+						if (TrySkip(ref context, skipRule, ref skipSettings, ref childSkipSettings, record))
 						{
-							if (context.position < context.maxPosition)
-								context.shared.positionsToAvoidSkipping[context.position] = true;
+							context.shared.positionsToAvoidSkipping[context.position] = true;
 
-							if (TryParse(out parsed))
+							if (TryParse(rule, ref context, ref settings, ref childSettings, out parsed))
 							{
 								yield return parsed;
 								if (overlap)
@@ -582,8 +596,7 @@ namespace RCParsing
 							}
 						}
 
-						if (context.position < context.maxPosition)
-							context.shared.positionsToAvoidSkipping[context.position] = true;
+						context.shared.positionsToAvoidSkipping[context.position] = true;
 						context.position++;
 					}
 					yield break;
@@ -594,7 +607,7 @@ namespace RCParsing
 					// then alternate Skip -> TryParse -> Skip -> TryParse ... until success or nothing consumes
 					while (context.position < context.maxPosition)
 					{
-						if (TryParse(out var parsed))
+						if (TryParse(rule, ref context, ref settings, ref childSettings, out var parsed))
 						{
 							yield return parsed;
 							if (overlap)
@@ -604,9 +617,9 @@ namespace RCParsing
 							continue;
 						}
 
-						while (TrySkip())
+						while (TrySkip(ref context, skipRule, ref skipSettings, ref childSkipSettings, record))
 						{
-							if (TryParse(out parsed))
+							if (TryParse(rule, ref context, ref settings, ref childSettings, out parsed))
 							{
 								yield return parsed;
 								if (overlap)
@@ -617,8 +630,7 @@ namespace RCParsing
 							}
 						}
 
-						if (context.position < context.maxPosition)
-							context.shared.positionsToAvoidSkipping[context.position] = true;
+						context.shared.positionsToAvoidSkipping[context.position] = true;
 						context.position++;
 					}
 					yield break;
@@ -628,7 +640,7 @@ namespace RCParsing
 					// Try parse; if failed, greedily skip then parse once
 					while (context.position < context.maxPosition)
 					{
-						if (TryParse(out var parsed))
+						if (TryParse(rule, ref context, ref settings, ref childSettings, out var parsed))
 						{
 							yield return parsed;
 							if (overlap)
@@ -638,13 +650,12 @@ namespace RCParsing
 							continue;
 						}
 
-						while (TrySkip())
+						while (TrySkip(ref context, skipRule, ref skipSettings, ref childSkipSettings, record))
 						{
 						}
-						if (context.position < context.maxPosition)
-							context.shared.positionsToAvoidSkipping[context.position] = true;
+						context.shared.positionsToAvoidSkipping[context.position] = true;
 
-						if (TryParse(out parsed))
+						if (TryParse(rule, ref context, ref settings, ref childSettings, out parsed))
 						{
 							yield return parsed;
 							if (overlap)
@@ -747,8 +758,27 @@ namespace RCParsing
 			if (!_tokenPatternsAliases.TryGetValue(tokenPatternAlias, out var tokenPatternId))
 				throw new ArgumentException("Invalid token pattern alias", nameof(tokenPatternAlias));
 
-			var parsedToken = MatchToken(tokenPatternId, context.input, context.position, context.maxPosition, parameter);
-			return new ParsedTokenResult(null, context, parsedToken);
+			var parsedToken = MatchToken(tokenPatternId, context.input, context.position,
+				context.maxPosition, parameter, true);
+			return new ParsedTokenResult(null, context, parsedToken, tokenPatternId);
+		}
+
+		/// <summary>
+		/// Parses the given input using the specified token pattern alias and input text.
+		/// Converts intermediate value of the token to <typeparamref name="T"/>
+		/// </summary>
+		/// <param name="tokenPatternAlias">The alias for the token pattern to use.</param>
+		/// <param name="context">The parser context to use for matching.</param>
+		/// <param name="parameter">Optional parameter to pass to the parser. Can be used to pass additional information to the custom token patterns.</param>
+		/// <returns>A parsed token pattern containing the result of the parse.</returns>
+		public T MatchToken<T>(string tokenPatternAlias, ParserContext context, object? parameter = null)
+		{
+			if (!_tokenPatternsAliases.TryGetValue(tokenPatternAlias, out var tokenPatternId))
+				throw new ArgumentException("Invalid token pattern alias", nameof(tokenPatternAlias));
+
+			var parsedToken = MatchToken(tokenPatternId, context.input, context.position,
+				context.maxPosition, context.parserParameter, true);
+			return (T)parsedToken.intermediateValue;
 		}
 
 		/// <summary>
@@ -767,8 +797,27 @@ namespace RCParsing
 				throw new ArgumentException("Invalid token pattern alias", nameof(tokenPatternAlias));
 
 			var context = CreateContext(input, parameter);
-			var parsedToken = MatchToken(tokenPatternId, context.input, context.position, context.maxPosition, parameter);
-			return new ParsedTokenResult(null, context, parsedToken);
+			var parsedToken = MatchToken(tokenPatternId, context.input, context.position,
+				context.maxPosition, parameter, true);
+			return new ParsedTokenResult(null, context, parsedToken, tokenPatternId);
+		}
+
+		/// <summary>
+		/// Parses the given input using the specified token pattern alias and input text.
+		/// Converts intermediate value of the token to <typeparamref name="T"/>
+		/// </summary>
+		/// <param name="tokenPatternAlias">The alias for the token pattern to use.</param>
+		/// <param name="input">The input text to parse.</param>
+		/// <param name="parameter">Optional parameter to pass to the parser. Can be used to pass additional information to the custom token patterns.</param>
+		/// <returns>A parsed token pattern containing the result of the parse.</returns>
+		public T MatchToken<T>(string tokenPatternAlias, string input, object? parameter = null)
+		{
+			if (!_tokenPatternsAliases.TryGetValue(tokenPatternAlias, out var tokenPatternId))
+				throw new ArgumentException("Invalid token pattern alias", nameof(tokenPatternAlias));
+
+			var parsedToken = MatchToken(tokenPatternId, input, 0,
+				input.Length, parameter, true);
+			return (T)parsedToken.intermediateValue;
 		}
 
 		/// <summary>
@@ -788,8 +837,28 @@ namespace RCParsing
 				throw new ArgumentException("Invalid token pattern alias", nameof(tokenPatternAlias));
 
 			var context = CreateContext(input, startIndex, parameter);
-			var parsedToken = MatchToken(tokenPatternId, context.input, context.position, context.maxPosition, parameter);
-			return new ParsedTokenResult(null, context, parsedToken);
+			var parsedToken = MatchToken(tokenPatternId, context.input, context.position,
+				context.maxPosition, parameter, true);
+			return new ParsedTokenResult(null, context, parsedToken, tokenPatternId);
+		}
+
+		/// <summary>
+		/// Parses the given input using the specified token pattern alias and input text.
+		/// Converts intermediate value of the token to <typeparamref name="T"/>
+		/// </summary>
+		/// <param name="tokenPatternAlias">The alias for the token pattern to use.</param>
+		/// <param name="input">The input text to parse.</param>
+		/// <param name="startIndex">Starting index in the input text to parse.</param>
+		/// <param name="parameter">Optional parameter to pass to the parser. Can be used to pass additional information to the custom token patterns.</param>
+		/// <returns>A parsed token pattern containing the result of the parse.</returns>
+		public T MatchToken<T>(string tokenPatternAlias, string input, int startIndex, object? parameter = null)
+		{
+			if (!_tokenPatternsAliases.TryGetValue(tokenPatternAlias, out var tokenPatternId))
+				throw new ArgumentException("Invalid token pattern alias", nameof(tokenPatternAlias));
+
+			var parsedToken = MatchToken(tokenPatternId, input, startIndex,
+				input.Length, parameter, true);
+			return (T)parsedToken.intermediateValue;
 		}
 
 		/// <summary>
@@ -810,8 +879,29 @@ namespace RCParsing
 				throw new ArgumentException("Invalid token pattern alias", nameof(tokenPatternAlias));
 
 			var context = CreateContext(input, startIndex, length, parameter);
-			var parsedToken = MatchToken(tokenPatternId, context.input, context.position, context.maxPosition, parameter);
-			return new ParsedTokenResult(null, context, parsedToken);
+			var parsedToken = MatchToken(tokenPatternId, context.input, context.position,
+				context.maxPosition, parameter, true);
+			return new ParsedTokenResult(null, context, parsedToken, tokenPatternId);
+		}
+
+		/// <summary>
+		/// Parses the given input using the specified token pattern alias and input text.
+		/// Converts intermediate value of the token to <typeparamref name="T"/>
+		/// </summary>
+		/// <param name="tokenPatternAlias">The alias for the token pattern to use.</param>
+		/// <param name="input">The input text to parse.</param>
+		/// <param name="startIndex">Starting index in the input text to parse.</param>
+		/// <param name="length">Number of characters to parse from the input text.</param>
+		/// <param name="parameter">Optional parameter to pass to the parser. Can be used to pass additional information to the custom token patterns.</param>
+		/// <returns>A parsed token pattern containing the result of the parse.</returns>
+		public T MatchToken<T>(string tokenPatternAlias, string input, int startIndex, int length, object? parameter = null)
+		{
+			if (!_tokenPatternsAliases.TryGetValue(tokenPatternAlias, out var tokenPatternId))
+				throw new ArgumentException("Invalid token pattern alias", nameof(tokenPatternAlias));
+
+			var parsedToken = MatchToken(tokenPatternId, input, startIndex,
+				startIndex + length, parameter, true);
+			return (T)parsedToken.intermediateValue;
 		}
 
 

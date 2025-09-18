@@ -33,16 +33,17 @@ namespace RCParsing
 		/// </summary>
 		/// <param name="context">The parser context used for parsing.</param>
 		/// <param name="topFrame">The top stack frame in the stack.</param>
-		public ParserStackTrace(ParserContext context, ParserStackFrame topFrame)
+		public ParserStackTrace(ParserContext context, IntermediateParserStackFrame topFrame)
 		{
 			Context = context;
-			TopFrame = topFrame ?? throw new ArgumentNullException(nameof(topFrame));
+			TopFrame = new(this, topFrame ?? throw new ArgumentNullException(nameof(topFrame)));
 
 			var frames = ImmutableList.CreateBuilder<ParserStackFrame>();
-			while (topFrame != null)
+			var _topFrame = TopFrame;
+			while (_topFrame != null)
 			{
-				frames.Add(topFrame);
-				topFrame = topFrame.previous;
+				frames.Add(_topFrame);
+				_topFrame = _topFrame.Previous;
 			}
 			Frames = frames.ToImmutable();
 		}
@@ -73,20 +74,19 @@ namespace RCParsing
 			if (topFrame != null)
 			{
 				var sb = new StringBuilder();
-				sb.Append($"[{Context.parser.Rules[topFrame.ruleId].ToString(0)}] ");
+				sb.Append($"[{Context.parser.Rules[topFrame.RuleId].ToString(0)}] ");
 				sb.AppendLine("Stack trace (top call recently):");
-				elementsToRecord?.Add(topFrame.ruleId);
-				prevStackRule = topFrame.ruleId;
-				topFrame = topFrame.previous;
+				elementsToRecord?.Add(topFrame.RuleId);
+				prevStackRule = topFrame.RuleId;
+				topFrame = topFrame.Previous;
 
 				while (topFrame != null && maxFrames-- >= 0)
 				{
-					elementsToRecord?.Add(topFrame.ruleId);
-					var rule = Context.parser.Rules[topFrame.ruleId];
-					sb.AppendLine("- " + rule.ToStackTraceString(1, prevStackRule)
+					elementsToRecord?.Add(topFrame.RuleId);
+					sb.AppendLine("- " + topFrame.Rule.ToStackTraceString(1, prevStackRule)
 						.Indent("  ", addIndentToFirstLine: false));
-					prevStackRule = topFrame.ruleId;
-					topFrame = topFrame.previous;
+					prevStackRule = topFrame.RuleId;
+					topFrame = topFrame.Previous;
 				}
 
 				if (topFrame != null)

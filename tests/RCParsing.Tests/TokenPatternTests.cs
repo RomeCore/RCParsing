@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using RCParsing.Building;
+using RCParsing.TokenPatterns;
 
 namespace RCParsing.Tests
 {

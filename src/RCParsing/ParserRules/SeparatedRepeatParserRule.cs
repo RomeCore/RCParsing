@@ -221,9 +221,9 @@ namespace RCParsing.ParserRules
 
 			string trailing = AllowTrailingSeparator ? " (allow trailing)" : "";
 			if (remainingDepth <= 0)
-				return $"SeparatedRepeat{alias}{{{MinCount}..{(MaxCount == -1 ? "" : MaxCount)}}}{trailing}...";
+				return $"SeparatedRepeat{alias}[{MinCount}..{(MaxCount == -1 ? "" : MaxCount)}]{trailing}...";
 
-			return $"SeparatedRepeat{alias}{{{MinCount}..{(MaxCount == -1 ? "" : MaxCount)}}}{trailing}: " +
+			return $"SeparatedRepeat{alias}[{MinCount}..{(MaxCount == -1 ? "" : MaxCount)}]{trailing}: " +
 				   $"{GetRule(Rule).ToString(remainingDepth - 1)} sep {GetRule(Separator).ToString(remainingDepth - 1)}";
 		}
 
@@ -233,12 +233,12 @@ namespace RCParsing.ParserRules
 
 			string trailing = AllowTrailingSeparator ? " (allow trailing)" : "";
 			if (remainingDepth <= 0)
-				return $"SeparatedRepeat{alias}{{{MinCount}..{(MaxCount == -1 ? "" : MaxCount)}}}{trailing}...";
+				return $"SeparatedRepeat{alias}[{MinCount}..{(MaxCount == -1 ? "" : MaxCount)}]{trailing}...";
 
-			string mainPointer = childIndex == Rule ? " <--- here" : " ";
-			string sepPointer = childIndex == Separator ? " <--- here" : "";
+			string mainPointer = childIndex == Rule ? " <-- here" : " ";
+			string sepPointer = childIndex == Separator ? " <-- here" : "";
 
-			return $"SeparatedRepeat{alias}{alias}{{{MinCount}..{(MaxCount == -1 ? "" : MaxCount)}}}{trailing}: " +
+			return $"SeparatedRepeat{alias}{alias}[{MinCount}..{(MaxCount == -1 ? "" : MaxCount)}]{trailing}: " +
 				   $"{GetRule(Rule).ToString(remainingDepth - 1)}{mainPointer}\n" +
 				   $"sep {GetRule(Separator).ToString(remainingDepth - 1)}{sepPointer}";
 		}

@@ -26,14 +26,15 @@ namespace RCParsing.TokenPatterns
 
 
 
-		public override ParsedElement Match(string input, int position, int barrierPosition, object? parserParameter)
+		public override ParsedElement Match(string input, int position, int barrierPosition,
+			object? parserParameter, bool calculateIntermediateValue)
 		{
 			throw new InvalidOperationException("This pattern is not meant to be used directly. Should be used from a parent rule (not token pattern).");
 		}
 
 		public override string ToStringOverride(int remainingDepth)
 		{
-			return $"virtual '{MainAlias}'";
+			return $"barrier '{MainAlias}'";
 		}
 
 		public override bool Equals(object? obj)

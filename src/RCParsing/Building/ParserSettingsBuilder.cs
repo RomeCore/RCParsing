@@ -225,6 +225,29 @@ namespace RCParsing.Building
 		}
 
 		/// <summary>
+		/// Sets the tab size, mostly used for debugging and better error display.
+		/// </summary>
+		/// <returns>Current instance for method chaining.</returns>
+		public ParserSettingsBuilder SetTabSize(int tabSize = 4)
+		{
+			_mainSettings.tabSize = tabSize;
+			return this;
+		}
+
+		/// <summary>
+		/// Sets the optimized skip whitespace mode, where parser directly skips whitespaces before parsing rules. <br/>
+		/// </summary>
+		/// <remarks>
+		/// This mode prevents any other skip rules, strategies, recording and barriers calculation. Use with caution.
+		/// </remarks>
+		/// <returns>Current instance for method chaining.</returns>
+		public ParserSettingsBuilder SkipWhitespacesOptimized()
+		{
+			_mainSettings.useOptimizedWhitespaceSkip = true;
+			return this;
+		}
+
+		/// <summary>
 		/// Sets the barrier tokens to be ignored while parsing.
 		/// </summary>
 		/// <param name="ignore">Whether to ignore barrier tokens or not.</param>

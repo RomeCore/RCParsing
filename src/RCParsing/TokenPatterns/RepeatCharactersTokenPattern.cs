@@ -50,7 +50,8 @@ namespace RCParsing.TokenPatterns
 
 
 
-		public override ParsedElement Match(string input, int position, int barrierPosition, object? parserParameter)
+		public override ParsedElement Match(string input, int position, int barrierPosition,
+			object? parserParameter, bool calculateIntermediateValue)
 		{
 			int initialPosition = position;
 			while (position < barrierPosition &&
@@ -62,12 +63,14 @@ namespace RCParsing.TokenPatterns
 			if (count < MinCount)
 				return ParsedElement.Fail;
 
-			return new ParsedElement(Id, initialPosition, count);
+			return new ParsedElement(initialPosition, count);
 		}
+
+
 
 		public override string ToStringOverride(int remainingDepth)
 		{
-			return $"repeat predicate{{{MinCount}..{(MaxCount == -1 ? "" : MaxCount)}}}";
+			return $"repeat predicate[{MinCount}..{(MaxCount == -1 ? "" : MaxCount)}]";
 		}
 
 		public override bool Equals(object? obj)

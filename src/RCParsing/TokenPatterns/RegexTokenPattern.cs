@@ -14,9 +14,9 @@ namespace RCParsing.TokenPatterns
 	public class RegexTokenPattern : TokenPattern
 	{
 		/// <summary>
-		/// The regular expression pattern string to match.
+		/// The regular expression pattern string to match. If this token is constructed directly (without providing a pattern), returns <see langword="null"/>.
 		/// </summary>
-		public string RegexPattern { get; }
+		public string? RegexPattern { get; }
 		
 		/// <summary>
 		/// The regular expression to match.
@@ -36,25 +36,38 @@ namespace RCParsing.TokenPatterns
 			Regex = new Regex($"\\G{RegexPattern}", options);
 		}
 
+		/// <summary>
+		/// Initializes a new instance of the <see cref="RegexTokenPattern"/> class.
+		/// </summary>
+		/// <param name="regex">The constructed regular expression, it's recommended to prepend the '\G' into a pattern.</param>
+		public RegexTokenPattern(Regex regex)
+		{
+			if (regex == null)
+				throw new ArgumentNullException(nameof(regex));
+			RegexPattern = null;
+			Regex = regex;
+		}
+
 		protected override HashSet<char>? FirstCharsCore => null;
 
 
 
-		public override ParsedElement Match(string input, int position, int barrierPosition, object? parserParameter)
+		public override ParsedElement Match(string input, int position, int barrierPosition,
+			object? parserParameter, bool calculateIntermediateValue)
 		{
 			var match = Regex.Match(input, position, barrierPosition - position);
 
 			if (!match.Success || match.Index != position)
 				return ParsedElement.Fail;
 			else
-				return new ParsedElement(Id, position, match.Length, match);
+				return new ParsedElement(position, match.Length, match);
 		}
 
 
 
 		public override string ToStringOverride(int remainingDepth)
 		{
-			return $"regex: '{RegexPattern}'";
+			return $"regex '{RegexPattern}'";
 		}
 
 		public override bool Equals(object? obj)

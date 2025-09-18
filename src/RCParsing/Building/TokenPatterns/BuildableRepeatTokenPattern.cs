@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using RCParsing.TokenPatterns;
+using RCParsing.TokenPatterns.Combinators;
 using RCParsing.Utils;
 
 namespace RCParsing.Building.TokenPatterns
@@ -9,7 +9,7 @@ namespace RCParsing.Building.TokenPatterns
 	/// <summary>
 	/// Represents a token pattern that can be built into a repeat pattern.
 	/// </summary>
-	public class BuildableRepeatTokenPattern : BuildableTokenPattern
+	public class BuildableRepeatTokenPattern : BuildableTokenPattern, IPassageFunctionHolder
 	{
 		/// <summary>
 		/// Gets or sets the child of this token pattern.

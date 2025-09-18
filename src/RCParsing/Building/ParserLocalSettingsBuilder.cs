@@ -12,7 +12,7 @@ namespace RCParsing.Building
 	/// </summary>
 	public class ParserLocalSettingsBuilder
 	{
-		private ParserLocalSettings _settings = new ParserLocalSettings();
+		private ParserLocalSettings _settings = new ();
 		private bool _changed = false;
 		private Or<string, BuildableParserRule>? _skipRule = null;
 
@@ -49,6 +49,7 @@ namespace RCParsing.Building
 		public override bool Equals(object? obj)
 		{
 			return obj is ParserLocalSettingsBuilder other &&
+				   _changed == other._changed && 
 				   _settings.Equals(other._settings) && 
 				   _skipRule.Equals(other._skipRule);
 		}
@@ -56,6 +57,7 @@ namespace RCParsing.Building
 		public override int GetHashCode()
 		{
 			int hashCode = 17;
+			hashCode = hashCode * 397 + _changed.GetHashCode();
 			hashCode = hashCode * 397 + _settings.GetHashCode();
 			hashCode = hashCode * 397 + _skipRule?.GetHashCode() ?? 0;
 			return hashCode;

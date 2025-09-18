@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Text;
 
-namespace RCParsing.TokenPatterns
+namespace RCParsing.TokenPatterns.Combinators
 {
 	/// <summary>
 	/// Represents a token pattern that is optional. It can match either the wrapped token pattern or no tokens at all.
@@ -24,7 +24,7 @@ namespace RCParsing.TokenPatterns
 			TokenPattern = tokenPatternId;
 		}
 
-		protected override HashSet<char>? FirstCharsCore => null;
+		protected override HashSet<char>? FirstCharsCore => GetTokenPattern(TokenPattern).FirstChars;
 
 
 
@@ -35,13 +35,16 @@ namespace RCParsing.TokenPatterns
 			_pattern = GetTokenPattern(TokenPattern);
 		}
 
-		public override ParsedElement Match(string input, int position, int barrierPosition, object? parserParameter)
+
+
+		public override ParsedElement Match(string input, int position, int barrierPosition,
+			object? parserParameter, bool calculateIntermediateValue)
 		{
-			var token = _pattern.Match(input, position, barrierPosition, parserParameter);
+			var token = _pattern.Match(input, position, barrierPosition, parserParameter, calculateIntermediateValue);
 			if (token.success)
-				return new ParsedElement(Id, token.startIndex, token.length, token.intermediateValue);
+				return new ParsedElement(token.startIndex, token.length, token.intermediateValue);
 			else
-				return new ParsedElement(Id, position, 0);
+				return new ParsedElement(position, 0);
 		}
 
 

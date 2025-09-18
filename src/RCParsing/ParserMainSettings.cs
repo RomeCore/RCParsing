@@ -40,5 +40,16 @@ namespace RCParsing
 		/// Whether to record skipped rules during parsing. Useful for debugging and syntax highlighting.
 		/// </summary>
 		public bool recordSkippedRules;
+
+		/// <summary>
+		/// Size of tabs in spaces, if default or equal to 0, the 4 will be applied.
+		/// </summary>
+		public int tabSize;
+
+		/// <summary>
+		/// Whether to use the optimized skip whitespace mode, where parser directly skips whitespaces before parsing rules. <br/>
+		/// This mode prevents any other skip rules, strategies, barriers calculation and recording.
+		/// </summary>
+		public bool useOptimizedWhitespaceSkip;
 	}
 }

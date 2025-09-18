@@ -12,7 +12,7 @@ using Newtonsoft.Json.Linq;
 namespace RCParsing.Benchmarks.JSON
 {
 	[MemoryDiagnoser]
-	[SimpleJob(RuntimeMoniker.Net80, iterationCount: 3, warmupCount: 2)]
+	[SimpleJob(RuntimeMoniker.Net80, iterationCount: 7, warmupCount: 2)]
 	[GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory)]
 	public class ParserCombinatorJSONBenchmarks
 	{
@@ -25,7 +25,19 @@ namespace RCParsing.Benchmarks.JSON
 		[Benchmark(Baseline = true), BenchmarkCategory("short")]
 		public void JsonShort_RCParsing()
 		{
-			var value = RCJsonParser.ParseInlined(TestJSONs.shortJson);
+			var value = RCJsonParser.Parse(TestJSONs.shortJson);
+		}
+
+		[Benchmark, BenchmarkCategory("short")]
+		public void JsonShort_RCParsing_Optimized()
+		{
+			var value = RCJsonParser.ParseOptimized(TestJSONs.shortJson);
+		}
+
+		[Benchmark, BenchmarkCategory("short")]
+		public void JsonShort_RCParsing_CombinatorMode()
+		{
+			var value = RCCombinatorJsonParser.Parse(TestJSONs.shortJson);
 		}
 
 		/*[Benchmark, BenchmarkCategory("short")]
@@ -69,7 +81,19 @@ namespace RCParsing.Benchmarks.JSON
 		[Benchmark(Baseline = true), BenchmarkCategory("big")]
 		public void JsonBig_RCParsing()
 		{
-			var value = RCJsonParser.ParseInlined(TestJSONs.bigJson);
+			var value = RCJsonParser.Parse(TestJSONs.bigJson);
+		}
+
+		[Benchmark, BenchmarkCategory("big")]
+		public void JsonBig_RCParsing_Optimized()
+		{
+			var value = RCJsonParser.ParseOptimized(TestJSONs.bigJson);
+		}
+
+		[Benchmark, BenchmarkCategory("big")]
+		public void JsonBig_RCParsing_CombinatorMode()
+		{
+			var value = RCCombinatorJsonParser.Parse(TestJSONs.bigJson);
 		}
 
 		/*[Benchmark, BenchmarkCategory("big")]

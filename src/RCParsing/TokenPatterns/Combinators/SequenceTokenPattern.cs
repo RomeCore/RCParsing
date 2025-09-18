@@ -5,7 +5,7 @@ using System.Linq;
 using System.Net;
 using RCParsing.Utils;
 
-namespace RCParsing.TokenPatterns
+namespace RCParsing.TokenPatterns.Combinators
 {
 	/// <summary>
 	/// Matches a sequence of token patterns in order.
@@ -49,31 +49,49 @@ namespace RCParsing.TokenPatterns
 			_patterns = TokenPatterns.Select(p => GetTokenPattern(p)).ToArray();
 		}
 
-		public override ParsedElement Match(string input, int position, int barrierPosition, object? parserParameter)
+		public override ParsedElement Match(string input, int position, int barrierPosition,
+			object? parserParameter, bool calculateIntermediateValue)
 		{
-			var initialPosition = position;
-			ParsedElement[]? tokens = null;
-
-			for (int i = 0; i < _patterns.Length; i++)
+			if (calculateIntermediateValue && PassageFunction != null)
 			{
-				var pattern = _patterns[i];
-				var token = pattern.Match(input, position, barrierPosition, parserParameter);
-				if (!token.success)
-					return ParsedElement.Fail;
+				var initialPosition = position;
+				object?[]? intermediateValues = null;
 
-				tokens ??= new ParsedElement[TokenPatterns.Length];
-				tokens[i] = token;
-				position = token.startIndex + token.length;
+				for (int i = 0; i < _patterns.Length; i++)
+				{
+					var pattern = _patterns[i];
+					var token = pattern.Match(input, position, barrierPosition, parserParameter, true);
+					if (!token.success)
+						return ParsedElement.Fail;
+
+					if (PassageFunction != null)
+					{
+						intermediateValues ??= new object?[TokenPatterns.Length];
+						intermediateValues[i] = token.intermediateValue;
+					}
+					position = token.startIndex + token.length;
+				}
+
+				var intermediateValue = PassageFunction(intermediateValues);
+
+				return new ParsedElement(initialPosition, position - initialPosition, intermediateValue);
 			}
-
-			object? intermediateValue = null;
-			if (PassageFunction != null)
+			else
 			{
-				var intermediateValues = new ListSelectWrapper<ParsedElement, object?>(tokens, t => t.intermediateValue);
-				intermediateValue = PassageFunction(intermediateValues);
-			}
+				var initialPosition = position;
 
-			return new ParsedElement(Id, initialPosition, position - initialPosition, intermediateValue);
+				for (int i = 0; i < _patterns.Length; i++)
+				{
+					var pattern = _patterns[i];
+					var token = pattern.Match(input, position, barrierPosition, parserParameter, false);
+					if (!token.success)
+						return ParsedElement.Fail;
+
+					position = token.startIndex + token.length;
+				}
+
+				return new ParsedElement(initialPosition, position - initialPosition);
+			}
 		}
 
 

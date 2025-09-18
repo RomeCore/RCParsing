@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using RCParsing;
 using RCParsing.TokenPatterns;
+using RCParsing.TokenPatterns.Combinators;
 
 namespace SyntaxColorizer
 {

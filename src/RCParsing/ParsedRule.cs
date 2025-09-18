@@ -19,17 +19,12 @@ namespace RCParsing
 		/// <summary>
 		/// The value indicates whether the parsing was successful.
 		/// </summary>
-		public bool success { readonly get => element.success; set => element.success = value; }
-
-		/// <summary>
-		/// The value indicating that this element should be excluded from AST.
-		/// </summary>
-		public bool excludeFromAst { readonly get => element.excludeFromAst; set => element.excludeFromAst = value; }
+		public readonly bool success => element.success;
 
 		/// <summary>
 		/// The ID of the child token pattern that was parsed.
 		/// </summary>
-		public int ruleId { readonly get => element.elementId; set => element.elementId = value; }
+		public int ruleId;
 
 		/// <summary>
 		/// The starting index of the rule in the input text.
@@ -47,33 +42,14 @@ namespace RCParsing
 		public int passedBarriers;
 
 		/// <summary>
-		/// Gets the intermediate value associated with this rule.
+		/// Gets the intermediate value associated with this rule, basically got from child token.
 		/// </summary>
-		/// <remarks>
-		/// For <see cref="SequenceTokenPattern"/> or <see cref="RepeatTokenPattern"/> it will be <see langword="null"/>. <br/>
-		/// For <see cref="ChoiceTokenPattern"/> it will be the selected inner value. <br/>
-		/// For <see cref="OptionalTokenPattern"/> it will be the inner value if present, otherwise null.
-		/// <para/>
-		/// For leaf token implementations this may be, for example,
-		/// <see cref="Match"/> for <see cref="RegexTokenPattern"/>. <br/>
-		/// See remarks for specific implementations.
-		/// </remarks>
 		public object? intermediateValue { readonly get => element.intermediateValue; set => element.intermediateValue = value; }
-
-		/// <summary>
-		/// The ID of the rule that was parsed. Or -1 if it is not a token.
-		/// </summary>
-		public int tokenId;
 
 		/// <summary>
 		/// Gets the parsed element information associated with this rule.
 		/// </summary>
 		public ParsedElement element;
-
-		/// <summary>
-		/// Gets the value indicating whether this rule represents a token.
-		/// </summary>
-		public readonly bool isToken => tokenId != -1;
 
 		/// <summary>
 		/// Gets the occurency index of this rule within its parent rule. -1 by default.
@@ -88,26 +64,28 @@ namespace RCParsing
 		/// <summary>
 		/// Gets a parsed rule that represents failure.
 		/// </summary>
-		public static ParsedRule Fail { get; } = new ParsedRule { element = ParsedElement.Fail, tokenId = -1 };
+		public static readonly ParsedRule Fail = new()
+		{
+			element = ParsedElement.Fail,
+			ruleId = -1
+		};
 
 		/// <summary>
 		/// Creates a parsed rule that represents success token.
 		/// </summary>
 		/// <param name="ruleId">The ID of the rule that was parsed.</param>
-		/// <param name="tokenId">The ID of the token pattern that was parsed.</param>
 		/// <param name="startIndex">The starting index of the token in the input text.</param>
 		/// <param name="length">The length of the token in the input text.</param>
 		/// <param name="passedBarriers">The count of passed barrier tokens.</param>
 		/// <param name="intermediateValue">The intermediate value associated with this token.</param>
 		/// <returns>A parsed rule that represents success token.</returns>
-		public static ParsedRule Token(int ruleId, int tokenId, int startIndex, int length, int passedBarriers, object? intermediateValue)
+		public static ParsedRule Token(int ruleId, int startIndex, int length, int passedBarriers, object? intermediateValue)
 		{
 			return new ParsedRule
 			{
-				element = new ParsedElement(ruleId, startIndex, length, intermediateValue),
-				passedBarriers = passedBarriers,
-				tokenId = tokenId,
-				occurency = -1
+				ruleId = ruleId,
+				element = new ParsedElement(startIndex, length, intermediateValue),
+				passedBarriers = passedBarriers
 			};
 		}
 
@@ -125,10 +103,9 @@ namespace RCParsing
 		{
 			return new ParsedRule
 			{
-				element = new ParsedElement(ruleId, startIndex, length, intermediateValue),
+				ruleId = ruleId,
+				element = new ParsedElement(startIndex, length, intermediateValue),
 				passedBarriers = passedBarriers,
-				tokenId = -1,
-				occurency = -1,
 				children = children
 			};
 		}

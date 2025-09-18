@@ -34,7 +34,7 @@ namespace RCParsing
 		/// <summary>
 		/// Gets the unique identifier for the token that was parsed.
 		/// </summary>
-		public int TokenId => Result.elementId;
+		public int TokenId { get; }
 
 		/// <summary>
 		/// Gets the parsed value associated with this token.
@@ -83,28 +83,13 @@ namespace RCParsing
 		/// <param name="parent">The parent result of this rule, if any.</param>
 		/// <param name="context">The parser context used for parsing.</param>
 		/// <param name="result">The parsed token object containing the result of the parse.</param>
-		public ParsedTokenResult(ParsedRuleResultBase? parent, ParserContext context, ParsedElement result)
-		{
-			Parent = parent;
-			Context = context;
-			Result = result;
-
-			_textLazy = new Utils.LazyValue<string>(() => Context.input.Substring(Result.startIndex, Result.length));
-		}
-
-		/// <summary>
-		/// Initializes a new instance of the <see cref="ParsedTokenResult"/> class.
-		/// </summary>
-		/// <param name="parent">The parent result of this rule, if any.</param>
-		/// <param name="context">The parser context used for parsing.</param>
-		/// <param name="result">The parsed token object containing the result of the parse.</param>
-		/// <param name="tokenId">The unique identifier for the token that was parsed.</param>
+		/// <param name="tokenId">The token ID for the parsed token result.</param>
 		public ParsedTokenResult(ParsedRuleResultBase? parent, ParserContext context, ParsedElement result, int tokenId)
 		{
 			Parent = parent;
 			Context = context;
-			result.elementId = tokenId;
 			Result = result;
+			TokenId = tokenId;
 
 			_textLazy = new Utils.LazyValue<string>(() => Context.input.Substring(Result.startIndex, Result.length));
 		}

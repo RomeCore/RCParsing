@@ -9,7 +9,7 @@ namespace RCParsing.Benchmarks.Expressions
 {
 	public static class RCExpressionParser
 	{
-		static Parser optimizedParser, defaultParser;
+		static Parser parser, optimizedParser;
 
 		static void FillWithRules(ParserBuilder builder)
 		{
@@ -34,22 +34,22 @@ namespace RCParsing.Benchmarks.Expressions
 		{
 			var builder = new ParserBuilder();
 			FillWithRules(builder);
-			builder.Settings.UseInlining().IgnoreErrors().UseLightAST();
-			optimizedParser = builder.Build();
+			parser = builder.Build();
 
 			builder = new ParserBuilder();
 			FillWithRules(builder);
-			defaultParser = builder.Build();
+			builder.Settings.UseInlining().IgnoreErrors().SkipWhitespacesOptimized();
+			optimizedParser = builder.Build();
+		}
+
+		public static int Parse(string expression)
+		{
+			return parser.Parse<int>(expression);
 		}
 
 		public static int ParseOptimized(string expression)
 		{
 			return optimizedParser.Parse<int>(expression);
-		}
-
-		public static int Parse(string expression)
-		{
-			return defaultParser.Parse<int>(expression);
 		}
 	}
 }

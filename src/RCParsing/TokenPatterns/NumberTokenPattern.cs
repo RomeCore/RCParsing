@@ -212,7 +212,8 @@ namespace RCParsing.TokenPatterns
 			}
 		}
 
-		public override ParsedElement Match(string input, int position, int barrierPosition, object? parserParameter)
+		public override ParsedElement Match(string input, int position, int barrierPosition,
+			object? parserParameter, bool calculateIntermediateValue)
 		{
 			if (position >= barrierPosition)
 				return ParsedElement.Fail;
@@ -326,6 +327,9 @@ namespace RCParsing.TokenPatterns
 
 		calculation:
 
+			if (!calculateIntermediateValue)
+				return new ParsedElement(startPos, length);
+
 			// Calculate the result based on the parsed number.
 			double result = integerPart + fractionalPart;
 			if (!positiveSign)
@@ -390,7 +394,7 @@ namespace RCParsing.TokenPatterns
 					break;
 			}
 
-			return new ParsedElement(Id, startPos, length, value);
+			return new ParsedElement(startPos, length, value);
 		}
 
 		public override string ToStringOverride(int remainingDepth)

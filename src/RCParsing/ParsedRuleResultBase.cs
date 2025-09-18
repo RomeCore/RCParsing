@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
+using System.Xml.Linq;
+using RCParsing.ParserRules;
 using RCParsing.Utils;
 
 namespace RCParsing
@@ -31,7 +33,19 @@ namespace RCParsing
 		/// <summary>
 		/// Gets the token result if the parsed result represents a token. Otherwise, returns null.
 		/// </summary>
-		public virtual ParsedTokenResult? Token => IsToken ? new ParsedTokenResult(this, Context, Result.element, Result.tokenId) : null;
+		public virtual ParsedTokenResult? Token
+		{
+			get
+			{
+				if (IsToken)
+				{
+					var element = Result.element;
+					var context = Context;
+					return new ParsedTokenResult(this, context, Result.element, TokenId);
+				}
+				return null;
+			}
+		}
 
 		/// <summary>
 		/// Gets value indicating whether the parsing operation was successful.
@@ -41,7 +55,12 @@ namespace RCParsing
 		/// <summary>
 		/// Gets value indicating whether the parsed result represents a token.
 		/// </summary>
-		public bool IsToken => Result.isToken;
+		public bool IsToken => Context.parser.Rules[RuleId] is TokenParserRule;
+
+		/// <summary>
+		/// Gets the token pattern ID if this parsed rule represents a token.
+		/// </summary>
+		public int TokenId => Context.parser.Rules[RuleId] is TokenParserRule trule ? trule.TokenPatternId : -1;
 
 		/// <summary>
 		/// Gets the unique identifier for the parser rule that was parsed.
@@ -97,6 +116,11 @@ namespace RCParsing
 		/// Gets the parsed input text that was captured as a span of characters.
 		/// </summary>
 		public ReadOnlySpan<char> Span => Context.input.AsSpan(Result.startIndex, Result.length);
+		
+		/// <summary>
+		/// Gets the parsed input text that was captured as a memory of characters.
+		/// </summary>
+		public ReadOnlyMemory<char> Memory => Context.input.AsMemory(Result.startIndex, Result.length);
 
 		/// <summary>
 		/// Gets the parsed value associated with this rule.

@@ -41,7 +41,8 @@ namespace RCParsing.TokenPatterns
 			StringRepresentation = stringRepresentation ?? throw new ArgumentNullException(nameof(stringRepresentation));
 		}
 
-		public override ParsedElement Match(string input, int position, int barrierPosition, object? parserParameter)
+		public override ParsedElement Match(string input, int position, int barrierPosition,
+			object? parserParameter, bool calculateIntermediateValue)
 		{
 			return MatchFunction(this, input, position, barrierPosition, parserParameter);
 		}

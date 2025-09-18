@@ -53,7 +53,7 @@ namespace RCParsing
 		private void Calculate()
 		{
 			PositionalFormatter.Decompose(Input, Position, out _lineStart, out _lineLength,
-				out _line, out _column, out _visualColumn);
+				out _line, out _column, out _visualColumn, Context.parser.MainSettings.tabSize);
 		}
 
 		/// <summary>
@@ -104,7 +104,7 @@ namespace RCParsing
 		/// <summary>
 		/// Gets the number of barriers that were successfully parsed before encountering this error group.
 		/// </summary>
-		public int PassedBarriers => _passedBarriers ??= Errors.Min(e => e.passedBarriers);
+		public int PassedBarriers => _passedBarriers ??= Errors.Max(e => e.passedBarriers);
 
 		/// <summary>
 		/// Gets the starting index of the line that contains the error position.
