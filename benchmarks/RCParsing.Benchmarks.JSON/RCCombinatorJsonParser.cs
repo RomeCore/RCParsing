@@ -15,10 +15,19 @@ namespace RCParsing.Benchmarks.JSON
 
 		public static void FillWithRules(ParserBuilder builder)
 		{
+			builder.CreateToken("string_inner")
+				.Custom((self, input, start, end, parameter) =>
+				{
+					int pos = start;
+					while (pos < end && input[pos] != '"')
+						pos++;
+					return new ParsedElement(start, pos - start, input.Substring(start, pos - start));
+				});
+
 			builder.CreateToken("string")
 				.Between(
 					b => b.Literal('"'),
-					b => b.TextUntil('"'),
+					b => b.Token("string_inner"),
 					b => b.Literal('"'));
 
 			builder.CreateToken("number")

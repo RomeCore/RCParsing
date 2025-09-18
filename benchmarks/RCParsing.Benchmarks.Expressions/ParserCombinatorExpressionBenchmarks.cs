@@ -27,7 +27,7 @@ namespace RCParsing.Benchmarks.Expressions
 		}
 		
 		[Benchmark, BenchmarkCategory("short")]
-		public void ExpressionShort_RCParsing_CombinatorMode()
+		public void ExpressionShort_RCParsing_TokenCombination()
 		{
 			var value = RCCombinatorExpressionParser.Parse(TestExpressions.shortExpression);
 		}
@@ -59,7 +59,7 @@ namespace RCParsing.Benchmarks.Expressions
 		}
 
 		[Benchmark, BenchmarkCategory("big")]
-		public void ExpressionBig_RCParsing_CombinatorMode()
+		public void ExpressionBig_RCParsing_TokenCombination()
 		{
 			var value = RCCombinatorExpressionParser.Parse(TestExpressions.bigExpression);
 		}

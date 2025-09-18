@@ -230,20 +230,20 @@ namespace RCParsing.Tests
 			var builder = new ParserBuilder();
 
 			builder.CreateToken("custom")
-			.Custom((self, input, start, end, parameter) =>
-			{
-				var context = (char)parameter!;
+				.Custom((self, input, start, end, parameter) =>
+				{
+					var context = (char)parameter!;
 
-				// Fail if input at current position is not equal to context character
-				if (start >= end || input[start] != context)
-					return ParsedElement.Fail;
+					// Fail if input at current position is not equal to context character
+					if (start >= end || input[start] != context)
+						return ParsedElement.Fail;
 
-				// Capture the character
-				return new ParsedElement(
-					startIndex: start,
-					length: 1,
-					intermediateValue: "my intermediate value!");
-			});
+					// Capture the character
+					return new ParsedElement(
+						startIndex: start,
+						length: 1,
+						intermediateValue: "my intermediate value!");
+				});
 
 			builder.CreateRule("custom_rule").Token("custom");
 			var parser = builder.Build();
