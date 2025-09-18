@@ -24,7 +24,7 @@ namespace RCParsing.TokenPatterns.Combinators
 			TokenPattern = tokenPatternId;
 		}
 
-		protected override HashSet<char>? FirstCharsCore => null;
+		protected override HashSet<char>? FirstCharsCore => GetTokenPattern(TokenPattern).FirstChars;
 
 
 

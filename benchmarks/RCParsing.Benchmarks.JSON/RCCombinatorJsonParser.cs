@@ -75,7 +75,13 @@ namespace RCParsing.Benchmarks.JSON
 					b => b.SkipWhitespaces(b => b.Literal(',')))
 				.Pass(v =>
 				{
-					return v.Cast<KeyValuePair<string, object>>().ToDictionary();
+					var dict = new Dictionary<string, object>(v.Count);
+					foreach (var child in v)
+					{
+						var kvp = (KeyValuePair<string, object>)child;
+						dict.Add(kvp.Key, kvp.Value);
+					}
+					return dict;
 				});
 
 			builder.CreateToken("object")

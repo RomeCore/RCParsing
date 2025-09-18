@@ -9,11 +9,11 @@ namespace RCParsing.Benchmarks.Expressions
 {
 	public static class RCExpressionParser
 	{
-		static Parser parser;
+		static Parser parser, optimizedParser;
 
 		static void FillWithRules(ParserBuilder builder)
 		{
-			builder.Settings.SkipWhitespacesOptimized();
+			builder.Settings.SkipWhitespaces();
 
 			builder.CreateRule("term")
 				.Choice(
@@ -34,13 +34,22 @@ namespace RCParsing.Benchmarks.Expressions
 		{
 			var builder = new ParserBuilder();
 			FillWithRules(builder);
-			builder.Settings.UseInlining().IgnoreErrors().UseLightAST();
 			parser = builder.Build();
+
+			builder = new ParserBuilder();
+			FillWithRules(builder);
+			builder.Settings.UseInlining().IgnoreErrors().SkipWhitespacesOptimized();
+			optimizedParser = builder.Build();
 		}
 
 		public static int Parse(string expression)
 		{
 			return parser.Parse<int>(expression);
+		}
+
+		public static int ParseOptimized(string expression)
+		{
+			return optimizedParser.Parse<int>(expression);
 		}
 	}
 }

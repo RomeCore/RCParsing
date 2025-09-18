@@ -29,12 +29,18 @@ namespace RCParsing.Benchmarks.JSON
 		}
 
 		[Benchmark, BenchmarkCategory("short")]
-		public void JsonShort_RCParsing_Token()
+		public void JsonShort_RCParsing_Optimized()
+		{
+			var value = RCJsonParser.ParseOptimized(TestJSONs.shortJson);
+		}
+
+		[Benchmark, BenchmarkCategory("short")]
+		public void JsonShort_RCParsing_CombinatorMode()
 		{
 			var value = RCCombinatorJsonParser.Parse(TestJSONs.shortJson);
 		}
 
-		[Benchmark, BenchmarkCategory("short")]
+		/*[Benchmark, BenchmarkCategory("short")]
 		public void JsonShort_SystemTextJson()
 		{
 			var value = JsonNode.Parse(TestJSONs.shortJson);
@@ -44,7 +50,7 @@ namespace RCParsing.Benchmarks.JSON
 		public void JsonShort_NewtonsoftJson()
 		{
 			var value = JToken.Parse(TestJSONs.shortJson);
-		}
+		}*/
 
 		[Benchmark, BenchmarkCategory("short")]
 		public void JsonShort_Parlot()
@@ -79,12 +85,18 @@ namespace RCParsing.Benchmarks.JSON
 		}
 
 		[Benchmark, BenchmarkCategory("big")]
+		public void JsonBig_RCParsing_Optimized()
+		{
+			var value = RCJsonParser.ParseOptimized(TestJSONs.bigJson);
+		}
+
+		[Benchmark, BenchmarkCategory("big")]
 		public void JsonBig_RCParsing_CombinatorMode()
 		{
 			var value = RCCombinatorJsonParser.Parse(TestJSONs.bigJson);
 		}
 
-		[Benchmark, BenchmarkCategory("big")]
+		/*[Benchmark, BenchmarkCategory("big")]
 		public void JsonBig_SystemTextJson()
 		{
 			var value = JsonNode.Parse(TestJSONs.bigJson);
@@ -94,7 +106,7 @@ namespace RCParsing.Benchmarks.JSON
 		public void JsonBig_NewtonsoftJson()
 		{
 			var value = JToken.Parse(TestJSONs.bigJson);
-		}
+		}*/
 
 		[Benchmark, BenchmarkCategory("big")]
 		public void JsonBig_Parlot()

@@ -13,7 +13,7 @@ namespace RCParsing.Benchmarks.JSON
 {
 	public static class RCJsonParser
 	{
-		static Parser parser;
+		static Parser parser, optimizedParser;
 
 		public static void FillWithRules(ParserBuilder builder)
 		{
@@ -21,17 +21,13 @@ namespace RCParsing.Benchmarks.JSON
 				.SkipWhitespaces();
 
 			builder.CreateToken("string")
-				.Literal('"')
-				.TextUntil('"') // 1
-				.Literal('"')
-				.Pass(1);
+				.Between(
+					b => b.Literal('"'),
+					b => b.TextUntil('"'),
+					b => b.Literal('"'));
 
 			builder.CreateToken("number")
 				.Number<double>(NumberFlags.Integer); // Match integer, without convertation
-
-			builder.CreateToken("boolean")
-				.LiteralChoice(["true", "false"],
-				v => v.GetIntermediateValue<string>() == "true"); // Intermediate value is matched string in choice
 
 			builder.CreateToken("true")
 				.Literal("true", _ => true);
@@ -88,6 +84,10 @@ namespace RCParsing.Benchmarks.JSON
 		static RCJsonParser()
 		{
 			var builder = new ParserBuilder();
+			FillWithRules(builder);
+			parser = builder.Build();
+			
+			builder = new ParserBuilder();
 			builder.Settings
 				.UseInlining() // Reduces abstraction level, redirecting calls from Parser directly to rule
 				.UseFirstCharacterMatch() // Enables lookahead based on first-character sets
@@ -95,12 +95,17 @@ namespace RCParsing.Benchmarks.JSON
 				.UseLightAST() // Enables a more lightweight version of AST, reducing allocations
 				.SkipWhitespacesOptimized(); // Enables direct whitespace skipping in Parser
 			FillWithRules(builder);
-			parser = builder.Build();
+			optimizedParser = builder.Build();
 		}
 
 		public static object Parse(string text)
 		{
 			return parser.Parse<object>(text);
+		}
+
+		public static object ParseOptimized(string text)
+		{
+			return optimizedParser.Parse<object>(text);
 		}
 	}
 }
