@@ -437,8 +437,8 @@ foreach (var price in prices)
 | Library        | Speed (Relative to RCParsing default mode)  | Speed (Relative to RCParsing token combination mode)  | Memory Efficiency |
 | :------------- | :------------------------------------------ | :---------------------------------------------------- | :---------------- |
 | **RCParsing**  | 1.00x (baseline)                            | **1.00x (baseline), ~3.00-5.00x faster than default** | High              |
-| **Parlot**     | **~3.55-4.55x faster**                      | **~1.20x slower - ~1.55x faster**                     | **Excellent**     |
-| **Pidgin**     | ~1.05x-3.00x slower                         | ~3.20-13.55x slower                                   | **Excellent**     |
+| **Parlot**     | **~3.55x-4.55x faster**                     | **~1.20x slower - ~1.55x faster**                     | **Excellent**     |
+| **Pidgin**     | ~1.05x-3.00x slower                         | ~3.20x-13.55x slower                                  | **Excellent**     |
 | **Superpower** | ~6.30x-6.50x slower                         | ~19.00x slower                                        | Medium            |
 | **Sprache**    | ~6.10x-6.50x slower                         | ~19.15x slower                                        | Very low          |
 
