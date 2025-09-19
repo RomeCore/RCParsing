@@ -6,7 +6,7 @@ namespace RCParsing.Benchmarks.JSON
 	{
 		static void Main(string[] args)
 		{
-			var summary = BenchmarkRunner.Run<ParserCombinatorJSONBenchmarks>();
+			var summary = BenchmarkRunner.Run<JSONBenchmarks>();
 		}
 	}
 }

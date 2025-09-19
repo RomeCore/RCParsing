@@ -20,6 +20,7 @@ namespace RCParsing.Benchmarks.JSON
 			builder.Settings
 				.SkipWhitespaces();
 
+			// I prefer manual tokens for maximum speed!
 			builder.CreateToken("string_inner")
 				.Custom((self, input, start, end, parameter) =>
 				{

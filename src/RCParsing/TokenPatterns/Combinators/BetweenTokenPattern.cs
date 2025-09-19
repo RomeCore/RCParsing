@@ -63,7 +63,8 @@ namespace RCParsing.TokenPatterns.Combinators
 		{
 			var initialPosition = position;
 
-			var first = _first.Match(input, position, barrierPosition, parserParameter, false);
+			var first = _first.Match(input, position, barrierPosition, parserParameter,
+				calculateIntermediateValue: false);
 			if (!first.success)
 				return ParsedElement.Fail;
 			position = first.startIndex + first.length;
@@ -74,7 +75,8 @@ namespace RCParsing.TokenPatterns.Combinators
 				return ParsedElement.Fail;
 			position = middle.startIndex + middle.length;
 
-			var last = _last.Match(input, position, barrierPosition, parserParameter, false);
+			var last = _last.Match(input, position, barrierPosition, parserParameter,
+				calculateIntermediateValue: false);
 			if (!last.success)
 				return ParsedElement.Fail;
 			position = last.startIndex + last.length;

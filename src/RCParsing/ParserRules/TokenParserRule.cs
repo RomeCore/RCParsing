@@ -35,8 +35,6 @@ namespace RCParsing.ParserRules
 
 
 
-		delegate ParsedRule ParseDelegate(ref ParserContext ctx, ref ParserSettings settings, ref ParserSettings childSettings);
-
 		private bool parseIgnoringBarriers = false;
 		private TokenPattern _pattern;
 		private ParseDelegate parseFunction;
@@ -112,22 +110,7 @@ namespace RCParsing.ParserRules
 			if (Parser.Tokenizers.Length == 0 && _pattern is BarrierTokenPattern)
 				throw new InvalidOperationException($"Cannot use barrier token pattern '{_pattern}' without tokenizers.");
 
-			if (initFlags.HasFlag(ParserInitFlags.EnableMemoization))
-			{
-				var prev = parseFunction;
-
-				ParsedRule ParseMemoized(ref ParserContext ctx, ref ParserSettings stng, ref ParserSettings chStng)
-				{
-					if (ctx.cache.TryGetRule(Id, ctx.position, out var cachedResult))
-						return cachedResult;
-
-					cachedResult = prev(ref ctx, ref stng, ref chStng);
-					ctx.cache.AddRule(Id, ctx.position, cachedResult);
-					return cachedResult;
-				}
-
-				parseFunction = ParseMemoized;
-			}
+			parseFunction = WrapParseFunction(parseFunction, initFlags);
 
 			parseIgnoringBarriers = parseFunction == ParseIgnoringBarriers;
 		}
