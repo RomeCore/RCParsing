@@ -42,7 +42,7 @@ namespace RCParsing.TokenPatterns.Combinators
 		{
 			var token = _pattern.Match(input, position, barrierPosition, parserParameter, calculateIntermediateValue);
 			if (token.success)
-				return new ParsedElement(token.startIndex, token.length, token.intermediateValue);
+				return token;
 			else
 				return new ParsedElement(position, 0);
 		}

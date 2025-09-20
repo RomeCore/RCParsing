@@ -18,6 +18,7 @@ namespace RCParsing.TokenPatterns
 	public class EscapedTextTokenPattern : TokenPattern
 	{
 		private readonly bool _comparerWasSet;
+		private readonly bool _escapeNonEmpty;
 		private readonly Trie _escape;
 		private readonly Trie _forbidden;
 
@@ -71,6 +72,7 @@ namespace RCParsing.TokenPatterns
 			_escape = new Trie(escapeMappings.Select(kvp => new KeyValuePair<string, object?>(kvp.Key, kvp.Value)),
 				comparer != null ? CharComparer : null);
 			_forbidden = new Trie(forbidden,comparer != null ? CharComparer : null);
+			_escapeNonEmpty = _escape.Count > 0;
 		}
 
 		protected override HashSet<char>? FirstCharsCore => null;
@@ -203,6 +205,8 @@ namespace RCParsing.TokenPatterns
 
 
 
+		// Two identical methods for maximum speed
+		// It's been already tested and will be barely changed
 
 		private ParsedElement MatchWithoutCalculation(string input, int position, int barrierPosition)
 		{
@@ -213,7 +217,7 @@ namespace RCParsing.TokenPatterns
 			{
 				// 1) Try to match the longest escape starting at pos.
 				//    If found — apply replacement and continue.
-				if (_escape.TryGetLongestMatch(input, pos, barrierPosition, out var replacement, out int escapeConsumed))
+				if (_escapeNonEmpty && _escape.TryGetLongestMatch(input, pos, barrierPosition, out var replacement, out int escapeConsumed))
 				{
 					pos += escapeConsumed;
 					continue;
@@ -221,10 +225,12 @@ namespace RCParsing.TokenPatterns
 
 				// 2) No escape terminal at this position.
 				//    If a forbidden terminal starts here, stop (do not consume forbidden).
-				if (_forbidden.TryGetLongestMatch(input, pos, barrierPosition, out _, out int forbiddenConsumed))
+				if (_forbidden.ContainsMatch(input, pos, barrierPosition, out int forbiddenConsumed))
 				{
 					break; // unescaped forbidden sequence -> end of matched text
 				}
+
+				// TODO: Maybe remove this? Needs tesing
 
 				/*// 3) No terminal found for escape or forbidden.
 				//    We must detect the *real* incomplete-escape case:
@@ -269,7 +275,7 @@ namespace RCParsing.TokenPatterns
 			{
 				// 1) Try to match the longest escape starting at pos.
 				//    If found — apply replacement and continue.
-				if (_escape.TryGetLongestMatch(input, pos, barrierPosition, out var replacement, out int escapeConsumed))
+				if (_escapeNonEmpty && _escape.TryGetLongestMatch(input, pos, barrierPosition, out var replacement, out int escapeConsumed))
 				{
 					sb ??= new StringBuilder();
 
@@ -284,10 +290,12 @@ namespace RCParsing.TokenPatterns
 
 				// 2) No escape terminal at this position.
 				//    If a forbidden terminal starts here, stop (do not consume forbidden).
-				if (_forbidden.TryGetLongestMatch(input, pos, barrierPosition, out _, out int forbiddenConsumed))
+				if (_forbidden.ContainsMatch(input, pos, barrierPosition, out int forbiddenConsumed))
 				{
 					break; // unescaped forbidden sequence -> end of matched text
 				}
+
+				// TODO: Maybe remove this? Needs tesing
 
 				/*// 3) No terminal found for escape or forbidden.
 				//    We must detect the *real* incomplete-escape case:
