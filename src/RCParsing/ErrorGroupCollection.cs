@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using System.Xml.Linq;
@@ -45,7 +44,7 @@ namespace RCParsing
 		/// Gets the list of error groups that are relevant to the current parsing context.
 		/// These are the groups that contain errors at positions that have not been successfully parsed yet.
 		/// </summary>
-		public IReadOnlyList<ErrorGroup> RelevantGroups => _relevantGroups ??= Groups.Where(g => g.IsRelevant).ToImmutableList();
+		public IReadOnlyList<ErrorGroup> RelevantGroups => _relevantGroups ??= Groups.Where(g => g.IsRelevant).ToArray().AsReadOnlyList();
 
 		/// <summary>
 		/// Gets the error group that contains the latest position in the input text where an error occurred.
@@ -84,12 +83,12 @@ namespace RCParsing
 		public ErrorGroupCollection(ParserContext context, IEnumerable<ParsingError> errors)
 		{
 			Context = context;
-			Errors = errors?.ToImmutableList() ?? throw new ArgumentNullException(nameof(errors));
+			Errors = errors?.ToArray().AsReadOnlyList() ?? throw new ArgumentNullException(nameof(errors));
 
 			Groups = errors.GroupBy(v => v.position).OrderBy(v => v.Key).Select(v =>
 			{
-				return new ErrorGroup(context, v.Key, v.ToImmutableList());
-			}).ToImmutableList();
+				return new ErrorGroup(context, v.Key, v.ToArray().AsReadOnlyList());
+			}).ToArray().AsReadOnlyList();
 		}
 
 		public int Count => Groups.Count;

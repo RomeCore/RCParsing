@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -21,7 +20,7 @@ namespace RCParsing
 		/// <summary>
 		/// Gets the aliases for this parser element.
 		/// </summary>
-		public ImmutableList<string> Aliases { get; internal set; } = ImmutableList<string>.Empty;
+		public IReadOnlyList<string> Aliases { get; internal set; } = Array.Empty<string>();
 		
 		/// <summary>
 		/// Gets the last alias for this parser element.

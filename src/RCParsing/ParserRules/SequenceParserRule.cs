@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Data;
 using System.Linq;
-using System.Text;
 using RCParsing.Utils;
 
 namespace RCParsing.ParserRules
@@ -13,10 +10,12 @@ namespace RCParsing.ParserRules
 	/// </summary>
 	public class SequenceParserRule : ParserRule
 	{
+		private readonly int[] _rules;
+		
 		/// <summary>
 		/// The rules ids that make up the sequence.
 		/// </summary>
-		public ImmutableArray<int> Rules { get; }
+		public IReadOnlyList<int> Rules { get; }
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="SequenceParserRule"/> class.
@@ -24,8 +23,9 @@ namespace RCParsing.ParserRules
 		/// <param name="parserRules">The rules ids that make up the sequence.</param>
 		public SequenceParserRule(IEnumerable<int> parserRules)
 		{
-			Rules = parserRules?.ToImmutableArray() ?? throw new ArgumentNullException(nameof(parserRules));
-			if (Rules.Length == 0)
+			_rules = parserRules?.ToArray() ?? throw new ArgumentNullException(nameof(parserRules));
+			Rules = _rules.AsReadOnlyList();
+			if (_rules.Length == 0)
 				throw new ArgumentException("Sequence must have at least one rule");
 		}
 
@@ -40,9 +40,9 @@ namespace RCParsing.ParserRules
 
 		protected override void Initialize(ParserInitFlags initFlags)
 		{
-			parseFunctions = new Func<ParserContext, ParserSettings, ParsedRule>[Rules.Length];
+			parseFunctions = new Func<ParserContext, ParserSettings, ParsedRule>[_rules.Length];
 
-			for (int i = 0; i < Rules.Length; i++)
+			for (int i = 0; i < _rules.Length; i++)
 			{
 				var id = Rules[i];
 				var rule = GetRule(id);
@@ -67,7 +67,7 @@ namespace RCParsing.ParserRules
 						return ParsedRule.Fail;
 					}
 
-					rules ??= new ParsedRule[Rules.Length];
+					rules ??= new ParsedRule[_rules.Length];
 					parsedRule.occurency = i;
 					rules[i] = parsedRule;
 					context.position = parsedRule.startIndex + parsedRule.length;

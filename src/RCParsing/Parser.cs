@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Data;
 using System.Data.Common;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using RCParsing.ParserRules;
 using RCParsing.TokenPatterns;
+using RCParsing.Utils;
 
 namespace RCParsing
 {
@@ -17,6 +17,9 @@ namespace RCParsing
 	/// </summary>
 	public class Parser
 	{
+		private readonly TokenPattern[] _tokenPatterns;
+		private readonly ParserRule[] _rules;
+		private readonly BarrierTokenizer[] _tokenizers;
 		private readonly Dictionary<string, int> _tokenPatternsAliases = new Dictionary<string, int>();
 		private readonly Dictionary<string, int> _rulesAliases = new Dictionary<string, int>();
 		private readonly int _mainRuleId = -1;
@@ -24,17 +27,17 @@ namespace RCParsing
 		/// <summary>
 		/// Gets the token patterns registered in this parser.
 		/// </summary>
-		public ImmutableArray<TokenPattern> TokenPatterns { get; }
+		public IReadOnlyList<TokenPattern> TokenPatterns { get; }
 
 		/// <summary>
 		/// Gets the rules registered in this parser.
 		/// </summary>
-		public ImmutableArray<ParserRule> Rules { get; }
+		public IReadOnlyList<ParserRule> Rules { get; }
 
 		/// <summary>
 		/// Gets the barrier tokenizers used by when tokenizing input strings.
 		/// </summary>
-		public ImmutableArray<BarrierTokenizer> Tokenizers { get; }
+		public IReadOnlyList<BarrierTokenizer> Tokenizers { get; }
 
 		/// <summary>
 		/// Gets the main settings used by this parser.
@@ -54,7 +57,7 @@ namespace RCParsing
 		/// <summary>
 		/// Gets the main rule that used by default, if any.
 		/// </summary>
-		public ParserRule? MainRule => _mainRuleId == -1 ? null : Rules[_mainRuleId];
+		public ParserRule? MainRule => _mainRuleId == -1 ? null : _rules[_mainRuleId];
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="Parser"/> class.
@@ -66,8 +69,8 @@ namespace RCParsing
 		/// <param name="globalSettings">The global settings to use.</param>
 		/// <param name="mainRuleId">The ID of the main rule to use.</param>
 		/// <param name="initFlags">The initialization flags to use. Default is <see cref="ParserInitFlags.None"/>.</param>
-		public Parser(ImmutableArray<TokenPattern> tokenPatterns, ImmutableArray<ParserRule> rules,
-			ImmutableArray<BarrierTokenizer> tokenizers, ParserMainSettings mainSettings, ParserSettings globalSettings,
+		public Parser(IReadOnlyList<TokenPattern> tokenPatterns, IReadOnlyList<ParserRule> rules,
+			IReadOnlyList<BarrierTokenizer> tokenizers, ParserMainSettings mainSettings, ParserSettings globalSettings,
 			int mainRuleId = -1, ParserInitFlags initFlags = ParserInitFlags.None)
 
 			: this(tokenPatterns, rules, tokenizers, mainSettings, globalSettings, mainRuleId, e => initFlags)
@@ -84,20 +87,23 @@ namespace RCParsing
 		/// <param name="globalSettings">The global settings to use.</param>
 		/// <param name="mainRuleId">The ID of the main rule to use.</param>
 		/// <param name="initFlagsFactory">The initialization flags factory to use.</param>
-		public Parser(ImmutableArray<TokenPattern> tokenPatterns, ImmutableArray<ParserRule> rules,
-			ImmutableArray<BarrierTokenizer> tokenizers, ParserMainSettings mainSettings, ParserSettings globalSettings,
+		public Parser(IReadOnlyList<TokenPattern> tokenPatterns, IReadOnlyList<ParserRule> rules,
+			IReadOnlyList<BarrierTokenizer> tokenizers, ParserMainSettings mainSettings, ParserSettings globalSettings,
 			int mainRuleId = -1, Func<ParserElement, ParserInitFlags>? initFlagsFactory = null)
 		{
 			if (mainSettings.tabSize <= 0)
 				mainSettings.tabSize = 4;
 
-			Rules = rules;
-			TokenPatterns = tokenPatterns;
-			Tokenizers = tokenizers;
+			_tokenPatterns = tokenPatterns.ToArray();
+			TokenPatterns = _tokenPatterns.AsReadOnlyList();
+			_rules = rules.ToArray();
+			Rules = _rules.AsReadOnlyCollection();
+			_tokenizers = tokenizers.ToArray();
+			Tokenizers = _tokenizers.AsReadOnlyList();
 			MainSettings = mainSettings;
 			GlobalSettings = globalSettings;
 
-			for (int i = 0; i < rules.Length; i++)
+			for (int i = 0; i < rules.Count; i++)
 			{
 				var rule = rules[i];
 				if (rule.Parser != null)
@@ -113,7 +119,7 @@ namespace RCParsing
 				}
 			}
 			
-			for (int i = 0; i < tokenPatterns.Length; i++)
+			for (int i = 0; i < tokenPatterns.Count; i++)
 			{
 				var token = tokenPatterns[i];
 				if (token.Parser != null)
@@ -168,7 +174,7 @@ namespace RCParsing
 		public TokenPattern GetTokenPattern(string alias)
 		{
 			if (_tokenPatternsAliases.TryGetValue(alias, out var id))
-				return TokenPatterns[id];
+				return _tokenPatterns[id];
 			throw new InvalidOperationException($"Token pattern not found with alias '{alias}'.");
 		}
 
@@ -180,8 +186,8 @@ namespace RCParsing
 		/// <exception cref="ArgumentOutOfRangeException">Thrown if the provided ID is out of range.</exception>
 		public TokenPattern GetTokenPattern(int id)
 		{
-			if (id >= 0 && id < TokenPatterns.Length)
-				return TokenPatterns[id];
+			if (id >= 0 && id < _tokenPatterns.Length)
+				return _tokenPatterns[id];
 			throw new ArgumentOutOfRangeException(nameof(id), "Invalid token pattern ID.");
 		}
 
@@ -194,7 +200,7 @@ namespace RCParsing
 		public ParserRule GetRule(string alias)
 		{
 			if (_rulesAliases.TryGetValue(alias, out var id))
-				return Rules[id];
+				return _rules[id];
 			throw new InvalidOperationException($"Rule not found with alias '{alias}'.");
 		}
 
@@ -206,8 +212,8 @@ namespace RCParsing
 		/// <exception cref="ArgumentOutOfRangeException">Thrown if the provided ID is out of range.</exception>
 		public ParserRule GetRule(int id)
 		{
-			if (id >= 0 && id < Rules.Length)
-				return Rules[id];
+			if (id >= 0 && id < _rules.Length)
+				return _rules[id];
 			throw new ArgumentOutOfRangeException(nameof(id), "Invalid rule ID.");
 		}
 
@@ -227,7 +233,7 @@ namespace RCParsing
 		internal ParsedElement MatchToken(int tokenPatternId, string input, int position,
 			int barrierPosition, object? parameter, bool calculateIntermediateValue)
 		{
-			var tokenPattern = TokenPatterns[tokenPatternId];
+			var tokenPattern = _tokenPatterns[tokenPatternId];
 			var error = new ParsingError(-1, 0);
 			return tokenPattern.Match(input, position, barrierPosition, parameter,
 				calculateIntermediateValue, ref error);
@@ -240,7 +246,7 @@ namespace RCParsing
 		internal ParsedElement MatchToken(int tokenPatternId, string input, int position,
 			int barrierPosition, object? parameter, bool calculateIntermediateValue, out ParsingError furthestError)
 		{
-			var tokenPattern = TokenPatterns[tokenPatternId];
+			var tokenPattern = _tokenPatterns[tokenPatternId];
 			furthestError = new ParsingError(-1, 0);
 			return tokenPattern.Match(input, position, barrierPosition, parameter,
 				calculateIntermediateValue, ref furthestError);
@@ -313,7 +319,7 @@ namespace RCParsing
 		/// <returns>A parsed rule object containing the result of the parse.</returns>
 		internal ParsedRule TryParseRule(int ruleId, ParserContext context, ParserSettings settings)
 		{
-			var rule = Rules[ruleId];
+			var rule = _rules[ruleId];
 			rule.AdvanceContext(ref context, ref settings, out var childSettings);
 
 			if (MainSettings.useOptimizedWhitespaceSkip)
@@ -330,7 +336,7 @@ namespace RCParsing
 
 			// Skip rule preparation
 
-			var skipRule = Rules[settings.skipRule];
+			var skipRule = _rules[settings.skipRule];
 			var skipSettings = settings;
 			var skipContext = context;
 			skipRule.AdvanceContext(ref skipContext, ref skipSettings, out var childSkipSettings);
@@ -434,7 +440,7 @@ namespace RCParsing
 		/// <returns>The all matches found in the input.</returns>
 		internal IEnumerable<ParsedRule> FindAllMatches(int ruleId, ParserContext context, ParserSettings settings, bool overlap = false)
 		{
-			var rule = Rules[ruleId];
+			var rule = _rules[ruleId];
 			rule.AdvanceContext(ref context, ref settings, out var childSettings);
 
 			if (MainSettings.useOptimizedWhitespaceSkip)
@@ -489,7 +495,7 @@ namespace RCParsing
 				yield break;
 			}
 
-			var skipRule = Rules[settings.skipRule];
+			var skipRule = _rules[settings.skipRule];
 			var skipSettings = settings;
 			var skipContext = context;
 			skipRule.AdvanceContext(ref skipContext, ref skipSettings, out var childSkipSettings);
@@ -688,14 +694,24 @@ namespace RCParsing
 			}
 		}
 
+		/*internal ParsedRule ParseIncrementally(ParsedRule node)
+		{
+
+		}
+
+		internal ParsedRule ParseIncrementally(ref ParserContext context, ParsedRule rule)
+		{
+
+		}*/
+
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private void EmitBarriers(ref ParserContext context)
 		{
-			if (Tokenizers.Length == 0)
+			if (_tokenizers.Length == 0)
 				return;
 
 			var ctx = context;
-			var tokens = Tokenizers.SelectMany(t => t.Tokenize(ctx));
+			var tokens = _tokenizers.SelectMany(t => t.Tokenize(ctx));
 			context.barrierTokens.FillWith(tokens, context.input, this);
 		}
 

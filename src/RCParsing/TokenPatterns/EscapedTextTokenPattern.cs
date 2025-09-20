@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using RCParsing.Utils;
@@ -25,12 +25,12 @@ namespace RCParsing.TokenPatterns
 		/// <summary>
 		/// The set of escape mappings to use for escaping sequences in the input text.
 		/// </summary>
-		public ImmutableDictionary<string, string> EscapeMappings { get; }
+		public IDictionary<string, string> EscapeMappings { get; }
 
 		/// <summary>
 		/// The set of forbidden sequences that cannot appear in the input text if they are not escaped.
 		/// </summary>
-		public ImmutableHashSet<string> ForbiddenSequences { get; }
+		public IReadOnlyList<string> ForbiddenSequences { get; }
 
 		/// <summary>
 		/// Gets a value indicating whether empty strings are allowed as valid matches.
@@ -64,8 +64,8 @@ namespace RCParsing.TokenPatterns
 
 			Comparer = comparer ?? StringComparer.Ordinal;
 			CharComparer = new CharComparer(Comparer);
-			EscapeMappings = ImmutableDictionary.CreateRange(Comparer, escapeMappings);
-			ForbiddenSequences = ImmutableHashSet.CreateRange(Comparer, forbidden);
+			EscapeMappings = new ReadOnlyDictionary<string, string>(escapeMappings.ToDictionary(k => k.Key, v => v.Value, Comparer));
+			ForbiddenSequences = forbidden.ToArray().AsReadOnlyList();
 			AllowsEmpty = allowsEmpty;
 
 			_comparerWasSet = comparer != null;
@@ -369,8 +369,8 @@ namespace RCParsing.TokenPatterns
 		{
 			return base.Equals(obj) &&
 				   obj is EscapedTextTokenPattern other &&
-				   EscapeMappings.SequenceEqual(other.EscapeMappings) &&
-				   ForbiddenSequences.SetEquals(other.ForbiddenSequences) &&
+				   EscapeMappings.SetEqual(other.EscapeMappings) &&
+				   ForbiddenSequences.SetEqual(other.ForbiddenSequences) &&
 				   Equals(Comparer, other.Comparer) &&
 				   AllowsEmpty == other.AllowsEmpty &&
 				   _comparerWasSet == other._comparerWasSet;

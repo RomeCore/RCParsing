@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Text;
 using RCParsing.Tokenizers;
 
@@ -17,9 +16,9 @@ namespace RCParsing.Building
 		/// Builds the tokenizers collection for the parser.
 		/// </summary>
 		/// <returns>The built tokenizers collection.</returns>
-		public ImmutableArray<BarrierTokenizer> Build()
+		public BarrierTokenizer[] Build()
 		{
-			return _tokenizers.ToImmutableArray();
+			return _tokenizers.ToArray();
 		}
 
 		/// <summary>

@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Linq;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Text;
 using RCParsing.Utils;
+using System.Collections.ObjectModel;
 
 namespace RCParsing.TokenPatterns.Combinators
 {
@@ -12,10 +12,12 @@ namespace RCParsing.TokenPatterns.Combinators
 	/// </summary>
 	public class ChoiceTokenPattern : TokenPattern
 	{
+		private readonly int[] _choicesIds;
+
 		/// <summary>
 		/// The IDs of the token patterns to try.
 		/// </summary>
-		public ImmutableArray<int> Choices { get; }
+		public IReadOnlyList<int> Choices { get; }
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="ChoiceTokenPattern"/> class.
@@ -23,9 +25,9 @@ namespace RCParsing.TokenPatterns.Combinators
 		/// <param name="tokenPatternIds">The token patterns ids to try.</param>
 		public ChoiceTokenPattern(IEnumerable<int> tokenPatternIds)
 		{
-			Choices = tokenPatternIds?.ToImmutableArray()
-				?? throw new ArgumentNullException(nameof(tokenPatternIds));
-			if (Choices.IsEmpty)
+			_choicesIds = tokenPatternIds?.ToArray() ?? throw new ArgumentNullException(nameof(tokenPatternIds));
+			Choices = _choicesIds.AsReadOnlyList();
+			if (_choicesIds.Length == 0)
 				throw new ArgumentException("At least one token pattern must be provided.", nameof(tokenPatternIds));
 		}
 

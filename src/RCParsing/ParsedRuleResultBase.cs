@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using System.Xml.Linq;
@@ -80,7 +79,7 @@ namespace RCParsing
 		/// <summary>
 		/// Gets the aliases for the parser rule that was parsed.
 		/// </summary>
-		public ImmutableList<string> RuleAliases => Rule.Aliases;
+		public IReadOnlyList<string> RuleAliases => Rule.Aliases;
 
 		/// <summary>
 		/// Gets the starting index of the rule in the input text.

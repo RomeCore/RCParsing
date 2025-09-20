@@ -125,9 +125,9 @@ namespace RCParsing.ParserRules
 					ctx.passedBarriers, match.intermediateValue);
 			}
 
-			parseFunction = Parser.Tokenizers.Length == 0 ? ParseIgnoringBarriers : ParseUsingBarriers;
+			parseFunction = Parser.Tokenizers.Count == 0 ? ParseIgnoringBarriers : ParseUsingBarriers;
 
-			if (Parser.Tokenizers.Length == 0 && _pattern is BarrierTokenPattern)
+			if (Parser.Tokenizers.Count == 0 && _pattern is BarrierTokenPattern)
 				throw new InvalidOperationException($"Cannot use barrier token pattern '{_pattern}' without tokenizers.");
 
 			parseFunction = WrapParseFunction(parseFunction, initFlags);

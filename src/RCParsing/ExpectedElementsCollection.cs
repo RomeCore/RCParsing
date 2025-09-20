@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using RCParsing.ParserRules;
+using RCParsing.Utils;
 
 namespace RCParsing
 {
@@ -29,7 +29,7 @@ namespace RCParsing
 			if (e.Element is TokenParserRule r)
 				return new ExpectedElement<TokenPattern>(r.TokenPattern, e.Message, e.StackTrace);
 			return null;
-		}).Where(p => p != null).ToImmutableList());
+		}).Where(p => p != null).ToArray().AsReadOnlyList());
 
 		private ExpectedRulesCollection _rules;
 		/// <summary>
@@ -42,11 +42,11 @@ namespace RCParsing
 			if (e.Element is ParserRule r)
 				return new ExpectedElement<ParserRule>(r, e.Message, e.StackTrace);
 			return null;
-		}).Where(p => p != null).ToImmutableList());
+		}).Where(p => p != null).ToArray().AsReadOnlyList());
 
 		internal ExpectedElementsCollection(IEnumerable<(ParserElement, string, ParserStackTrace)> elements)
 		{
-			Elements = elements.Select(e => new ExpectedElement<ParserElement>(e.Item1, e.Item2, e.Item3)).ToImmutableList();
+			Elements = elements.Select(e => new ExpectedElement<ParserElement>(e.Item1, e.Item2, e.Item3)).ToArray().AsReadOnlyList();
 		}
 
 		public int Count => Elements.Count;

@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Data;
 using System.Linq;
 using RCParsing.Utils;
 
@@ -12,10 +10,12 @@ namespace RCParsing.ParserRules
 	/// </summary>
 	public class ChoiceParserRule : ParserRule
 	{
+		private int[] _choicesIds;
+
 		/// <summary>
 		/// The rule ids that are being chosen from.
 		/// </summary>
-		public ImmutableArray<int> Choices { get; }
+		public IReadOnlyList<int> Choices { get; }
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="ChoiceParserRule"/> class.
@@ -23,9 +23,9 @@ namespace RCParsing.ParserRules
 		/// <param name="parserRuleIds">The parser rules ids to choose from.</param>
 		public ChoiceParserRule(IEnumerable<int> parserRuleIds)
 		{
-			Choices = parserRuleIds?.ToImmutableArray()
-				?? throw new ArgumentNullException(nameof(parserRuleIds));
-			if (Choices.IsEmpty)
+			_choicesIds = parserRuleIds?.ToArray() ?? throw new ArgumentNullException(nameof(parserRuleIds));
+			Choices = _choicesIds.AsReadOnlyList();
+			if (_choicesIds.Length == 0)
 				throw new ArgumentException("At least one parser rule must be provided.", nameof(parserRuleIds));
 		}
 
@@ -50,9 +50,9 @@ namespace RCParsing.ParserRules
 		{
 			if (!initFlags.HasFlag(ParserInitFlags.FirstCharacterMatch))
 			{
-				var parseFunctions = new Func<ParserContext, ParserSettings, ParsedRule>[Choices.Length];
+				var parseFunctions = new Func<ParserContext, ParserSettings, ParsedRule>[_choicesIds.Length];
 
-				for (int i = 0; i < Choices.Length; i++)
+				for (int i = 0; i < _choicesIds.Length; i++)
 				{
 					var id = Choices[i];
 					var rule = GetRule(id);
