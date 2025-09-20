@@ -17,7 +17,7 @@ This library focuses on **Developer-experience (DX)** first, providing best tool
 - 💪 **Regex on Steroids**: You can find all matches for target structure in the input text with detailed AST information and transformed value.
 - 🌀 **Lexerless Freedom**: No token priority headaches. Parse directly from raw text, even with keywords embedded in strings. Tokens are used just as lightweight matching primitives.
 - 🎨 **Fluent API**: Write parsers in C# that read like clean BNF grammars, boosting readability and maintainability compared to imperative or functional approaches.
-- 🧩 **Combinator Mode**: Unlock maximum performance by defining complex tokens with immediate value transformation, bypassing the AST construction entirely for a direct, allocation-free result. Perfect for high-speed parsing of well-defined formats.
+- 🧩 **Combinator Style**: Unlock maximum performance by defining complex tokens with immediate value transformation, bypassing the AST construction entirely for a direct, allocation-free result. Perfect for high-speed parsing of well-defined formats. Also can be used with AST mode.
 - 🐛 **Debug-Friendly**: Get detailed, actionable error messages with stack traces and precise source locations. Richest API for manual error information included.
 - ⚡ **Fast**: Performance is now on par with the fastest .NET parsing libraries (see benchmarks below).
 - 🌳 **Rich AST**: Parser makes an AST (Abstract Syntax Tree) from raw text, with ability to optimize, fully analyze and calculate the result value entirely lazy, reducing unnecessary allocations.
@@ -39,6 +39,7 @@ This library focuses on **Developer-experience (DX)** first, providing best tool
 - [Benchmarks](#benchmarks)
 	- [JSON](#json-1)
 	- [Expressions](#expressions)
+	- [Regex](#regex)
 - [Projects using RCParsing](#projects-using-rcparsing)
 - [Roadmap](#roadmap)
 - [Contributing](#contributing)
@@ -62,7 +63,7 @@ Or do it manually by cloning this repository.
 
 # Simple examples
 
-### A + B
+## A + B
 
 Here is simple example how to make simple parser that parses "a + b" string with numbers and transforms the result:
 
@@ -99,7 +100,7 @@ var transformedValue = parsedRule.GetValue<double>();
 Console.WriteLine(transformedValue); // 25
 ```
 
-### JSON
+## JSON
 
 And here is JSON example:
 
@@ -385,7 +386,7 @@ var json =
 // Match the token directly and produce intermediate value
 // Note that it will fail silently if there is error in the input string
 var result = parser.MatchToken<Dictionary<string, object>>("value", json);
-Console.WriteLine(result["name"]); // Outputs: Sample data
+Console.WriteLine(result["name"]); // Outputs: Sample Data
 ```
 
 ## Finding patterns
@@ -435,27 +436,27 @@ foreach (var price in prices)
 
 ### Performance at a Glance (based on benchmarks)
 
-| Library        | Speed (Relative to RCParsing default mode)  | Speed (Relative to RCParsing token combination style) | Memory Efficiency                      |
-| :------------- | :------------------------------------------ | :---------------------------------------------------- | :------------------------------------- |
-| **RCParsing**  | 1.00x (baseline)                            | **1.00x (baseline), ~5.00x faster than default**      | **High or Excellent** (based on style) |
-| **Parlot**     | **~3.50x-3.70x faster**                     | ~1.20x-1.45x slower                                   | **Excellent**                          |
-| **Pidgin**     | ~1.45x-3.00x slower                         | ~6.75x-13.55x slower                                  | **Excellent**                          |
-| **ANTLR**      |
-| **Superpower** | ~8.00x-8.10x slower                         | ~40.75x slower                                        | Medium                                 |
-| **Sprache**    | ~7.50x-8.10x slower                         | ~41.00x slower                                        | Very low                               |
+| Library        | Speed (Relative to RCParsing default mode)  | Speed (Relative to RCParsing token combination style) | Memory Efficiency                      | Type              |
+| :------------- | :------------------------------------------ | :---------------------------------------------------- | :------------------------------------- | :---------------- |
+| **RCParsing**  | 1.00x (baseline)                            | **1.00x (baseline), ~5.00x faster than default**      | **High or Excellent** (based on style) | **Both**          |
+| **Parlot**     | **~3.50x-3.70x faster**                     | ~1.20x-1.45x slower                                   | **Excellent**                          | Combinator        |
+| **Pidgin**     | ~1.45x-3.00x slower                         | ~6.75x-13.55x slower                                  | **Excellent**                          | Combinator        |
+| **ANTLR**      | ~1.20x-1.30x slower                         | ~6.60x-7.30x slower                                   | High                                   | AST-based         |
+| **Superpower** | ~8.00x-8.10x slower                         | ~40.75x slower                                        | Medium                                 | Combinator        |
+| **Sprache**    | ~7.50x-8.10x slower                         | ~41.00x slower                                        | Very low                               | Combinator        |
 
 ### Feature Comparison
 
 This table highlights the unique architectural and usability features of each library.
 
-| Feature                    | RCParsing                                   | Pidgin              | Parlot                 | Superpower          | ANTLR4                        |
-| :------------------------- | :------------------------------------------ | :------------------ | :--------------------- | :------------------ | :---------------------------- |
-| **Architecture**           | **Scannerless hybrid**                      | Scannerless         | Scannerless            | Lexer-based         | **Lexer-based with modes**    |
-| **API**                    | **Fluent, lambda-based**                    | Functional          | Fluent/functional      | Fluent/functional   | **Grammar Files**             |
-| **Barrier/complex Tokens** | **Yes, built-in or manual**                 | None                | None                   | Yes, manual         | Yes, manual                   |
-| **Skipping**               | **6 strategies, globally**                  | Manual              | Global or manual       | Lexer-based         | Lexer-based                   |
-| **Error Messages**         | **Extremely Detailed, extendable with API** | Simple              | Manual messages        | Simple              | Simple by default, extendable |
-| **Minimum .NET Target**    | **.NET Standard 2.0**                       | .NET 7.0            | .NET Standard 2.0      | .NET Standard 2.0   | **.NET Framework 4.5**        |
+| Feature                    | RCParsing                                   | Pidgin              | Parlot                 | Superpower          | ANTLR4                            |
+| :------------------------- | :------------------------------------------ | :------------------ | :--------------------- | :------------------ | :-------------------------------- |
+| **Architecture**           | **Scannerless hybrid**                      | Scannerless         | Scannerless            | Lexer-based         | **Lexer-based with modes**        |
+| **API**                    | **Fluent, lambda-based**                    | Functional          | Fluent/functional      | Fluent/functional   | **Grammar Files**                 |
+| **Barrier/complex Tokens** | **Yes, built-in or manual**                 | None                | None                   | Yes, manual         | Yes, manual                       |
+| **Skipping**               | **6 strategies, global or manual**          | Manual              | Global or manual       | Lexer-based         | Lexer-based                       |
+| **Error Messages**         | **Extremely Detailed, extendable with API** | Simple              | Manual messages        | Simple              | **Simple by default, extendable** |
+| **Minimum .NET Target**    | **.NET Standard 2.0**                       | .NET 7.0            | .NET Standard 2.0      | .NET Standard 2.0   | **.NET Framework 4.5**            |
 
 # Benchmarks
 
@@ -468,8 +469,6 @@ AMD Ryzen 5 5600 3.60GHz, 1 CPU, 12 logical and 6 physical cores
 .NET SDK 9.0.302
   [Host]     : .NET 8.0.18 (8.0.1825.31117), X64 RyuJIT AVX2
   Job-KTXINV : .NET 8.0.18 (8.0.1825.31117), X64 RyuJIT AVX2
-
-Runtime=.NET 8.0  IterationCount=5  WarmupCount=2
 ```
 
 ## JSON
@@ -535,6 +534,37 @@ Notes:
 - `Parlot` uses `Compiled()` version of parser.
 - `ExpressionShort` methods uses single line with 4 operators of hardcoded (not generated) expression.
 - `ExpressionBig` methods uses single line with ~400 operators of hardcoded (not generated) expression.
+
+## Regex
+
+Matching identifiers and emails in the plain text.
+
+| Method                               | Mean         | Error        | StdDev      | Ratio | RatioSD | Gen0    | Gen1   | Allocated | Alloc Ratio |
+|------------------------------------- |-------------:|-------------:|------------:|------:|--------:|--------:|-------:|----------:|------------:|
+| EmailsBig_RCParsing                  | 236,175.3 ns | 26,801.07 ns | 6,960.15 ns |  1.00 |    0.04 |  0.9766 |      - |   16568 B |        1.00 |
+| EmailsBig_RCParsing_Optimized        | 157,271.9 ns |  5,076.92 ns | 1,318.46 ns |  0.67 |    0.02 |  0.9766 |      - |   16568 B |        1.00 |
+| EmailsBig_Regex                      |  27,638.6 ns |    711.08 ns |   184.66 ns |  0.12 |    0.00 |  1.5564 | 0.1221 |   26200 B |        1.58 |
+|                                      |              |              |             |       |         |         |        |           |             |
+| EmailsShort_RCParsing                |   6,658.5 ns |     78.57 ns |    20.40 ns |  1.00 |    0.00 |  0.0916 |      - |    1600 B |        1.00 |
+| EmailsShort_RCParsing_Optimized      |   3,799.0 ns |     35.69 ns |     5.52 ns |  0.57 |    0.00 |  0.0954 |      - |    1600 B |        1.00 |
+| EmailsShort_Regex                    |     931.5 ns |     13.52 ns |     3.51 ns |  0.14 |    0.00 |  0.0601 |      - |    1008 B |        0.63 |
+|                                      |              |              |             |       |         |         |        |           |             |
+| IdentifiersBig_RCParsing             | 158,034.1 ns |  4,041.56 ns |   625.44 ns |  1.00 |    0.01 |  5.8594 |      - |  101664 B |        1.00 |
+| IdentifiersBig_RCParsing_Optimized   |  99,086.9 ns |  1,619.80 ns |   420.66 ns |  0.63 |    0.00 |  5.9814 |      - |  101664 B |        1.00 |
+| IdentifiersBig_Regex                 |  71,439.8 ns |  4,727.93 ns |   731.65 ns |  0.45 |    0.00 | 11.1084 | 3.6621 |  187248 B |        1.84 |
+|                                      |              |              |             |       |         |         |        |           |             |
+| IdentifiersShort_RCParsing           |   4,041.5 ns |    172.86 ns |    44.89 ns |  1.00 |    0.01 |  0.2518 |      - |    4240 B |        1.00 |
+| IdentifiersShort_RCParsing_Optimized |   2,930.9 ns |     56.37 ns |    14.64 ns |  0.73 |    0.01 |  0.2518 |      - |    4240 B |        1.00 |
+| IdentifiersShort_Regex               |   2,386.2 ns |    160.57 ns |    41.70 ns |  0.59 |    0.01 |  0.3624 | 0.0076 |    6104 B |        1.44 |
+
+
+Notes:
+
+- `RCParsing` uses naive pattern for matching, without any optimization settings applied.
+- `RCParsing_Optimized` uses the same pattern, but with configured skip-rule for making it faster.
+- `Regex` uses `RegexOptions.Compiled` flags.
+- `Identifiers` pattern is `[a-zA-Z_][a-zA-Z0-9_]*`.
+- `Emails` pattern is `[a-zA-Z0-9]+@[a-zA-Z0-9]+\.[a-zA-Z0-9]+`.
 
 *More benchmarks will be later here...*
 

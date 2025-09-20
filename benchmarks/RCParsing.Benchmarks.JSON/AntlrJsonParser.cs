@@ -15,8 +15,8 @@ namespace RCParsing.Benchmarks.JSON
 		{
 			public static string String(ITerminalNode node)
 			{
-				// I currently don't know how to avoid second string allocation.
-				return node.GetText()[1..^1];
+				// We just return the text of the string node.
+				return node.GetText();
 			}
 
 			public static object Value(jsonParser.ValueContext ast)
