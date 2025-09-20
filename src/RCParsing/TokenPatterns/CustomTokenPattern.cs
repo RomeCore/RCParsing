@@ -12,7 +12,7 @@ namespace RCParsing.TokenPatterns
 		/// <summary>
 		/// The function to use for matching the custom token pattern.
 		/// </summary>
-		public Func<CustomTokenPattern, string, int, int, object?, ParsedElement> MatchFunction { get; }
+		public Func<CustomTokenPattern, string, int, int, object?, bool, ParsedElement> MatchFunction { get; }
 
 		/// <summary>
 		/// Gets the string representation of this custom token pattern.
@@ -30,11 +30,12 @@ namespace RCParsing.TokenPatterns
 		/// - <see cref="int"/>: The position in the input text to start matching from. <br/>
 		/// - <see cref="int"/>: The position in the input text to stop matching at. <br/>
 		/// - <see cref="object"/>: The optional context parameter to that have been passed from parser. <br/>
+		/// - <see cref="bool"/>: Whether to calculate intermediate value. <br/>
 		/// Returns: <br/>
 		/// - <see cref="ParsedElement"/>: The parsed element containing the result of the match.
 		/// </param>
 		/// <param name="stringRepresentation">The string representation of this custom token pattern.</param>
-		public CustomTokenPattern(Func<CustomTokenPattern, string, int, int, object?, ParsedElement> matchFunction,
+		public CustomTokenPattern(Func<CustomTokenPattern, string, int, int, object?, bool, ParsedElement> matchFunction,
 			string stringRepresentation = "custom")
 		{
 			MatchFunction = matchFunction ?? throw new ArgumentNullException(nameof(matchFunction));
@@ -44,7 +45,7 @@ namespace RCParsing.TokenPatterns
 		public override ParsedElement Match(string input, int position, int barrierPosition,
 			object? parserParameter, bool calculateIntermediateValue)
 		{
-			return MatchFunction(this, input, position, barrierPosition, parserParameter);
+			return MatchFunction(this, input, position, barrierPosition, parserParameter, calculateIntermediateValue);
 		}
 
 		public override string ToStringOverride(int remainingDepth)

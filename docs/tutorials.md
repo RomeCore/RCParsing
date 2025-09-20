@@ -8,6 +8,9 @@
 - [Settings and their override modes](#settings-and-their-override-modes) - about configuration of every rule with inheritance
 - [Barrier tokens](#barrier-tokens) - how to parse Python-like indented syntax in elegant manner
 - [Initialization flags, debugging and performance](#initialization-flags-debugging-and-performance) - about static configuration and how it impacts on runtime and development speed
+
+# Elements library
+
 - [Rule types](#rule-types)
     - [Sequence](#sequence)
     - [Choice](#choice)
@@ -20,28 +23,51 @@
         - [Choice](#choice-1)
         - [Optional](#optional-1)
         - [Repeat](#repeat-1)
+        - [SeparatedRepeat](#separatedrepeat-1)
+        - [Between, First and Second](#between-first-and-second)
+        - [Map, Return and CaptureText](#map-return-and-capturetext)
+        - [SkipWhitespaces](#skipwhitespaces)
     - [Matching primitives](#matching-primitives)
         - [EOF](#eof)
         - [Literal, LiteralChar and LiteralChoice](#literal-literalchar-and-literalchoice)
         - [Number](#number)
         - [Regex](#regex)
         - [EscapedText](#escapedtext)
-        - [Predicate-based (Character, RepeatCharacters, Identifier, Whitespaces)](#predicate-based-character-repeatcharacters-identifier-whitespaces)
+        - [Predicate-based (Character, RepeatCharacters, Identifier)](#predicate-based-character-repeatcharacters-identifier)
+        - [Whitespace-related (Whitespaces, Spaces, Newline)](#whitespace-related-whitespaces-spaces-newline)
         - [Custom tokens](#custom-tokens)
 
 # Main concepts
 
-`RCParsing` uses lexerless approach, but it has *tokens*, they are used as parser primitives, and they are not complex as *rules*. This library also supports *barrier tokens*.  
+`RCParsing` uses lexerless approach, but it has *tokens*, they are used as parser primitives, and they are not complex as *rules*, having a limited error handling and configuration. This library also supports *barrier tokens*, unlocking hybrid mode.  
 
-- **Token**: A token is a pattern that matches characters directly and it tries to match as much characters as possible, some token patterns may contain child tokens;
-- **Rule**: A rule is a more complex pattern that matches child rules or tokens, based on behaviour, but not the characters directly.
-- **Barrier token**: A token that **must** be parsed and prevents other tokens from matching.
+### Token
+A **Token** is the smallest matching unit, a primitive that consumes input and produces an intermediate value. Tokens are ideal for:
+* Terminal symbols (keywords, operators: `"if"`, `"+"`) and atomic values (numbers, strings, identifiers).
+* Complex patterns with immediate value transformation and zero-allocation (combinator-style).
 
-Parsers in this library is created via `ParserBuilder`s. When parser is being built, builder deduplicates rules and token patterns, and assigns IDs to them, then they are being compound into a `Parser`.
+**Key trait:** They cannot reference Rules, making them the foundation for all parsing. And they **cannot** contain inner barrier tokens.
+
+### Rule
+A **Rule** is a composite structure built from Tokens and other Rules. It defines the grammar's structure and produces an Abstract Syntax Tree (AST) node. Rules are used for:
+* Non-terminal symbols (expressions, statements, blocks).
+* Organizing the grammar hierarchy (`expression` -> `term` -> `factor`).
+* Constructing the AST with `Transform` functions for semantic analysis.
+
+**Key trait:** They form the recursive structure of your grammar and build the parse tree.
+
+### Barrier Token
+A **Barrier Token** is a special pseudo-token injected by a `BarrierTokenizer` (like the indent/dedent tokenizer). They are not defined in the grammar but are crucial for parsing context-sensitive syntax.
+* **Purpose:** To handle structures where traditional tokenization is insufficient.
+* **Primary Example:** Parsing indentation-based languages (Python, YAML). The tokenizer analyzes whitespace to emit `INDENT` `DEDENT` and optinal `NEWLINE` tokens, which act as explicit markers for block boundaries, mimicking the role of `{` and `}` in other languages.
+
+**Key trait:** They are generated and baked entirely before parsing, enabling recognition of non-regular structures.
 
 # Rule and token building
 
+Parsers in this library is created via `ParserBuilder`s. When parser is being built, builder deduplicates rules and token patterns, and assigns IDs to them, then they are being compound into a `Parser`.  
 First, you need to create a `ParserBuilder` to let all the IDs assignments, deduplication and other hard work to it:
+
 ```csharp
 var builder = new ParserBuilder();
 ```
@@ -86,7 +112,8 @@ builder.CreateRule("rule2")
     .Whitespaces();
 ```
 
-**Important!**  
+### Important!
+
 You cannot create empty rules and tokens, make references to unknown rules/tokens, or make direct cyclic references:
 ```csharp
 var builder = new ParserBuilder();
@@ -180,6 +207,19 @@ When using `TryParseThenSkip` strategy, parser will try to parse first, then ski
 - `TryParseThenSkipLazy`: Parser will attempt to parse the target rule; if parsing fails, it will alternately try to skip the skip-rule and parse the target rule repeatedly until the target rule succeeds or both fail (`parse -> skip -> parse -> skip -> parse -> ... -> parse`).
 - `TryParseThenSkipGreedy`: Parser will attempt to parse the target rule; if parsing fails, it will greedily skip the skip-rule as many times as possible and then retry parsing the target rule (`parse -> skip -> skip -> ... -> skip -> parse`).
 
+### Optimized whitespace skipping
+
+You can use `SkipWhitespacesOptimized()` flag on parser settings to enable the direct skipping strategy in the parser, disabling any other skip rules and strategies, granting around ~10% speed boost:
+
+```csharp
+builder.Settings
+	.SkipWhitespacesOptimized();
+
+// Important: the next setting will not work!
+builder.Settings
+	.Skip(b => b.Rule("skip"));
+```
+
 # Deduplication
 
 All rules and tokens are deduplicated when you call `builder.Build()`.  
@@ -253,6 +293,53 @@ And you will get the **same** parser!
 
 The true power of a parser lies in its ability to transform raw text into structured data. In `RCParsing`, this is achieved through a system of *intermediate values* and *transformation functions* attached to your rules.
 
+### Value Propagation: Intermediate Values, Combinators and `Pass`
+
+During the parsing phase, some built-in token patterns generates an **intermediate value**:
+
+- `Regex`: Returns the `Match` object.
+- `EscapedText` (all variations): Returns the fully processed string with all escape sequences applied.
+- `Number`: Returns the `double`, `float`, `int` or any other supported C# numeric type, based on `NumberType` flag or generic argument when you created it.
+- `Literal`, `LiteralChar`, `LiteralChoice`: Return the exact literal string that was matched (useful for case-insensitive matching to get the original text).
+- `Optional` and `Choice`: Return the intermediate value of their matched child.
+- **For others:** You can look down to the token patterns library and see what they returns.
+
+For repeat or sequential tokens (tokens built by chaining patterns like `.Literal("\"").EscapedTextPrefix(...).Literal("\"")`), you use the `.Pass()` method to control which child's intermediate value is propagated upwards to become the token's own intermediate value. `.Pass(v => v[1])` tells the token to use the intermediate value from the second child (index 1) in the sequence:
+
+```csharp
+builder.CreateToken("string")
+	.Literal('"')
+	.EscapedTextPrefix(prefix: '\\', '\\', '\"') // Value of this element will be passed up
+	.Literal('"')
+	.Pass(index: 1);
+```
+
+Or use `Between` combinator:
+
+```csharp
+builder.CreateToken("string")
+	.Between(
+		b => b.Literal('"'),
+		b => b.EscapedTextPrefix(prefix: '\\', '\\', '\"'), // Value of this element (middle) will be passed up
+		b => b.Literal('"')
+	);
+```
+
+There is the useful combinators:
+
+- `Between`: Matches a sequence of three elements and passes up the middle element.
+- `First`: Matches a sequence of two elements and passes up the first element.
+- `Second`: Matches a sequence of two elements and passes up the second element.
+- `Map`: Matches a single element and applies the function to transform child's value.
+- `Return`: Matches a single element and returns the specified fixed value.
+- `CaptureText`: Matches a single element and captures the text of the child match.
+- **For more combinators you can look down in the library**.
+
+Since token's AST nodes is leaf and cannot have their own children, they have intermediate values system instead. Tokens that can have child tokens propogates intermediate values based on their type:
+
+- `Choice` and `Optional`: Passes child's intermediate value up if has.
+- `Repeat` and `Sequence`: Passes children's value using the passage function, that you can define via `Pass` using function or index to pass.
+
 ### The `ParsedRuleResult` Object
 
 When a complete rule is parsed, parser produces a `ParsedRuleResult` object that is a wrapper around intermediate AST object. This object is **entirely lazy-evaluated**, rich representation of the parse result, providing access to the captured text, the parsed value, child nodes, and other metadata. It is the primary context object passed to your transformation functions.
@@ -266,18 +353,6 @@ Key properties of `ParsedRuleResult`:
 - `Children`: An array of `ParsedRuleResult` objects representing the child nodes of this rule (e.g., the parts of a sequence). This array is also built lazily for performance.
 - `IsToken`: Indicates if this result represents a token.
 - `Rule`: The parser rule definition that produced this result.
-
-### Value Propagation: Intermediate Values and `Pass`
-
-During the parsing phase, some built-in token patterns generates an **intermediate value**:
-
-- `Regex`: Returns the `Match` object.
-- `EscapedText` (all variations): Returns the fully processed string with all escape sequences applied.
-- `Number`: Returns the `double`, `float`, `int` or any other supported C# numeric type, based on `NumberType` flag or generic argument when you created it.
-- `Literal`, `LiteralChar`, `LiteralChoice`: Return the exact literal string that was matched (useful for case-insensitive matching to get the original text).
-- `Optional` and `Choice`: Return the intermediate value of their matched child.
-
-For repeat or sequential tokens (tokens built by chaining patterns like `.Literal("\"").EscapedTextPrefix(...).Literal("\"")`), you use the `.Pass()` method to control which child's intermediate value is propagated upwards to become the token's own intermediate value. `.Pass(v => v[1])` tells the token to use the intermediate value from the second child (index 1) in the sequence.
 
 ### Transformation Functions
 
@@ -300,12 +375,6 @@ Inside a `.Transform()` function, you build your final value by inspecting the `
 - `Choice` and `Optional`: Passes the child's value through (if has, otherwise it will be `null`).
 - `Repeat` and `RepeatSeparated` (all variants): Passes and array of children's `Value`s.
 - `Token`: Rule with child token passes token's intermediate value.
-
-Also, **intermediate values** have own propagation system. Since token's AST nodes is leaf and cannot have their own children, they have intermediate values system instead. Tokens that can have child tokens propogates intermediate values based on their type:
-
-- `Choice` and `Optional`: Passes child's intermediate value up if has.
-- `Repeat` and `Sequence`: Passes children's value using the passage function, that you can define via `Pass` using function or index to pass.
-- `TokenRule` passes child token's intermediate value.
 
 Here is detailed example of transformation functions:
 ```csharp
@@ -503,7 +572,7 @@ builder.Settings.DetailedErrors(); // When parser throws errors, they will displ
 builder.Settings.ErrorFormatting(
 	ErrorFormattingFlags.DisplayRules |
 	ErrorFormattingFlags.DisplayMessages |
-	ErrorFormattingFlags.MoreGroups); // DetailedErrors is the sugar for this <--
+	ErrorFormattingFlags.MoreGroups); // DetailedErrors is the sugar for this
 builder.Settings.UseDebug(); // Uses both WriteStackTrace and DetailedErrors
 ```
 
@@ -551,7 +620,7 @@ The line where the error occurred:
   literal: '}'
 
 ['pair'] Stack trace (top call recently):
-- SeparatedRepeat{0..} (allow trailing): 'pair' <--- here
+- SeparatedRepeat{0..} (allow trailing): 'pair' <-- here
   sep literal: ','
 - Sequence 'object':
     literal: '{'
@@ -597,21 +666,23 @@ The line where the error occurred:
 
 There is JSON benchmark demonstrating how different settings impacts on performance:
 
-| Method                   | Mean       | Error      | StdDev    | Ratio | Gen0     | Gen1     | Gen2     | Allocated  | Alloc Ratio |
-|------------------------- |-----------:|-----------:|----------:|------:|---------:|---------:|---------:|-----------:|------------:|
-| JsonBig_InlinedNoValue   | 168.238 us |  6.6452 us | 0.3642 us |  0.59 |  12.2070 |   2.9297 |        - |  200.61 KB |        0.42 |
-| JsonBig_Inlined          | 229.147 us | 16.2147 us | 0.8888 us |  0.80 |  26.8555 |  13.4277 |        - |  442.37 KB |        0.93 |
-| JsonBig_Default          | 287.437 us | 20.5160 us | 1.1245 us |  1.00 |  28.8086 |  15.6250 |        - |  474.43 KB |        1.00 |
-| JsonBig_Debug            | 307.931 us | 34.3045 us | 1.8803 us |  1.07 |  29.7852 |  15.6250 |        - |  491.02 KB |        1.03 |
-| JsonBig_DebugMemoized    | 601.280 us | 41.6892 us | 2.2851 us |  2.09 | 117.1875 | 117.1875 | 117.1875 | 1001.57 KB |        2.11 |
-|                          |            |            |           |       |          |          |          |            |             |
-| JsonShort_InlinedNoValue |   9.084 us |  0.3575 us | 0.0196 us |  0.57 |   0.7629 |   0.0153 |        - |   12.52 KB |        0.45 |
-| JsonShort_Inlined        |  12.661 us |  1.7144 us | 0.0940 us |  0.79 |   1.5717 |   0.0763 |        - |   25.86 KB |        0.93 |
-| JsonShort_Default        |  15.931 us |  1.3110 us | 0.0719 us |  1.00 |   1.6785 |   0.1221 |        - |   27.83 KB |        1.00 |
-| JsonShort_Debug          |  16.499 us |  1.4400 us | 0.0789 us |  1.04 |   1.7395 |   0.0916 |        - |   28.73 KB |        1.03 |
-| JsonShort_DebugMemoized  |  26.105 us |  0.4959 us | 0.0272 us |  1.64 |   3.2043 |   0.3052 |        - |   52.28 KB |        1.88 |
+| Method               | Mean      | Error     | StdDev   | Ratio | RatioSD | Gen0    | Gen1    | Gen2    | Allocated | Alloc Ratio |
+|--------------------- |----------:|----------:|---------:|------:|--------:|--------:|--------:|--------:|----------:|------------:|
+| Default              | 147.45 us |  8.113 us | 0.445 us |  1.00 |    0.00 | 13.6719 |  4.3945 |       - | 224.08 KB |        1.00 |
+| NoValue              | 116.99 us |  5.890 us | 0.323 us |  0.79 |    0.00 |  8.6670 |  2.8076 |       - | 142.18 KB |        0.63 |
+| OptimizedWhitespaces | 134.41 us | 23.855 us | 1.308 us |  0.91 |    0.01 | 13.6719 |  4.3945 |       - | 224.08 KB |        1.00 |
+| Inlined              | 131.95 us | 24.369 us | 1.336 us |  0.89 |    0.01 | 13.6719 |  4.3945 |       - | 224.08 KB |        1.00 |
+| FirstCharacterMatch  | 121.90 us |  1.659 us | 0.091 us |  0.83 |    0.00 | 10.2539 |  2.4414 |       - | 168.01 KB |        0.75 |
+| IgnoreErrors         | 142.54 us | 10.350 us | 0.567 us |  0.97 |    0.00 |  9.7656 |  2.1973 |       - | 159.99 KB |        0.71 |
+| StackTrace           | 164.33 us | 26.665 us | 1.462 us |  1.11 |    0.01 | 18.3105 |  6.5918 |       - | 302.08 KB |        1.35 |
+| LazyAST              | 173.83 us | 56.014 us | 3.070 us |  1.18 |    0.02 | 21.2402 | 10.4980 |       - |  348.6 KB |        1.56 |
+| RecordSkipped        | 155.82 us | 71.579 us | 3.924 us |  1.06 |    0.02 | 16.1133 |  6.1035 |       - | 264.11 KB |        1.18 |
+| Memoized             | 449.35 us |  4.213 us | 0.231 us |  3.05 |    0.01 | 99.6094 | 99.6094 | 99.6094 | 674.62 KB |        3.01 |
+| FastestNoValue       |  64.34 us |  1.697 us | 0.093 us |  0.44 |    0.00 |  4.7607 |  0.9766 |       - |  78.09 KB |        0.35 |
+| Fastest              |  94.09 us |  3.758 us | 0.206 us |  0.64 |    0.00 |  9.7656 |  2.4414 |       - | 159.99 KB |        0.71 |
+| Slowest              | 516.68 us | 26.877 us | 1.473 us |  3.50 |    0.01 | 99.6094 | 99.6094 | 99.6094 | 917.17 KB |        4.09 |
 
-Note: `*NoValue` methods doesn't calculate value from AST, just parsing text and returns AST.
+Note: `*NoValue` method doesn't calculate value via transformation functions, just parsing text and returns AST.
 
 # Rule types
 
@@ -687,9 +758,11 @@ builder.CreateRule("separated_repeat_1_to_inf")
 # Token pattern types
 
 ## Combination primitives
-Here is the same combination primitives as rules, except for `SeparatedRepeat`. They works the same:
+
+Here is the same combination primitives as rules. They works the same.
 
 ### Sequence
+
 ```csharp
 builder.CreateToken("sequence")
     .Token("A")
@@ -700,7 +773,9 @@ builder.CreateToken("sequence")
     .Token("seq")
     .ToSequence();
 ```
-You can apply passage function to sequence token to pass intermediate value up:
+
+You can apply passage function to sequence token to pass intermediate value up or create new value:
+
 ```csharp
 builder.CreateToken("string")
     .Literal('"')
@@ -709,10 +784,13 @@ builder.CreateToken("string")
     .Pass(v => v[1]);
 
     // Or use the shorcut:
-    .Pass(1);
+    .Pass(index: 1);
 ```
 
 ### Choice
+
+Acts like a rule equivalent, passes intermediate value from first matched choice:
+
 ```csharp
 builder.CreateToken("choice")
     .Choice(
@@ -723,6 +801,9 @@ builder.CreateToken("choice")
 ```
 
 ### Optional
+
+Acts like a rule equivalent, matches a child token pattern without failure, passes intermediate value from child, or `null` if no match:
+
 ```csharp
 builder.CreateToken("optional")
     .Optional(
@@ -731,6 +812,9 @@ builder.CreateToken("optional")
 ```
 
 ### Repeat
+
+Acts like a rule equivalent, repeatedly matches a child token pattern for specified range of times:
+
 ```csharp
 builder.CreateToken("repeat_1_to_3")
     .Repeat(b => b.Token("token_to_repeat"), min: 1, max: 3); // [1..3]
@@ -745,10 +829,100 @@ builder.CreateToken("repeat_1_to_inf")
     .OneOrMore(b => b.Token("token_to_repeat")); // [1..]
 ```
 
+Also, passage function can be applied for this element too:
+
+```csharp
+
+builder.CreateToken("repeat_1_to_inf")
+    .OneOrMore(b => b.Token("token_to_repeat"))
+    .Pass(v => v.Cast<int>().ToArray()); // Casts children intermediate values to int and produces array
+```
+
+### SeparatedRepeat
+
+Acts like a rule equivalent, repeatedly matches a child token pattern in interleaved manner with separator for specified range of times:
+
+```csharp
+builder.CreateToken("repeat_1_to_3")
+    .RepeatSeparated(b => b.Token("token_to_repeat"), b => b.Token("separator"), min: 1, max: 3, allowTrailingSeparator: true); // [1..3]
+    
+builder.CreateToken("repeat_2_to_inf")
+    .RepeatSeparated(b => b.Token("token_to_repeat"), b => b.Token("separator"), min: 2, includeSeparatorsInResult: true); // [2..]
+    
+builder.CreateToken("repeat_0_to_inf")
+    .ZeroOrMoreSeparated(b => b.Token("token_to_repeat"), b => b.Token("separator")); // [0..]
+    
+builder.CreateToken("repeat_1_to_inf")
+    .OneOrMoreSeparated(b => b.Token("token_to_repeat"), b => b.Token("separator")); // [1..]
+```
+
+Also, passage function can be applied for this element too:
+
+```csharp
+
+builder.CreateToken("repeat_1_to_inf")
+    .RepeatSeparated(b => b.Token("token_to_repeat"), b => b.Token("separator"), includeSeparatorsInResult: false);
+    .Pass(v => v.Cast<MyElement>().ToArray()); // Casts children intermediate values to MyElement and produces array
+```
+
+### Between, First and Second
+
+These are a better optimized combinators, matching a sequence of two and three child tokens, but propagates vlue from only one:
+
+```csharp
+builder.CreateToken("string")
+	.Between(
+		b => b.Literal('"'),
+		b => b.TextUntil('"'), // Value of this element (middle) will be passed up
+		b => b.Literal('"')
+	);
+
+builder.CreateToken("prefix")
+	.First(
+		b => b.Literal("foo"), // Value of this element (first) will be selected
+		b => b.Literal("bar")
+	);
+
+builder.CreateToken("suffix")
+	.Second(
+		b => b.Literal("foo"),
+		b => b.Literal("bar")  // Value of this element (second) will be selected
+	);
+```
+
+### Map, Return and CaptureText
+
+These are used to convert or just return the intermediate value then matching child element:
+
+```csharp
+builder.CreateToken("number")
+    .Map(b => b.Literal("1", "2", "3"), val => int.Parse((string)val));
+
+// Or use the generic argument for better look:
+builder.CreateToken("number")
+    .Map<string>(b => b.Literal("1", "2", "3"), str => int.Parse(str));
+
+builder.CreateToken("true")
+    .Return(b => b.Literal("true"), true); // Returns 'true' as intermediate value
+
+builder.CreateToken("unescaped_string")
+	.CaptureText(b => b.EscapedTextPrefix(prefix: '\"', '\"', '\\')); // Note: EscapedTextPrefix will not calculate its intermediate value
+```
+
+### SkipWhitespaces
+
+This pattern skips whitespaces before matching child token:
+
+```csharp
+builder.CreateToken("number")
+    .SkipWhitespaces(b => b.Number<int>());
+```
+
 ## Matching primitives
 
 ### EOF
-Matches the end of input (when there is no characters to match)
+
+Matches the end of input or the barrier token (when there is no characters to match)
 ```csharp
 builder.CreateToken("eof").EOF();
 ```
@@ -760,13 +934,15 @@ builder.CreateMainRule("main")
 ```
 
 ### Literal, LiteralChar and LiteralChoice
-Matches a literal string or character or choice of them using Trie (matches longest possible choice).  
+
+Matches a literal string, character or choice of strings using Trie (matches longest possible choice).  
 ```csharp
 builder.CreateToken("literal")
     .Literal('a')
     .Literal("str")
     .LiteralChoice("abc", "def"); // Uses trie for efficient match
 ```
+
 Also, the `StringComparison` and `StringComparer` can be applied to them:
 ```csharp
 builder.CreateToken("literal")
@@ -775,7 +951,15 @@ builder.CreateToken("literal")
     .LiteralChoice(["abc", "def"], StringComparer.OrdinalIgnoreCase);
 ```
 
+They puts the exact literal into intermediate value:
+```csharp
+var ch = parser.ParseRule("literal_char", input).GetIntermediateValue<char>();
+var str = parser.ParseRule("literal_str", input).GetIntermediateValue<string>();
+var choice = parser.ParseRule("literal_choice", input).GetIntermediateValue<string>();
+```
+
 ### Number
+
 Matches a number based on `NumberFlags` and converts it into intermediate value based on `NumberType`.  
 Tries to match the most possible characters (e.g. if you disallow implicit fractional part, when it parses "5.", it matches only the "5").
 ```csharp
@@ -831,6 +1015,7 @@ There is available flags:
 | `StrictUnsignedScientific` | `StrictUnsignedFloat \| Exponent` | Strict unsigned scientific notation |
 
 ### Regex
+
 Matches a regular expression. Wraps pattern into "\G{Pattern}" to avoid `SubString` allocations.
 ```csharp
 builder.CreateToken("regex")
@@ -845,6 +1030,7 @@ var match = parser.ParseRule("regex_rule", "def").GetIntermediateValue<Match>();
 ```
 
 ### EscapedText
+
 The most powerful thing for making text escape sequences! Or just for matching characters until one of specified sequences.  
 It uses Trie for fast lookup.  
 You can use predefined strategies, such as character prefix and double characters:
@@ -891,10 +1077,10 @@ builder.CreateToken("manual_text")
     .EscapedText(escapeMappings, forbiddenSequences);
 
 var escaped = parser.ParseRule("manual_text_rule", "abcdef123\\\"456@")
-    .GetIntermediateValue<string>(); // "bcc123123"456
+    .GetIntermediateValue<string>(); // bcc123123"456
 ```
 
-### Predicate-based (Character, RepeatCharacters, Identifier, Whitespaces)
+### Predicate-based (Character, RepeatCharacters, Identifier)
 
 There is some convenient, predicate based token patterns with predefined predicates. They do not produce intermediate values.
 
@@ -912,10 +1098,6 @@ builder.CreateToken("chars_0_to_inf")
     .ZeroOrMoreChars(c => c >= 'B' && c <= 'Q'); // [0..]
 builder.CreateToken("chars_1_to_inf")
     .OneOrMoreChars(c => c >= '0' && c <= '9'); // [1..]
-
-// The whitespaces (wrapper for RepeatCharacters)
-builder.CreateToken("ws")
-    .Whitespaces(); // equivalent to .OneOrMoreChars(char.IsWhiteSpace), but holds other type
 
 // Identifier (minimum length must be greater than zero!)
 builder.CreateToken("custom_identifier_1_to_inf")
@@ -939,6 +1121,21 @@ builder.CreateToken("unicode_identifier")
     .UnicodeIdentifier(); // [1..]
 ```
 
+### Whitespace-related (Whitespaces, Spaces, Newline)
+
+There is some useful tokens for whitespace matching:
+
+```csharp
+builder.CreateToken("ws")
+    .Whitespaces(); // Matches one or more of ' ', '\t', '\r' and '\n' characters
+    
+builder.CreateToken("s")
+    .Spaces(); // Matches one or more of ' ' and '\t' characters, useful when you don't want to miss newlines
+
+builder.CreateToken("nl")
+    .Newline(); // Matches any single newline, one of '\n', '\r' and '\r\n' sequences
+```
+
 ### Custom tokens
 
 You can create custom tokens from a `TokenPattern` implementation:
@@ -947,10 +1144,10 @@ You can create custom tokens from a `TokenPattern` implementation:
 var myToken = new MyTokenPattern();
 
 builder.CreateToken("my_own_token")
-    .AddToken(myToken);
+    .Token(myToken);
 
 builder.CreateRule("my_token_in_rule")
-    .AddToken(myToken);
+    .Token(myToken);
 ```
 
 Or using a `CustomTokenPattern` with function:

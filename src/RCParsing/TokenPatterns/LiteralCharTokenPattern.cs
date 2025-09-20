@@ -14,6 +14,7 @@ namespace RCParsing.TokenPatterns
 	public class LiteralCharTokenPattern : TokenPattern
 	{
 		readonly char[] charPool = new char[1];
+		readonly object? boxedChar; // The character that has been boxed, so it can be passed as an object without boxing it again.
 
 		/// <summary>
 		/// The literal character to match.
@@ -35,6 +36,7 @@ namespace RCParsing.TokenPatterns
 			Literal = literal;
 			Comparison = comparison;
 			charPool[0] = literal;
+			boxedChar = literal;
 		}
 
 		protected override HashSet<char>? FirstCharsCore => new(new [] { Literal });
@@ -53,14 +55,14 @@ namespace RCParsing.TokenPatterns
 			{
 				if (Literal == input[position])
 				{
-					return new ParsedElement(position, 1, calculateIntermediateValue ? Literal : null);
+					return new ParsedElement(position, 1, boxedChar);
 				}
 			}
 			else
 			{
 				if (input.AsSpan(position, 1).Equals(charPool.AsSpan(), Comparison))
 				{
-					return new ParsedElement(position, 1, calculateIntermediateValue ? Literal : null);
+					return new ParsedElement(position, 1, boxedChar);
 				}
 			}
 

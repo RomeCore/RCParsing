@@ -66,9 +66,9 @@ namespace RCParsing.Tests
 				.ConfigureForSkip();
 
 			builder.CreateToken("string")
-				.Literal("\"")
+				.Literal('"')
 				.EscapedTextPrefix(prefix: '\\', '\\', '\"') // This sub-token automatically escapes the source string and puts it into intermediate value
-				.Literal("\"")
+				.Literal('"')
 				.Pass(index: 1); // Pass the EscapedTextPrefix's intermediate value up (it will be used as token's result value)
 
 			builder.CreateToken("number")

@@ -204,12 +204,10 @@ namespace RCParsing.TokenPatterns
 
 
 
-		public override ParsedElement Match(string input, int position, int barrierPosition,
-			object? parserParameter, bool calculateIntermediateValue)
+		private ParsedElement MatchWithoutCalculation(string input, int position, int barrierPosition)
 		{
 			int start = position;
 			int pos = start;
-			var sb = calculateIntermediateValue ? new StringBuilder() : null;
 
 			while (pos < barrierPosition)
 			{
@@ -217,7 +215,6 @@ namespace RCParsing.TokenPatterns
 				//    If found — apply replacement and continue.
 				if (_escape.TryGetLongestMatch(input, pos, barrierPosition, out var replacement, out int escapeConsumed))
 				{
-					sb?.Append(replacement as string ?? string.Empty);
 					pos += escapeConsumed;
 					continue;
 				}
@@ -229,7 +226,7 @@ namespace RCParsing.TokenPatterns
 					break; // unescaped forbidden sequence -> end of matched text
 				}
 
-				// 3) No terminal found for escape or forbidden.
+				/*// 3) No terminal found for escape or forbidden.
 				//    We must detect the *real* incomplete-escape case:
 				//    If the remainder of the input starting at pos is a strict prefix of some escape
 				//    AND we are at the end of the input (no more chars to try) => incomplete escape -> error.
@@ -246,10 +243,9 @@ namespace RCParsing.TokenPatterns
 					}
 					// If we are not at EOF, we still append current char as normal — future iterations
 					// may complete into a terminal escape (rare here because we scan the whole input).
-				}
+				}*/
 
-				// 4) Append normal character and advance.
-				sb?.Append(input[pos]);
+				// 4) Advance.
 				pos++;
 			}
 
@@ -257,11 +253,90 @@ namespace RCParsing.TokenPatterns
 			int length = pos - start;
 
 			if (length == 0 && !AllowsEmpty) // empty match and not allowed -> error
-			{
 				return ParsedElement.Fail;
+
+			return new ParsedElement(start, length);
+		}
+
+		private ParsedElement MatchWithCalculation(string input, int position, int barrierPosition)
+		{
+			int start = position;
+			int pos = start;
+			int lastFoundEscape = start;
+			StringBuilder? sb = null;
+
+			while (pos < barrierPosition)
+			{
+				// 1) Try to match the longest escape starting at pos.
+				//    If found — apply replacement and continue.
+				if (_escape.TryGetLongestMatch(input, pos, barrierPosition, out var replacement, out int escapeConsumed))
+				{
+					sb ??= new StringBuilder();
+
+					if (pos > lastFoundEscape)
+						sb.Append(input, lastFoundEscape, pos - lastFoundEscape);
+					sb.Append(replacement as string ?? string.Empty);
+
+					pos += escapeConsumed;
+					lastFoundEscape = pos;
+					continue;
+				}
+
+				// 2) No escape terminal at this position.
+				//    If a forbidden terminal starts here, stop (do not consume forbidden).
+				if (_forbidden.TryGetLongestMatch(input, pos, barrierPosition, out _, out int forbiddenConsumed))
+				{
+					break; // unescaped forbidden sequence -> end of matched text
+				}
+
+				/*// 3) No terminal found for escape or forbidden.
+				//    We must detect the *real* incomplete-escape case:
+				//    If the remainder of the input starting at pos is a strict prefix of some escape
+				//    AND we are at the end of the input (no more chars to try) => incomplete escape -> error.
+				//    Otherwise treat the current char as normal text.
+				if (_escape.IsStrictPrefixOfAny(input, pos, barrierPosition))
+				{
+					// If the remaining input is a strict prefix of some escape and we are at EOF
+					// (i.e. there are no more characters to complete that escape), then it's invalid.
+					// We only error when pos..end matches prefix-of-some-escape and there are no more characters
+					// that can arrive (we operate on the full string), so this is true incomplete escape.
+					if (pos + (barrierPosition - pos) >= barrierPosition) // redundant but explicit: we are at end-of-input suffix
+					{
+						return ParsedElement.Fail;
+					}
+					// If we are not at EOF, we still append current char as normal — future iterations
+					// may complete into a terminal escape (rare here because we scan the whole input).
+				}*/
+
+				// 4) Advance.
+				pos++;
 			}
 
+			// Produce token
+			int length = pos - start;
+
+			if (length == 0) // empty match and not allowed -> error
+			{
+				if (!AllowsEmpty)
+					return ParsedElement.Fail;
+				return new ParsedElement(start, 0, string.Empty);
+			}
+
+			if (lastFoundEscape == start)
+				return new ParsedElement(start, length, input.Substring(start, length));
+			if (pos > lastFoundEscape)
+				sb.Append(input, lastFoundEscape, pos - lastFoundEscape);
+
 			return new ParsedElement(start, length, sb?.ToString());
+		}
+
+		public override ParsedElement Match(string input, int position, int barrierPosition,
+			object? parserParameter, bool calculateIntermediateValue)
+		{
+			if (calculateIntermediateValue)
+				return MatchWithCalculation(input, position, barrierPosition);
+			else
+				return MatchWithoutCalculation(input, position, barrierPosition);
 		}
 
 
