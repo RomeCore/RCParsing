@@ -18,7 +18,7 @@ namespace RCParsing.Tests
 			builder.CreateToken("kw").Literal("hello");
 
 			var parser = builder.Build();
-			var tokenResult = parser.MatchToken("kw", "hello world");
+			var tokenResult = parser.TryMatchToken("kw", "hello world");
 			Assert.True(tokenResult.Success);
 			Assert.Equal("hello", tokenResult.Text);
 			Assert.Equal(0, tokenResult.StartIndex);
@@ -35,7 +35,7 @@ namespace RCParsing.Tests
 				.LiteralChoice(new[] { "True", "TRUE", "trueish", "true" }, StringComparer.OrdinalIgnoreCase);
 
 			var parser = builder.Build();
-			var res = parser.MatchToken("bool", "TRUEISH!");
+			var res = parser.TryMatchToken("bool", "TRUEISH!");
 			Assert.True(res.Success);
 			// should pick "trueish" (longest) regardless of case when comparer is case-insensitive
 			Assert.Equal("TRUEISH", res.Text); // text is original input slice, comparer only affects matching
@@ -49,7 +49,7 @@ namespace RCParsing.Tests
 			builder.CreateToken("hexdigit").Char(c => c >= '0' && c <= '9');
 
 			var parser = builder.Build();
-			var res = parser.MatchToken("hexdigit", "7F");
+			var res = parser.TryMatchToken("hexdigit", "7F");
 			Assert.True(res.Success);
 			Assert.Equal("7", res.Text);
 		}
@@ -63,7 +63,7 @@ namespace RCParsing.Tests
 				.Regex(@"\d+");
 
 			var parser = builder.Build();
-			var res = parser.MatchToken("num", "123abc");
+			var res = parser.TryMatchToken("num", "123abc");
 			Assert.True(res.Success);
 
 			// IntermediateValue (raw) should be Match (implementation-dependent but typical)
@@ -82,11 +82,11 @@ namespace RCParsing.Tests
 			var parser = builder.Build();
 
 			// not at end -> shouldn't match
-			var r1 = parser.MatchToken("eof", "abc");
+			var r1 = parser.TryMatchToken("eof", "abc");
 			Assert.False(r1.Success);
 
 			// at end (empty input) -> should match
-			var r2 = parser.MatchToken("eof", "");
+			var r2 = parser.TryMatchToken("eof", "");
 			Assert.True(r2.Success);
 		}
 
@@ -103,7 +103,7 @@ namespace RCParsing.Tests
 				.Pass(v => v[1]);
 
 			var parser = builder.Build();
-			var res = parser.MatchToken("parenNum", "(42)+x");
+			var res = parser.TryMatchToken("parenNum", "(42)+x");
 			Assert.True(res.Success);
 			Assert.Equal("(42)", res.Text);
 			Assert.Equal("42", (res.IntermediateValue as Match)!.Value);
@@ -120,11 +120,11 @@ namespace RCParsing.Tests
 
 			var parser = builder.Build();
 
-			var r1 = parser.MatchToken("opt", "[abc]");
+			var r1 = parser.TryMatchToken("opt", "[abc]");
 			Assert.True(r1.Success);
 			Assert.Equal("[abc]", r1.Text);
 
-			var r2 = parser.MatchToken("opt", "[]");
+			var r2 = parser.TryMatchToken("opt", "[]");
 			Assert.True(r2.Success);
 			Assert.Equal("[]", r2.Text);
 		}
@@ -145,11 +145,11 @@ namespace RCParsing.Tests
 
 			var parser = builder.Build();
 
-			var r1 = parser.MatchToken("haSeq", "hahahaX");
+			var r1 = parser.TryMatchToken("haSeq", "hahahaX");
 			Assert.True(r1.Success);
 			Assert.Equal("hahaha", r1.Text);
 
-			var r2 = parser.MatchToken("haSeqZ", "X");
+			var r2 = parser.TryMatchToken("haSeqZ", "X");
 			Assert.True(r2.Success);
 			Assert.Equal("", r2.Text);
 		}
@@ -167,7 +167,7 @@ namespace RCParsing.Tests
 					b => b.Regex("[a-z]+"));
 
 			var parser = builder.Build();
-			var res = parser.MatchToken("ch", "abz");
+			var res = parser.TryMatchToken("ch", "abz");
 			Assert.True(res.Success);
 			// expected that first choice "ab" matches (or, if precedence/longest, "ab" still chosen)
 			Assert.Equal("ab", res.Text);
@@ -182,7 +182,7 @@ namespace RCParsing.Tests
 			builder.CreateToken("identifier").Regex(@"[A-Za-z_][A-Za-z0-9_]*");
 
 			var parser = builder.Build();
-			var res = parser.MatchToken("identifier", "var123 = 5");
+			var res = parser.TryMatchToken("identifier", "var123 = 5");
 			Assert.True(res.Success);
 			Assert.Equal("var123", res.Text);
 		}
@@ -200,7 +200,7 @@ namespace RCParsing.Tests
 				.Pass(v => v[1]);
 
 			var parser = builder.Build();
-			var res = parser.MatchToken("quoted", "\"hello\" rest");
+			var res = parser.TryMatchToken("quoted", "\"hello\" rest");
 			Assert.True(res.Success);
 
 			// check intermediate match (child token) is available in children if your wrapper exposes it;

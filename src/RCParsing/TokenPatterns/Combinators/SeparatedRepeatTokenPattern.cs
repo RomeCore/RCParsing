@@ -96,16 +96,18 @@ namespace RCParsing.TokenPatterns.Combinators
 
 
 
-		private ParsedElement MatchWithoutCalculation(string input, int position, int barrierPosition, object? parserParameter)
+		private ParsedElement MatchWithoutCalculation(string input, int position, int barrierPosition,
+			object? parserParameter, ref ParsingError furthestError)
 		{
 			var initialPosition = position;
-			var firstElement = _token.Match(input, position, barrierPosition, parserParameter, false);
+			var firstElement = _token.Match(input, position, barrierPosition, parserParameter,
+				false, ref furthestError);
 			if (!firstElement.success)
 			{
 				if (MinCount == 0)
 				{
 					var sepAtStart = _separator.Match(input, position, barrierPosition,
-						parserParameter, true);
+						parserParameter, true, ref furthestError);
 					if (sepAtStart.success)
 						return ParsedElement.Fail;
 
@@ -125,7 +127,7 @@ namespace RCParsing.TokenPatterns.Combinators
 
 			while (MaxCount == -1 || count < MaxCount)
 			{
-				var parsedSep = _separator.Match(input, position, barrierPosition, parserParameter, false);
+				var parsedSep = _separator.Match(input, position, barrierPosition, parserParameter, false, ref furthestError);
 				if (!parsedSep.success)
 					break;
 
@@ -137,7 +139,7 @@ namespace RCParsing.TokenPatterns.Combinators
 
 				position = parsedSep.startIndex + parsedSep.length;
 
-				var nextElement = _token.Match(input, position, barrierPosition, parserParameter, false);
+				var nextElement = _token.Match(input, position, barrierPosition, parserParameter, false, ref furthestError);
 				if (!nextElement.success)
 				{
 					if (AllowTrailingSeparator)
@@ -167,18 +169,19 @@ namespace RCParsing.TokenPatterns.Combinators
 			return new ParsedElement(initialPosition, position - initialPosition);
 		}
 		
-		private ParsedElement MatchWithCalculation(string input, int position, int barrierPosition, object? parserParameter)
+		private ParsedElement MatchWithCalculation(string input, int position, int barrierPosition,
+			object? parserParameter, ref ParsingError furthestError)
 		{
 			List<object>? elements = null;
 			var initialPosition = position;
 
-			var firstElement = _token.Match(input, position, barrierPosition, parserParameter, true);
+			var firstElement = _token.Match(input, position, barrierPosition, parserParameter, true, ref furthestError);
 			if (!firstElement.success)
 			{
 				if (MinCount == 0)
 				{
 					var sepAtStart = _separator.Match(input, position, barrierPosition,
-						parserParameter, true);
+						parserParameter, true, ref furthestError);
 					if (sepAtStart.success)
 						return ParsedElement.Fail;
 
@@ -200,7 +203,7 @@ namespace RCParsing.TokenPatterns.Combinators
 
 			while (MaxCount == -1 || elements.Count < MaxCount)
 			{
-				var parsedSep = _separator.Match(input, position, barrierPosition, parserParameter, true);
+				var parsedSep = _separator.Match(input, position, barrierPosition, parserParameter, true, ref furthestError);
 				if (!parsedSep.success)
 					break;
 
@@ -214,7 +217,7 @@ namespace RCParsing.TokenPatterns.Combinators
 
 				position = parsedSep.startIndex + parsedSep.length;
 
-				var nextElement = _token.Match(input, position, barrierPosition, parserParameter, true);
+				var nextElement = _token.Match(input, position, barrierPosition, parserParameter, true, ref furthestError);
 				if (!nextElement.success)
 				{
 					if (AllowTrailingSeparator)
@@ -245,12 +248,12 @@ namespace RCParsing.TokenPatterns.Combinators
 		}
 
 		public override ParsedElement Match(string input, int position, int barrierPosition,
-			object? parserParameter, bool calculateIntermediateValue)
+			object? parserParameter, bool calculateIntermediateValue, ref ParsingError furthestError)
 		{
 			if (calculateIntermediateValue && PassageFunction != null)
-				return MatchWithCalculation(input, position, barrierPosition, parserParameter);
+				return MatchWithCalculation(input, position, barrierPosition, parserParameter, ref furthestError);
 			else
-				return MatchWithoutCalculation(input, position, barrierPosition, parserParameter);
+				return MatchWithoutCalculation(input, position, barrierPosition, parserParameter, ref furthestError);
 		}
 
 

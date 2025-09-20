@@ -208,7 +208,7 @@ namespace RCParsing.TokenPatterns
 		// Two identical methods for maximum speed
 		// It's been already tested and will be barely changed
 
-		private ParsedElement MatchWithoutCalculation(string input, int position, int barrierPosition)
+		private ParsedElement MatchWithoutCalculation(string input, int position, int barrierPosition, ref ParsingError furthestError)
 		{
 			int start = position;
 			int pos = start;
@@ -259,12 +259,16 @@ namespace RCParsing.TokenPatterns
 			int length = pos - start;
 
 			if (length == 0 && !AllowsEmpty) // empty match and not allowed -> error
+			{
+				if (position >= furthestError.position)
+					furthestError = new ParsingError(position, 0, "Empty match is not allowed.", Id, true);
 				return ParsedElement.Fail;
+			}
 
 			return new ParsedElement(start, length);
 		}
 
-		private ParsedElement MatchWithCalculation(string input, int position, int barrierPosition)
+		private ParsedElement MatchWithCalculation(string input, int position, int barrierPosition, ref ParsingError furthestError)
 		{
 			int start = position;
 			int pos = start;
@@ -326,7 +330,11 @@ namespace RCParsing.TokenPatterns
 			if (length == 0) // empty match and not allowed -> error
 			{
 				if (!AllowsEmpty)
+				{
+					if (position >= furthestError.position)
+						furthestError = new ParsingError(position, 0, "Empty match is not allowed.", Id, true);
 					return ParsedElement.Fail;
+				}
 				return new ParsedElement(start, 0, string.Empty);
 			}
 
@@ -339,12 +347,12 @@ namespace RCParsing.TokenPatterns
 		}
 
 		public override ParsedElement Match(string input, int position, int barrierPosition,
-			object? parserParameter, bool calculateIntermediateValue)
+			object? parserParameter, bool calculateIntermediateValue, ref ParsingError furthestError)
 		{
 			if (calculateIntermediateValue)
-				return MatchWithCalculation(input, position, barrierPosition);
+				return MatchWithCalculation(input, position, barrierPosition, ref furthestError);
 			else
-				return MatchWithoutCalculation(input, position, barrierPosition);
+				return MatchWithoutCalculation(input, position, barrierPosition, ref furthestError);
 		}
 
 

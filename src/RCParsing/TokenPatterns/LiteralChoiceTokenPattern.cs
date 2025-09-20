@@ -59,13 +59,15 @@ namespace RCParsing.TokenPatterns
 
 
 		public override ParsedElement Match(string input, int position, int barrierPosition,
-			object? parserParameter, bool calculateIntermediateValue)
+			object? parserParameter, bool calculateIntermediateValue, ref ParsingError furthestError)
 		{
 			if (_root.TryGetLongestMatch(input, position, barrierPosition, out var matchedLiteral, out int matchedLength))
 			{
 				return new ParsedElement(position, matchedLength, matchedLiteral);
 			}
 
+			if (position >= furthestError.position)
+				furthestError = new ParsingError(position, 0, "Cannot match literal choice.", Id, true);
 			return ParsedElement.Fail;
 		}
 

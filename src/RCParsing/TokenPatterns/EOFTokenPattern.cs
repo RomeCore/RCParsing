@@ -21,11 +21,13 @@ namespace RCParsing.TokenPatterns
 
 
 		public override ParsedElement Match(string input, int position, int barrierPosition,
-			object? parserParameter, bool calculateIntermediateValue)
+			object? parserParameter, bool calculateIntermediateValue, ref ParsingError furthestError)
 		{
 			if (position >= barrierPosition)
 				return new ParsedElement(barrierPosition, 0);
 
+			if (position >= furthestError.position)
+				furthestError = new ParsingError(position, 0, "Cannot match EOF.", Id, true);
 			return ParsedElement.Fail;
 		}
 

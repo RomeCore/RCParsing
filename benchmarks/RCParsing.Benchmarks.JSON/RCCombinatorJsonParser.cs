@@ -114,7 +114,8 @@ namespace RCParsing.Benchmarks.JSON
 
 		public static object Parse(string text)
 		{
-			return valueTokenPattern.Match(text, 0, text.Length, null, true).intermediateValue;
+			ParsingError error = new ParsingError(-1, 0);
+			return valueTokenPattern.Match(text, 0, text.Length, null, true, ref error).intermediateValue;
 		}
 	}
 }

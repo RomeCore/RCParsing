@@ -213,6 +213,8 @@ namespace RCParsing.Tests
 			}
 			""";
 
+			builder.Settings.RecordTokenErrors();
+
 			var result = parser.Parse<Dictionary<string, object>>(json);
 			Assert.Equal(1, (double)result["id"]);
 			Assert.Equal(["tag1", "tag2", "tag3"], (object[])result["tags"]);
@@ -220,6 +222,25 @@ namespace RCParsing.Tests
 			var nested = (Dictionary<string, object>)result["nested"];
 			Assert.Equal(123.456, (double)nested["value"]);
 			Assert.Equal("Nested description", nested["description"].ToString());
+
+			var invalidJson =
+			"""
+			{
+				"id": 1,
+				"name": "Sample Data",
+				"created": "2023-01-01T00:00:00",
+				"tags": ["tag1", "tag2", "tag3"],,
+				"isActive": true,
+				"nested": {
+					"value": 123.456,
+					"description": "Nested description"
+				}
+			}
+			""";
+
+			var error = parser.TryMatchToken("value", invalidJson).Context.CreateErrorGroups().Last!;
+			Assert.Equal(35, error.Column);
+			Assert.Equal(5, error.Line);
 		}
 	}
 }

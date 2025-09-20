@@ -48,17 +48,17 @@ namespace RCParsing.TokenPatterns.Combinators
 		}
 
 		public override ParsedElement Match(string input, int position, int barrierPosition,
-			object? parserParameter, bool calculateIntermediateValue)
+			object? parserParameter, bool calculateIntermediateValue, ref ParsingError furthestError)
 		{
 			var initialPosition = position;
 
 			var first = _first.Match(input, position, barrierPosition, parserParameter,
-				calculateIntermediateValue);
+				calculateIntermediateValue, ref furthestError);
 			if (!first.success)
 				return ParsedElement.Fail;
 			position = first.startIndex + first.length;
 
-			var second = _second.Match(input, position, barrierPosition, parserParameter, false);
+			var second = _second.Match(input, position, barrierPosition, parserParameter, false, ref furthestError);
 			if (!second.success)
 				return ParsedElement.Fail;
 			position = second.startIndex + second.length;

@@ -43,7 +43,7 @@ namespace RCParsing.TokenPatterns
 		}
 
 		public override ParsedElement Match(string input, int position, int barrierPosition,
-			object? parserParameter, bool calculateIntermediateValue)
+			object? parserParameter, bool calculateIntermediateValue, ref ParsingError furthestError)
 		{
 			return MatchFunction(this, input, position, barrierPosition, parserParameter, calculateIntermediateValue);
 		}

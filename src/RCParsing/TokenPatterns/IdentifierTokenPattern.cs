@@ -81,19 +81,23 @@ namespace RCParsing.TokenPatterns
 
 
 		public override ParsedElement Match(string input, int position, int barrierPosition,
-			object? parserParameter, bool calculateIntermediateValue)
+			object? parserParameter, bool calculateIntermediateValue, ref ParsingError furthestError)
 		{
 			int startPos = position;
 			int length = 0;
 
 			if (startPos >= barrierPosition)
 			{
+				if (position >= furthestError.position)
+					furthestError = new ParsingError(position, 0, "End of input reached.", Id, true);
 				return ParsedElement.Fail;
 			}
 
 			char c0 = input[startPos];
 			if (!StartPredicate(c0))
 			{
+				if (position >= furthestError.position)
+					furthestError = new ParsingError(position, 0, "Cannot match first character of identifier.", Id, true);
 				return ParsedElement.Fail;
 			}
 
@@ -110,6 +114,8 @@ namespace RCParsing.TokenPatterns
 
 			if (length < MinLength)
 			{
+				if (position >= furthestError.position)
+					furthestError = new ParsingError(position, 0, "Minimum length of identifier not met.", Id, true);
 				return ParsedElement.Fail;
 			}
 

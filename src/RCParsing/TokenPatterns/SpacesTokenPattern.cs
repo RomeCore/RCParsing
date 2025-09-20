@@ -19,7 +19,7 @@ namespace RCParsing.TokenPatterns
 
 
 		public override ParsedElement Match(string input, int position, int barrierPosition,
-			object? parserParameter, bool calculateIntermediateValue)
+			object? parserParameter, bool calculateIntermediateValue, ref ParsingError furthestError)
 		{
 			int initialPosition = position;
 			while (position < barrierPosition && (input[position] == ' ' || input[position] == '\t'))
@@ -30,6 +30,8 @@ namespace RCParsing.TokenPatterns
 			if (initialPosition < position)
 				return new ParsedElement(initialPosition, position - initialPosition);
 
+			if (position >= furthestError.position)
+				furthestError = new ParsingError(position, 0, "Cannot match spaces.", Id, true);
 			return ParsedElement.Fail;
 		}
 

@@ -213,10 +213,14 @@ namespace RCParsing.TokenPatterns
 		}
 
 		public override ParsedElement Match(string input, int position, int barrierPosition,
-			object? parserParameter, bool calculateIntermediateValue)
+			object? parserParameter, bool calculateIntermediateValue, ref ParsingError furthestError)
 		{
 			if (position >= barrierPosition)
+			{
+				if (position >= furthestError.position)
+					furthestError = new ParsingError(position, 0, "End of input reached.", Id, true);
 				return ParsedElement.Fail;
+			}
 			int startPos = position;
 
 			bool positiveSign = true;
@@ -305,11 +309,19 @@ namespace RCParsing.TokenPatterns
 			// Check if the number is valid and at least one digit was parsed.
 			int length = position - startPos;
 			if (length == 0 || (integerDigitCount == 0 && fractionalDigitCount == 0))
+			{
+				if (position >= furthestError.position)
+					furthestError = new ParsingError(startPos, 0, "Any digit expected.", Id, true);
 				return ParsedElement.Fail;
+			}
 
 			// ".x" is allowed only if ImplicitIntegerPart is enabled.
 			if (integerDigitCount == 0 && (Flags & NumberFlags.ImplicitIntegerPart) == 0)
+			{
+				if (position >= furthestError.position)
+					furthestError = new ParsingError(startPos, 0, "Implicit integer part is not allowed.", Id, true);
 				return ParsedElement.Fail;
+			}
 
 			// "x." is allowed only if ImplicitFractionalPart is enabled.
 			if (fractionalDigitCount == 0 && (Flags & NumberFlags.ImplicitFractionalPart) == 0)
