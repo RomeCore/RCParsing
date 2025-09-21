@@ -96,11 +96,6 @@ namespace RCParsing
 		}
 
 		/// <summary>
-		/// Gets a value indicating whether this error group is relevant. An error group is considered relevant if it occurred at a position where no successful parsing has been done yet.
-		/// </summary>
-		public bool IsRelevant => _isRelevant ??= !Context.successPositions[Position];
-
-		/// <summary>
 		/// Gets the number of barriers that were successfully parsed before encountering this error group.
 		/// </summary>
 		public int PassedBarriers => _passedBarriers ??= Errors.Max(e => e.passedBarriers);

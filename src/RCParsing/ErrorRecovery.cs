@@ -15,6 +15,11 @@ namespace RCParsing
 		public ErrorRecoveryStrategy strategy;
 
 		/// <summary>
+		/// Whether the recovery strategy should be repeated if another error occurs when skipping.
+		/// </summary>
+		public bool repeatSkip;
+
+		/// <summary>
 		/// The rule ID that the parser should jump to after an error has been encountered.
 		/// </summary>
 		public int anchorRule;
@@ -23,6 +28,8 @@ namespace RCParsing
 		/// The rule ID that the parser should stop at after an error has been encountered.
 		/// </summary>
 		public int stopRule;
+
+
 
 		public override bool Equals(object? obj)
 		{
@@ -33,6 +40,7 @@ namespace RCParsing
 		public bool Equals(ErrorRecovery other)
 		{
 			return strategy == other.strategy &&
+				   repeatSkip == other.repeatSkip &&
 				   anchorRule == other.anchorRule &&
 				   stopRule == other.stopRule;
 		}
@@ -41,6 +49,7 @@ namespace RCParsing
 		{
 			int hash = 17;
 			hash = hash * 397 + strategy.GetHashCode();
+			hash = hash * 397 + repeatSkip.GetHashCode();
 			hash = hash * 397 + anchorRule.GetHashCode();
 			hash = hash * 397 + stopRule.GetHashCode();
 			return hash;

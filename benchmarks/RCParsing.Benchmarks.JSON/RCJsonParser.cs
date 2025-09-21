@@ -41,13 +41,13 @@ namespace RCParsing.Benchmarks.JSON
 				.Number<double>(NumberFlags.Integer); // Match integer, without convertation
 
 			builder.CreateToken("true")
-				.Literal("true", _ => true);
+				.Literal("true").Transform(v => true);
 
 			builder.CreateToken("false")
-				.Literal("false", _ => false);
+				.Literal("false").Transform(v => false);
 
 			builder.CreateToken("null")
-				.Literal("null", _ => null);
+				.Literal("null").Transform(v => null);
 
 			builder.CreateRule("value")
 				.Choice(

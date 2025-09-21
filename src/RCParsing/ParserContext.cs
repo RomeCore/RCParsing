@@ -37,14 +37,6 @@ namespace RCParsing
 		public readonly ParserCache cache;
 
 		/// <summary>
-		/// A set of positions that have successfully parsed rules and tokens.
-		/// </summary>
-		/// <remarks>
-		/// Used to retrive relevant errors that can be used for debugging purposes.
-		/// </remarks>
-		public readonly BitArray successPositions;
-
-		/// <summary>
 		/// A set of positions that should be avoided when skipping rules and tokens.
 		/// </summary>
 		public readonly BitArray positionsToAvoidSkipping;
@@ -77,7 +69,6 @@ namespace RCParsing
 			this.parserParameter = parserParameter;
 			this.parser = parser ?? throw new ArgumentNullException(nameof(parser));
 			this.cache = new ParserCache();
-			this.successPositions = new BitArray(str.Length + 1);
 			this.positionsToAvoidSkipping = new BitArray(str.Length + 1);
 			this.errors = new List<ParsingError>();
 			this.skippedRules = new List<ParsedRule>();
@@ -173,14 +164,6 @@ namespace RCParsing
 		/// A cache to store parsed results for reuse.
 		/// </summary>
 		public readonly ParserCache cache => shared.cache;
-
-		/// <summary>
-		/// A set of positions that have successfully parsed rules and tokens.
-		/// </summary>
-		/// <remarks>
-		/// Used to retrive relevant errors that can be used for debugging purposes.
-		/// </remarks>
-		public readonly BitArray successPositions => shared.successPositions;
 
 		/// <summary>
 		/// A set of positions that should be avoided when skipping rules and tokens.
@@ -331,7 +314,7 @@ namespace RCParsing
 			ParserContext t = this;
 
 			return $"Errors ({errors.Count} total):\n" +
-				$"{string.Join("\n\n", GetRelevantErrors().Take(maxErrors).Select(e => e.ToString(t)))}" +
+				$"{string.Join("\n\n", errors.Take(maxErrors).Select(e => e.ToString(t)))}" +
 				$"{(errors.Count > maxErrors ? $"\n\nand {errors.Count - maxErrors} more..." : "")}";
 		}
 
@@ -345,19 +328,6 @@ namespace RCParsing
 		public readonly ParsingError GetMostRelevantError()
 		{
 			return errors.OrderByDescending(e => e.position).FirstOrDefault();
-		}
-
-		/// <summary>
-		/// Returns the most relevant parsing error encountered during the process.
-		/// </summary>
-		/// <remarks>
-		/// Returns the errors with positions that haven't parsed successfully.
-		/// </remarks>
-		/// <returns>The relevant parsing errors.</returns>
-		public readonly IEnumerable<ParsingError> GetRelevantErrors()
-		{
-			var successPos = successPositions;
-			return errors.Where(e => !successPos[e.position]);
 		}
 
 		/// <summary>

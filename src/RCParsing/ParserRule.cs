@@ -41,6 +41,10 @@ namespace RCParsing
 		/// </summary>
 		public virtual bool CanBeInlined => Settings.isDefault;
 
+		/// <summary>
+		/// Gets a value indicating whether this rule can recover from errors.
+		/// </summary>
+		public bool CanRecover { get; private set; }
 
 
 
@@ -48,8 +52,17 @@ namespace RCParsing
 
 		protected override void PreInitialize(ParserInitFlags initFlags)
 		{
+			base.PreInitialize(initFlags);
+
 			if (initFlags.HasFlag(ParserInitFlags.StackTraceWriting))
 				_writeStackTrace = true;
+		}
+
+		protected override void Initialize(ParserInitFlags initFlags)
+		{
+			base.Initialize(initFlags);
+
+			CanRecover = ErrorRecovery.strategy != ErrorRecoveryStrategy.None;
 		}
 
 		/// <summary>
