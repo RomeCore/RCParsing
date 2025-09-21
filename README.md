@@ -582,14 +582,13 @@ The future development of `RCParsing` is focused on:
 - **Visualization Tooling:** Exploring tools for debugging and visualizing resulting AST.
 - **Error recovery:** Ability to re-parse the content when encountering an error using the anchor token.
 - ***Incremental parsing:*** Parsing only changed parts in the middle of text that will be good for IDE and LSP (Language Server Protocol).
-- ***Streaming incremental parsing:*** The stateful approach for parsing chunked streaming content. For example, *Markdown* or structured *JSON* output from LLM.
 - ***Cosmic levels of debug:*** Very detailed parse walk traces, showing the order of what was parsed with success/fail status.
 
 # Contributing
 
 ### Contributions are welcome!
 
-This framework is born recently (1.5 months ago) and some little features may not be tested.
+This framework is born recently (2 months ago) and some little features may not be tested and be buggy.
 
 If you have an idea about this project, you can report it to `Issues`.  
 For contributing code, please fork the repository and make your changes in a new branch. Once you're ready, create a pull request to merge your changes into the main branch. Pull requests should include a clear description of what was changed and why.

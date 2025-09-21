@@ -15,15 +15,21 @@ namespace RCParsing.Building
 	{
 		/// <summary>
 		/// Gets the parsed value factory associated with this parser element. <br/>
-		/// For rules, it will be applied directly, for tokens, it will be applied to parent rule.
+		/// For rules it will be applied directly; for tokens it will be applied to parent rule.
 		/// </summary>
 		public Func<ParsedRuleResultBase, object?>? ParsedValueFactory { get; set; } = null;
 
 		/// <summary>
 		/// Gets the local settings builder for this parser element. <br/>
-		/// For rules, it will be applied directly, for tokens, it will be applied to parent rule.
+		/// For rules it will be applied directly; for tokens it will be applied to parent rule.
 		/// </summary>
 		public ParserLocalSettingsBuilder Settings { get; } = new ParserLocalSettingsBuilder();
+
+		/// <summary>
+		/// Gets the error recovery builder for this parser element. <br/>
+		/// For rules it will be applied directly; for tokens it will be applied to parent rule.
+		/// </summary>
+		public ErrorRecoveryBuilder ErrorRecovery { get; } = new ErrorRecoveryBuilder();
 
 		/// <summary>
 		/// Gets the rule children of this parser element. Each child can be name reference or a buildable parser rule.
@@ -47,14 +53,16 @@ namespace RCParsing.Building
 		{
 			return obj is BuildableParserElement other &&
 				   Equals(ParsedValueFactory, other.ParsedValueFactory) &&
-				   Equals(Settings, other.Settings);
+				   Equals(Settings, other.Settings) &&
+				   Equals(ErrorRecovery, other.ErrorRecovery);
 		}
 
 		public override int GetHashCode()
 		{
 			int hashCode = 397;
-			hashCode = hashCode * 397 + (ParsedValueFactory?.GetHashCode() ?? 0) * 23;
-			hashCode = hashCode * 397 + Settings.GetHashCode() * 23;
+			hashCode = hashCode * 397 + ParsedValueFactory?.GetHashCode() ?? 0;
+			hashCode = hashCode * 397 + Settings.GetHashCode();
+			hashCode = hashCode * 397 + ErrorRecovery.GetHashCode();
 			return hashCode;
 		}
 	}

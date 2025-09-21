@@ -32,6 +32,11 @@ namespace RCParsing
 		public ParserLocalSettings Settings { get; internal set; } = default;
 
 		/// <summary>
+		/// Gets the error recovery strategy associated with this rule.
+		/// </summary>
+		public ErrorRecovery ErrorRecovery { get; internal set; } = default;
+
+		/// <summary>
 		/// Gets a value indicating whether this rule can be used directly without using parser.
 		/// </summary>
 		public virtual bool CanBeInlined => Settings.isDefault;
@@ -119,14 +124,16 @@ namespace RCParsing
 			return base.Equals(obj) &&
 				   obj is ParserRule other &&
 				   Equals(ParsedValueFactory, other.ParsedValueFactory) &&
-				   Settings == other.Settings;
+				   Settings == other.Settings &&
+				   ErrorRecovery == other.ErrorRecovery;
 		}
 
 		public override int GetHashCode()
 		{
 			int hashCode = base.GetHashCode();
-			hashCode *= (ParsedValueFactory?.GetHashCode() ?? 0) * 23 + 397;
-			hashCode *= Settings.GetHashCode() * 31 + 397;
+			hashCode = hashCode * 397 + ParsedValueFactory?.GetHashCode() ?? 0;
+			hashCode = hashCode * 397 + Settings.GetHashCode();
+			hashCode = hashCode * 397 + ErrorRecovery.GetHashCode();
 			return hashCode;
 		}
 	}

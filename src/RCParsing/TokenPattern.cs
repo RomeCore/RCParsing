@@ -20,6 +20,11 @@ namespace RCParsing
 		public ParserLocalSettings DefaultSettings { get; internal set; } = default;
 
 		/// <summary>
+		/// Gets the error recovery strategy that will be applied to parent rule.
+		/// </summary>
+		public ErrorRecovery DefaultErrorRecovery { get; internal set; } = default;
+
+		/// <summary>
 		/// Tries to match the given context with this pattern.
 		/// </summary>
 		/// <param name="input">The input text to match.</param>

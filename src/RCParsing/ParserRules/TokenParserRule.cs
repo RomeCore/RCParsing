@@ -45,7 +45,12 @@ namespace RCParsing.ParserRules
 
 			_recordDeepTokenErrors = initFlags.HasFlag(ParserInitFlags.RecordTokenErrors);
 			_pattern = Parser.TokenPatterns[TokenPatternId];
+
 			ParsedValueFactory ??= _pattern.DefaultParsedValueFactory;
+			if (Settings.isDefault)
+				Settings = _pattern.DefaultSettings;
+			if (ErrorRecovery.strategy == ErrorRecoveryStrategy.None)
+				ErrorRecovery = _pattern.DefaultErrorRecovery;
 		}
 
 		protected override void Initialize(ParserInitFlags initFlags)

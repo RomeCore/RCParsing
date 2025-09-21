@@ -257,13 +257,14 @@ namespace RCParsing.Tests
 					.Transform(v => v.GetValue(1)));
 
 			builder.CreateRule("messages_var_assignment")
-				.Choice(b => b
+				.Choice(
+				b => b
 					.Literal("let")
 					.Whitespaces()
 					.Token("identifier")
 					.Literal("=")
 					.Rule("expression"),
-					b => b
+				b => b
 					.Token("identifier")
 					.Literal("=")
 					.Rule("expression"));

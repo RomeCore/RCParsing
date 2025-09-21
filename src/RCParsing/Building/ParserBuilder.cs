@@ -75,6 +75,19 @@ namespace RCParsing.Building
 		}
 
 		/// <summary>
+		/// Gets the token pattern builder by its name.
+		/// </summary>
+		/// <param name="name">The name of the token pattern.</param>
+		/// <returns>A <see cref="TokenBuilder"/> instance for building the token pattern.</returns>
+		/// <exception cref="ArgumentException">Thrown if no token pattern with the specified name exists.</exception>
+		public TokenBuilder GetToken(string name)
+		{
+			if (_tokenPatterns.TryGetValue(name, out var token))
+				return token;
+			throw new ArgumentException($"Token with name '{name}' not found.");
+		}
+
+		/// <summary>
 		/// Creates a rule builder and registers it under the given name.
 		/// </summary>
 		/// <param name="name">The name of the rule. Will be bound to rule as alias in the built parser.</param>
@@ -88,6 +101,19 @@ namespace RCParsing.Building
 			var rule = new RuleBuilder();
 			_rules[name] = rule;
 			return rule;
+		}
+
+		/// <summary>
+		/// Gets the rule builder by its name.
+		/// </summary>
+		/// <param name="name">The name of the rule.</param>
+		/// <returns>A <see cref="RuleBuilder"/> instance for building the rule.</returns>
+		/// <exception cref="ArgumentException">Thrown if no rule with the specified name exists.</exception>
+		public RuleBuilder GetRule(string name)
+		{
+			if (_rules.TryGetValue(name, out var rule))
+				return rule;
+			throw new ArgumentException($"Rule with name '{name}' not found.");
 		}
 
 		/// <summary>
@@ -129,6 +155,20 @@ namespace RCParsing.Building
 		}
 
 		/// <summary>
+		/// Gets the main rule builder.
+		/// </summary>
+		/// <returns>A <see cref="RuleBuilder"/> instance for building the main rule.</returns>
+		/// <exception cref="ArgumentException">Thrown if no main rule exists.</exception>
+		public RuleBuilder GetMainRule()
+		{
+			if (_mainRuleBuilder != null)
+				return _mainRuleBuilder;
+			throw new ArgumentException("Main rule has not been set.");
+		}
+
+
+
+		/// <summary>
 		/// Gets the current settings builder for configuring additional options.
 		/// </summary>
 		public ParserSettingsBuilder Settings => _settingsBuilder;
@@ -137,6 +177,8 @@ namespace RCParsing.Building
 		/// Gets the current barrier tokenizers builder.
 		/// </summary>
 		public ParserTokenizersBuilder BarrierTokenizers => _tokenizersBuilder;
+
+
 
 		/// <summary>
 		/// Builds the parser from the registered token patterns and rules.
@@ -157,7 +199,7 @@ namespace RCParsing.Building
 
 			// Maps for rules and tokens to their children dependencies
 			Dictionary<BuildableParserElement, (List<BuildableParserRule>?,
-				List<BuildableTokenPattern>?, List<BuildableParserRule?>)> argMap = new();
+				List<BuildableTokenPattern>?, List<BuildableParserRule?>, List<BuildableParserRule?>)> argMap = new();
 
 			// Queues to process rules and tokens breadth-first
 			Queue<BuildableParserElement> elementsToProcess = new();
@@ -372,8 +414,32 @@ namespace RCParsing.Building
 					});
 				}
 
+				// Queue child error recovery rules for processing
+				List<BuildableParserRule?> errorRecoveryRuleChildrenToArgs = new();
+				foreach (var ruleChild in element.ErrorRecovery.RuleChildren)
+				{
+					if (!ruleChild.HasValue)
+					{
+						errorRecoveryRuleChildrenToArgs.Add(null);
+						continue;
+					}
+
+					ruleChild.Value.Switch(name =>
+					{
+						if (namedRules.TryGetValue(name, out var namedRule))
+							errorRecoveryRuleChildrenToArgs.Add(namedRule);
+						else
+							throw new ParserBuildingException($"Unknown rule reference '{name}'.");
+					}, brule =>
+					{
+						errorRecoveryRuleChildrenToArgs.Add(brule);
+						elementsToProcess.Enqueue(brule);
+					});
+				}
+
 				// Register dependencies for building
-				argMap[element] = (ruleChildrenToArgs, tokenChildrenToArgs, settingsRuleChildrenToArgs);
+				argMap[element] = (ruleChildrenToArgs, tokenChildrenToArgs,
+					settingsRuleChildrenToArgs, errorRecoveryRuleChildrenToArgs);
 			}
 
 			// Prepare the names map for quick lookup of elements to names
@@ -388,6 +454,7 @@ namespace RCParsing.Building
 				List<int>? ruleChildren,
 				List<int>? tokenChildren,
 				List<int> settingsRuleChildren,
+				List<int> errorRecoveryRuleChildren,
 				List<string> aliases)> finalMap = new();
 
 			// Fill the final map
@@ -396,17 +463,18 @@ namespace RCParsing.Building
 				var element = elem.Key;
 				var id = elem.Value;
 
-				var (_ruleChildren, _tokenChildren, _settingsRuleChildren) = argMap[element];
+				var (_ruleChildren, _tokenChildren, _settingsRuleChildren, _errorRecoveryRuleChildren) = argMap[element];
 
 				var ruleChildren = _ruleChildren?.Select(r => elements[r]).ToList();
 				var tokenChildren = _tokenChildren?.Select(p => elements[p]).ToList();
 				var settingsRuleChildren = _settingsRuleChildren.Select(r => r == null ? -1 : elements[r]).ToList();
+				var errorRecoveryRuleChildren = _errorRecoveryRuleChildren.Select(r => r == null ? -1 : elements[r]).ToList();
 				var aliases = new List<string>();
 
 				if (names.TryGetValue(element, out var _aliases))
 					aliases.AddRange(_aliases);
 
-				finalMap.Add((element, id, ruleChildren, tokenChildren, settingsRuleChildren, aliases));
+				finalMap.Add((element, id, ruleChildren, tokenChildren, settingsRuleChildren, errorRecoveryRuleChildren, aliases));
 			}
 
 			ParserRule[] resultRules = new ParserRule[elements.Count(e => e.Key is BuildableParserRule)];
@@ -424,6 +492,7 @@ namespace RCParsing.Building
 				var ruleChildren = elem.ruleChildren;
 				var tokenChildren = elem.tokenChildren;
 				var settingsRuleChildren = elem.settingsRuleChildren;
+				var errorRecoveryRuleChildren = elem.errorRecoveryRuleChildren;
 				var aliases = elem.aliases;
 
 				var builtElement = element.Build(ruleChildren, tokenChildren);
@@ -434,16 +503,21 @@ namespace RCParsing.Building
 				var elementSettings = element.Settings;
 				var builtSettings = elementSettings.Build(settingsRuleChildren);
 
+				var elementErrorRecovery = element.ErrorRecovery;
+				var builtErrorRecovery = elementErrorRecovery.Build(errorRecoveryRuleChildren);
+
 				if (builtElement is ParserRule rule)
 				{
 					rule.ParsedValueFactory = element.ParsedValueFactory;
 					rule.Settings = builtSettings;
+					rule.ErrorRecovery = builtErrorRecovery;
 					resultRules[id] = rule;
 				}
 				else if (builtElement is TokenPattern pattern)
 				{
 					pattern.DefaultParsedValueFactory = element.ParsedValueFactory;
 					pattern.DefaultSettings = builtSettings;
+					pattern.DefaultErrorRecovery = builtErrorRecovery;
 					resultTokenPatterns[id] = pattern;
 				}
 			}
