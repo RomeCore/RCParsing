@@ -12,8 +12,7 @@ namespace RCParsing.Building
 	/// </summary>
 	public class ParserLocalSettingsBuilder
 	{
-		private ParserLocalSettings _settings = new ();
-		private bool _changed = false;
+		private ParserLocalSettings _settings = new();
 		private Or<string, BuildableParserRule>? _skipRule = null;
 
 		/// <summary>
@@ -21,11 +20,6 @@ namespace RCParsing.Building
 		/// </summary>
 		public IEnumerable<Or<string, BuildableParserRule>?> RuleChildren =>
 			new Or<string, BuildableParserRule>?[] { _skipRule };
-
-		/// <summary>
-		/// Gets a value indicating whether the settings have been changed (at least one setting has been changed).
-		/// </summary>
-		public bool HaveBeenChanged => _changed;
 
 		/// <summary>
 		/// Builds the settings for parser.
@@ -49,7 +43,6 @@ namespace RCParsing.Building
 		public override bool Equals(object? obj)
 		{
 			return obj is ParserLocalSettingsBuilder other &&
-				   _changed == other._changed && 
 				   _settings.Equals(other._settings) && 
 				   _skipRule.Equals(other._skipRule);
 		}
@@ -57,7 +50,6 @@ namespace RCParsing.Building
 		public override int GetHashCode()
 		{
 			int hashCode = 17;
-			hashCode = hashCode * 397 + _changed.GetHashCode();
 			hashCode = hashCode * 397 + _settings.GetHashCode();
 			hashCode = hashCode * 397 + _skipRule?.GetHashCode() ?? 0;
 			return hashCode;
@@ -75,7 +67,6 @@ namespace RCParsing.Building
 			ParserSkippingStrategy skippingStrategy = ParserSkippingStrategy.SkipBeforeParsing,
 			ParserSettingMode overrideMode = ParserSettingMode.LocalForSelfAndChildren)
 		{
-			_changed = true;
 			var builder = new RuleBuilder();
 			builderAction(builder);
 			_skipRule = builder.BuildingRule;
@@ -94,7 +85,6 @@ namespace RCParsing.Building
 		public ParserLocalSettingsBuilder SkippingStrategy(ParserSkippingStrategy skippingStrategy,
 			ParserSettingMode overrideMode = ParserSettingMode.LocalForSelfAndChildren)
 		{
-			_changed = true;
 			_settings.skippingStrategy = skippingStrategy;
 			_settings.skippingStrategyUseMode = overrideMode;
 			return this;
@@ -107,7 +97,6 @@ namespace RCParsing.Building
 		/// <returns>This instance for method chaining.</returns>
 		public ParserLocalSettingsBuilder NoSkipping(ParserSettingMode overrideMode = ParserSettingMode.LocalForSelfAndChildren)
 		{
-			_changed = true;
 			_settings.skippingStrategy = ParserSkippingStrategy.Default;
 			_settings.skippingStrategyUseMode = overrideMode;
 			_skipRule = null;
@@ -123,7 +112,6 @@ namespace RCParsing.Building
 		/// <returns>This instance for method chaining.</returns>
 		public ParserLocalSettingsBuilder ErrorHandling(ParserErrorHandlingMode mode, ParserSettingMode overrideMode = ParserSettingMode.LocalForSelfAndChildren)
 		{
-			_changed = true;
 			_settings.errorHandling = mode;
 			_settings.errorHandlingUseMode = overrideMode;
 			return this;

@@ -14,8 +14,6 @@ namespace RCParsing.Building
 	/// </summary>
 	public class TokenBuilder : ParserElementBuilder<TokenBuilder>
 	{
-		private static object? DefaultFactory_Token(ParsedRuleResultBase r) => r.IntermediateValue;
-
 		/// <summary>
 		/// Initializes a new instance of <see cref="TokenBuilder"/> class.
 		/// </summary>
@@ -62,15 +60,13 @@ namespace RCParsing.Building
 			return this;
 		}
 
-		public override TokenBuilder Token(TokenPattern token,
-			Func<ParsedRuleResultBase, object?>? factory = null,
-			Action<ParserLocalSettingsBuilder>? config = null)
+		public override TokenBuilder Token(TokenPattern token)
 		{
 			var leafPattern = new BuildableLeafTokenPattern
 			{
 				TokenPattern = token
 			};
-			return Token(leafPattern, factory, config);
+			return Token(leafPattern);
 		}
 
 		public override TokenBuilder Token(string tokenName)
@@ -82,16 +78,10 @@ namespace RCParsing.Building
 		/// Add a child pattern to the current sequence.
 		/// </summary>
 		/// <param name="tokenPattern">The child pattern to add.</param>
-		/// <param name="factory">The default factory function to create a parsed value.</param>
-		/// <param name="config">The default action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public TokenBuilder Token(BuildableTokenPattern tokenPattern,
-			Func<ParsedRuleResultBase, object?>? factory = null,
-			Action<ParserLocalSettingsBuilder>? config = null)
+		public TokenBuilder Token(BuildableTokenPattern tokenPattern)
 		{
-			tokenPattern.ParsedValueFactory = factory ?? DefaultFactory_Token;
-			config?.Invoke(tokenPattern.Settings);
-
+			tokenPattern.ParsedValueFactory = DefaultFactory_Token;
 			return Token(new Or<string, BuildableTokenPattern>(tokenPattern));
 		}
 
@@ -99,12 +89,9 @@ namespace RCParsing.Building
 		/// Adds a token to the current sequence.
 		/// </summary>
 		/// <param name="builderAction">The token pattern builder.</param>
-		/// <param name="factory">The default factory function to create a parsed value.</param>
-		/// <param name="config">The default action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		/// <exception cref="ParserBuildingException">Thrown if builder action have not added any elements.</exception>
-		public TokenBuilder Token(Action<TokenBuilder> builderAction, Func<ParsedRuleResultBase, object?>? factory = null,
-			Action<ParserLocalSettingsBuilder>? config = null)
+		public TokenBuilder Token(Action<TokenBuilder> builderAction)
 		{
 			var builder = new TokenBuilder(ParserBuilder);
 			builderAction(builder);
@@ -112,17 +99,7 @@ namespace RCParsing.Building
 			if (!builder.CanBeBuilt)
 				throw new ParserBuildingException("Builder action did not add any tokens.");
 
-			if (builder.BuildingPattern.Value.VariantIndex == 0)
-			{
-				if (factory != null)
-					throw new ParserBuildingException("Cannot apply parsed value factory to a direct token reference.");
-				if (config != null)
-					throw new ParserBuildingException("Cannot apply configuration to a direct token reference.");
-
-				return Token(builder.BuildingPattern.Value.Value1);
-			}
-			else
-				return Token(builder.BuildingPattern.Value.Value2, factory, config);
+			return Token(builder.BuildingPattern.Value);
 		}
 
 		/// <summary>
@@ -147,7 +124,7 @@ namespace RCParsing.Building
 		}
 
 		/// <summary>
-		/// Sets the default transformation function (parsed value factory) to the current pattern.
+		/// Sets the default transformation function (parsed value factory) to the current pattern that will be applied to parent rule.
 		/// </summary>
 		/// <param name="factory">The transformation function (parsed value factory) to set.</param>
 		/// <returns>Current instance for method chaining.</returns>
@@ -162,7 +139,7 @@ namespace RCParsing.Building
 		}
 
 		/// <summary>
-		/// Sets the default configuration action for the current token pattern.
+		/// Configures the default local settings for the current token pattern that will be applied to parent rule.
 		/// </summary>
 		/// <param name="configAction">The configuration action.</param>
 		/// <returns>Current instance for method chaining.</returns>
@@ -171,6 +148,21 @@ namespace RCParsing.Building
 		{
 			if (BuildingPattern?.AsT2() is BuildableTokenPattern pattern)
 				configAction(pattern.Settings);
+			else
+				throw new ParserBuildingException("Token pattern is not set or it is a direct reference to a named pattern.");
+			return this;
+		}
+
+		/// <summary>
+		/// Configures the default error recovery settings for the current token pattern that will be applied to parent rule.
+		/// </summary>
+		/// <param name="recoveryConfigAction">The error recovery configuration action.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if the parser rule is not set or it is a direct reference to a named rule.</exception>
+		public TokenBuilder Recovery(Action<ErrorRecoveryBuilder> recoveryConfigAction)
+		{
+			if (BuildingPattern?.AsT2() is BuildableTokenPattern pattern)
+				recoveryConfigAction(pattern.ErrorRecovery);
 			else
 				throw new ParserBuildingException("Token pattern is not set or it is a direct reference to a named pattern.");
 			return this;
@@ -214,13 +206,9 @@ namespace RCParsing.Building
 		/// Adds an optional token pattern to the current sequence.
 		/// </summary>
 		/// <param name="builderAction">The action to build the optional token pattern.</param>
-		/// <param name="factory">The factory function to create a parsed value.</param>
-		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		/// <exception cref="ParserBuildingException">Thrown if builder action have not added any elements.</exception>
-		public TokenBuilder Optional(Action<TokenBuilder> builderAction,
-			Func<ParsedRuleResultBase, object?>? factory = null,
-			Action<ParserLocalSettingsBuilder>? config = null)
+		public TokenBuilder Optional(Action<TokenBuilder> builderAction)
 		{
 			var builder = new TokenBuilder(ParserBuilder);
 			builderAction(builder);
@@ -231,7 +219,7 @@ namespace RCParsing.Building
 			return Token(new BuildableOptionalTokenPattern
 			{
 				Child = builder.BuildingPattern.Value
-			}, factory, config);
+			});
 		}
 
 		/// <summary>
@@ -240,13 +228,9 @@ namespace RCParsing.Building
 		/// <param name="builderAction">The token builder action to build the repeatable token.</param>
 		/// <param name="min">The minimum number of times the token can be repeated.</param>
 		/// <param name="max">The maximum number of times the token can be repeated. -1 indicates no upper limit.</param>
-		/// <param name="factory">The factory function to create a parsed value.</param>
-		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		/// <exception cref="ParserBuildingException">Thrown if builder action have not added any elements.</exception>
-		public TokenBuilder Repeat(Action<TokenBuilder> builderAction, int min, int max,
-			Func<ParsedRuleResultBase, object?>? factory = null,
-			Action<ParserLocalSettingsBuilder>? config = null)
+		public TokenBuilder Repeat(Action<TokenBuilder> builderAction, int min, int max)
 		{
 			var builder = new TokenBuilder(ParserBuilder);
 			builderAction(builder);
@@ -259,7 +243,7 @@ namespace RCParsing.Building
 				MinCount = min,
 				MaxCount = max,
 				Child = builder.BuildingPattern.Value
-			}, factory, config);
+			});
 		}
 
 		/// <summary>
@@ -267,57 +251,41 @@ namespace RCParsing.Building
 		/// </summary>
 		/// <param name="builderAction">The token builder action to build the repeatable token.</param>
 		/// <param name="min">The minimum number of times the token can be repeated.</param>
-		/// <param name="factory">The factory function to create a parsed value.</param>
-		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		/// <exception cref="ParserBuildingException">Thrown if builder action have not added any elements.</exception>
-		public TokenBuilder Repeat(Action<TokenBuilder> builderAction, int min,
-			Func<ParsedRuleResultBase, object?>? factory = null,
-			Action<ParserLocalSettingsBuilder>? config = null)
+		public TokenBuilder Repeat(Action<TokenBuilder> builderAction, int min)
 		{
-			return Repeat(builderAction, min, -1, factory, config);
+			return Repeat(builderAction, min, -1);
 		}
 
 		/// <summary>
 		/// Adds a repeatable token pattern to the current sequence that matches zero or more occurrences of the child pattern.
 		/// </summary>
 		/// <param name="builderAction">The token builder action to build the repeatable token.</param>
-		/// <param name="factory">The factory function to create a parsed value.</param>
-		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <exception cref="ParserBuildingException">Thrown if builder action have not added any elements.</exception>
-		public TokenBuilder ZeroOrMore(Action<TokenBuilder> builderAction,
-			Func<ParsedRuleResultBase, object?>? factory = null,
-			Action<ParserLocalSettingsBuilder>? config = null)
+		public TokenBuilder ZeroOrMore(Action<TokenBuilder> builderAction)
 		{
-			return Repeat(builderAction, 0, -1, factory, config);
+			return Repeat(builderAction, 0, -1);
 		}
 
 		/// <summary>
 		/// Adds a repeatable token pattern to the current sequence that matches one or more occurrences of the child pattern.
 		/// </summary>
 		/// <param name="builderAction">The token builder action to build the repeatable token.</param>
-		/// <param name="factory">The factory function to create a parsed value.</param>
-		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		/// <exception cref="ParserBuildingException">Thrown if builder action have not added any elements.</exception>
-		public TokenBuilder OneOrMore(Action<TokenBuilder> builderAction,
-			Func<ParsedRuleResultBase, object?>? factory = null,
-			Action<ParserLocalSettingsBuilder>? config = null)
+		public TokenBuilder OneOrMore(Action<TokenBuilder> builderAction)
 		{
-			return Repeat(builderAction, 1, -1, factory, config);
+			return Repeat(builderAction, 1, -1);
 		}
 
 		/// <summary>
 		/// Adds a choice token pattern to the current sequence.
 		/// </summary>
 		/// <param name="choices">The choices for this token pattern.</param>
-		/// <param name="factory">The factory function to create a parsed value.</param>
-		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		/// <exception cref="ParserBuildingException">Thrown if any of builder actions have not added any elements.</exception>
-		public TokenBuilder Choice(IEnumerable<Or<Action<TokenBuilder>, string>> choices,
-			Func<ParsedRuleResultBase, object?>? factory,
-			Action<ParserLocalSettingsBuilder>? config = null)
+		public TokenBuilder Choice(IEnumerable<Or<Action<TokenBuilder>, string>> choices)
 		{
 			var builtValues = choices.Select(c =>
 			{
@@ -340,23 +308,18 @@ namespace RCParsing.Building
 
 			var choice = new BuildableChoiceTokenPattern();
 			choice.Choices.AddRange(builtValues);
-			return Token(choice, factory, config);
+			return Token(choice);
 		}
 
 		/// <summary>
 		/// Adds a choice token pattern to the current sequence.
 		/// </summary>
 		/// <param name="choices">The choices for this token pattern.</param>
-		/// <param name="factory">The factory function to create a parsed value.</param>
-		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		/// <exception cref="ParserBuildingException">Thrown if any of builder actions have not added any elements.</exception>
-		public TokenBuilder Choice(IEnumerable<Action<TokenBuilder>> choices,
-			Func<ParsedRuleResultBase, object?>? factory,
-			Action<ParserLocalSettingsBuilder>? config = null)
+		public TokenBuilder Choice(IEnumerable<Action<TokenBuilder>> choices)
 		{
-			return Choice(choices.Select(c => new Or<Action<TokenBuilder>, string>(c)).ToArray(),
-				factory, config);
+			return Choice(choices.Select(c => new Or<Action<TokenBuilder>, string>(c)).ToArray());
 		}
 
 		/// <summary>
@@ -367,7 +330,7 @@ namespace RCParsing.Building
 		/// <exception cref="ParserBuildingException">Thrown if any of builder actions have not added any elements.</exception>
 		public TokenBuilder Choice(params Action<TokenBuilder>[] choices)
 		{
-			return Choice(choices, null, null);
+			return Choice((IEnumerable<Action<TokenBuilder>>)choices);
 		}
 
 		/// <summary>
@@ -379,15 +342,11 @@ namespace RCParsing.Building
 		/// <param name="max">The maximum number of times the token can be repeated. -1 indicates no upper limit.</param>
 		/// <param name="allowTrailingSeparator">Whether to allow a trailing separator.</param>
 		/// <param name="includeSeparatorsInResult">Whether separators should be included in the result intermediate values to put in the passage function.</param>
-		/// <param name="factory">The factory function to create a parsed value.</param>
-		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		/// <exception cref="ParserBuildingException">Thrown if builder action have not added any elements.</exception>
 		public TokenBuilder RepeatSeparated(Action<TokenBuilder> builderAction,
 			Action<TokenBuilder> separatorBuilderAction, int min, int max,
-			bool allowTrailingSeparator = false, bool includeSeparatorsInResult = false,
-			Func<ParsedRuleResultBase, object?>? factory = null,
-			Action<ParserLocalSettingsBuilder>? config = null)
+			bool allowTrailingSeparator = false, bool includeSeparatorsInResult = false)
 		{
 			var builder = new TokenBuilder(ParserBuilder);
 			builderAction(builder);
@@ -407,7 +366,7 @@ namespace RCParsing.Building
 				IncludeSeparatorsInResult = includeSeparatorsInResult,
 				MinCount = min,
 				MaxCount = max
-			}, factory, config);
+			});
 		}
 
 		/// <summary>
@@ -418,18 +377,14 @@ namespace RCParsing.Building
 		/// <param name="min">The minimum number of times the token can be repeated.</param>
 		/// <param name="allowTrailingSeparator">Whether to allow a trailing separator.</param>
 		/// <param name="includeSeparatorsInResult">Whether separators should be included in the result intermediate values to put in the passage function.</param>
-		/// <param name="factory">The factory function to create a parsed value.</param>
-		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		/// <exception cref="ParserBuildingException">Thrown if builder action have not added any elements.</exception>
 		public TokenBuilder RepeatSeparated(Action<TokenBuilder> builderAction,
 			Action<TokenBuilder> separatorBuilderAction, int min,
-			bool allowTrailingSeparator = false, bool includeSeparatorsInResult = false,
-			Func<ParsedRuleResultBase, object?>? factory = null,
-			Action<ParserLocalSettingsBuilder>? config = null)
+			bool allowTrailingSeparator = false, bool includeSeparatorsInResult = false)
 		{
 			return RepeatSeparated(builderAction, separatorBuilderAction, min, -1,
-				allowTrailingSeparator, includeSeparatorsInResult, factory, config);
+				allowTrailingSeparator, includeSeparatorsInResult);
 		}
 
 		/// <summary>
@@ -439,17 +394,13 @@ namespace RCParsing.Building
 		/// <param name="separatorBuilderAction">The token builder action to build the separator token.</param>
 		/// <param name="allowTrailingSeparator">Whether to allow a trailing separator.</param>
 		/// <param name="includeSeparatorsInResult">Whether separators should be included in the result intermediate values to put in the passage function.</param>
-		/// <param name="factory">The factory function to create a parsed value.</param>
-		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <exception cref="ParserBuildingException">Thrown if builder action have not added any elements.</exception>
 		public TokenBuilder ZeroOrMoreSeparated(Action<TokenBuilder> builderAction,
 			Action<TokenBuilder> separatorBuilderAction,
-			bool allowTrailingSeparator = false, bool includeSeparatorsInResult = false,
-			Func<ParsedRuleResultBase, object?>? factory = null,
-			Action<ParserLocalSettingsBuilder>? config = null)
+			bool allowTrailingSeparator = false, bool includeSeparatorsInResult = false)
 		{
 			return RepeatSeparated(builderAction, separatorBuilderAction, 0, -1,
-				allowTrailingSeparator, includeSeparatorsInResult, factory, config);
+				allowTrailingSeparator, includeSeparatorsInResult);
 		}
 
 		/// <summary>
@@ -459,18 +410,14 @@ namespace RCParsing.Building
 		/// <param name="separatorBuilderAction">The token builder action to build the separator token.</param>
 		/// <param name="allowTrailingSeparator">Whether to allow a trailing separator.</param>
 		/// <param name="includeSeparatorsInResult">Whether separators should be included in the result intermediate values to put in the passage function.</param>
-		/// <param name="factory">The factory function to create a parsed value.</param>
-		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		/// <exception cref="ParserBuildingException">Thrown if builder action have not added any elements.</exception>
 		public TokenBuilder OneOrMoreSeparated(Action<TokenBuilder> builderAction,
 			Action<TokenBuilder> separatorBuilderAction,
-			bool allowTrailingSeparator = false, bool includeSeparatorsInResult = false,
-			Func<ParsedRuleResultBase, object?>? factory = null,
-			Action<ParserLocalSettingsBuilder>? config = null)
+			bool allowTrailingSeparator = false, bool includeSeparatorsInResult = false)
 		{
 			return RepeatSeparated(builderAction, separatorBuilderAction, 1, -1,
-				allowTrailingSeparator, includeSeparatorsInResult, factory, config);
+				allowTrailingSeparator, includeSeparatorsInResult);
 		}
 
 		/// <summary>
@@ -479,14 +426,10 @@ namespace RCParsing.Building
 		/// <param name="firstBuilderAction">The token builder action to build the first token.</param>
 		/// <param name="middleBuilderAction">The token builder action to build the middle token.</param>
 		/// <param name="lastBuilderAction">The token builder action to build the last token.</param>
-		/// <param name="factory">The factory function to create a parsed value.</param>
-		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		/// <exception cref="ParserBuildingException">Thrown if any builder action have not added any elements.</exception>
 		public TokenBuilder Between(Action<TokenBuilder> firstBuilderAction,
-			Action<TokenBuilder> middleBuilderAction, Action<TokenBuilder> lastBuilderAction,
-			Func<ParsedRuleResultBase, object?>? factory = null,
-			Action<ParserLocalSettingsBuilder>? config = null)
+			Action<TokenBuilder> middleBuilderAction, Action<TokenBuilder> lastBuilderAction)
 		{
 			var firstBuilder = new TokenBuilder(ParserBuilder);
 			firstBuilderAction(firstBuilder);
@@ -508,7 +451,7 @@ namespace RCParsing.Building
 				First = firstBuilder.BuildingPattern.Value,
 				Middle = middleBuilder.BuildingPattern.Value,
 				Last = lastBuilder.BuildingPattern.Value
-			}, factory, config);
+			});
 		}
 
 		/// <summary>
@@ -516,14 +459,10 @@ namespace RCParsing.Building
 		/// </summary>
 		/// <param name="firstBuilderAction">The token builder action to build the first token.</param>
 		/// <param name="secondBuilderAction">The token builder action to build the second token.</param>
-		/// <param name="factory">The factory function to create a parsed value.</param>
-		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		/// <exception cref="ParserBuildingException">Thrown if any builder action have not added any elements.</exception>
 		public TokenBuilder First(Action<TokenBuilder> firstBuilderAction,
-			Action<TokenBuilder> secondBuilderAction,
-			Func<ParsedRuleResultBase, object?>? factory = null,
-			Action<ParserLocalSettingsBuilder>? config = null)
+			Action<TokenBuilder> secondBuilderAction)
 		{
 			var firstBuilder = new TokenBuilder(ParserBuilder);
 			firstBuilderAction(firstBuilder);
@@ -539,7 +478,7 @@ namespace RCParsing.Building
 			{
 				First = firstBuilder.BuildingPattern.Value,
 				Second = secondBuilder.BuildingPattern.Value
-			}, factory, config);
+			});
 		}
 
 		/// <summary>
@@ -547,14 +486,10 @@ namespace RCParsing.Building
 		/// </summary>
 		/// <param name="firstBuilderAction">The token builder action to build the first token.</param>
 		/// <param name="secondBuilderAction">The token builder action to build the second token.</param>
-		/// <param name="factory">The factory function to create a parsed value.</param>
-		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		/// <exception cref="ParserBuildingException">Thrown if any builder action have not added any elements.</exception>
 		public TokenBuilder Second(Action<TokenBuilder> firstBuilderAction,
-			Action<TokenBuilder> secondBuilderAction,
-			Func<ParsedRuleResultBase, object?>? factory = null,
-			Action<ParserLocalSettingsBuilder>? config = null)
+			Action<TokenBuilder> secondBuilderAction)
 		{
 			var firstBuilder = new TokenBuilder(ParserBuilder);
 			firstBuilderAction(firstBuilder);
@@ -570,20 +505,16 @@ namespace RCParsing.Building
 			{
 				First = firstBuilder.BuildingPattern.Value,
 				Second = secondBuilder.BuildingPattern.Value
-			}, factory, config);
+			});
 		}
 
 		/// <summary>
 		/// Adds a token pattern that matches a child pattern while skipping any whitespace characters before it.
 		/// </summary>
 		/// <param name="builderAction">The token builder action to build the child token.</param>
-		/// <param name="factory">The factory function to create a parsed value.</param>
-		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		/// <exception cref="ParserBuildingException">Thrown if builder action have not added any elements.</exception>
-		public TokenBuilder SkipWhitespaces(Action<TokenBuilder> builderAction,
-			Func<ParsedRuleResultBase, object?>? factory = null,
-			Action<ParserLocalSettingsBuilder>? config = null)
+		public TokenBuilder SkipWhitespaces(Action<TokenBuilder> builderAction)
 		{
 			var builder = new TokenBuilder(ParserBuilder);
 			builderAction(builder);
@@ -593,7 +524,7 @@ namespace RCParsing.Building
 			return Token(new BuildableSkipWhitespacesTokenPattern
 			{
 				Pattern = builder.BuildingPattern.Value
-			}, factory, config);
+			});
 		}
 
 		/// <summary>
@@ -601,13 +532,9 @@ namespace RCParsing.Building
 		/// </summary>
 		/// <param name="builderAction">The token builder action to build the child token.</param>
 		/// <param name="value">The fixed intermediate value to return upon successful match.</param>
-		/// <param name="factory">The factory function to create a parsed value.</param>
-		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		/// <exception cref="ParserBuildingException">Thrown if builder action have not added any elements.</exception>
-		public TokenBuilder Return(Action<TokenBuilder> builderAction, object? value,
-			Func<ParsedRuleResultBase, object?>? factory = null,
-			Action<ParserLocalSettingsBuilder>? config = null)
+		public TokenBuilder Return(Action<TokenBuilder> builderAction, object? value)
 		{
 			var builder = new TokenBuilder(ParserBuilder);
 			builderAction(builder);
@@ -618,7 +545,7 @@ namespace RCParsing.Building
 			{
 				Child = builder.BuildingPattern.Value,
 				Value = value
-			}, factory, config);
+			});
 		}
 
 		/// <summary>
@@ -626,13 +553,9 @@ namespace RCParsing.Building
 		/// </summary>
 		/// <param name="builderAction">The token builder action to build the child token.</param>
 		/// <param name="mapper">The transformation function applied to the child's intermediate value.</param>
-		/// <param name="factory">The factory function to create a parsed value.</param>
-		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		/// <exception cref="ParserBuildingException">Thrown if builder action have not added any elements.</exception>
-		public TokenBuilder Map(Action<TokenBuilder> builderAction, Func<object?, object?> mapper,
-			Func<ParsedRuleResultBase, object?>? factory = null,
-			Action<ParserLocalSettingsBuilder>? config = null)
+		public TokenBuilder Map(Action<TokenBuilder> builderAction, Func<object?, object?> mapper)
 		{
 			var builder = new TokenBuilder(ParserBuilder);
 			builderAction(builder);
@@ -643,7 +566,7 @@ namespace RCParsing.Building
 			{
 				Child = builder.BuildingPattern.Value,
 				Mapper = mapper
-			}, factory, config);
+			});
 		}
 
 		/// <summary>
@@ -651,13 +574,9 @@ namespace RCParsing.Building
 		/// </summary>
 		/// <param name="builderAction">The token builder action to build the child token.</param>
 		/// <param name="mapper">The transformation function applied to the child's intermediate value.</param>
-		/// <param name="factory">The factory function to create a parsed value.</param>
-		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		/// <exception cref="ParserBuildingException">Thrown if builder action have not added any elements.</exception>
-		public TokenBuilder Map<T>(Action<TokenBuilder> builderAction, Func<T, object?> mapper,
-			Func<ParsedRuleResultBase, object?>? factory = null,
-			Action<ParserLocalSettingsBuilder>? config = null)
+		public TokenBuilder Map<T>(Action<TokenBuilder> builderAction, Func<T, object?> mapper)
 		{
 			var builder = new TokenBuilder(ParserBuilder);
 			builderAction(builder);
@@ -668,7 +587,7 @@ namespace RCParsing.Building
 			{
 				Child = builder.BuildingPattern.Value,
 				Mapper = v => mapper((T)v)
-			}, factory, config);
+			});
 		}
 
 		/// <summary>
@@ -677,14 +596,10 @@ namespace RCParsing.Building
 		/// <param name="builderAction">The token builder action to build the child token.</param>
 		/// <param name="trimStart">The number of characters to trim from the start of the captured text.</param>
 		/// <param name="trimEnd">The number of characters to trim from the end of the captured text.</param>
-		/// <param name="factory">The factory function to create a parsed value.</param>
-		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		/// <exception cref="ParserBuildingException">Thrown if builder action have not added any elements.</exception>
 		public TokenBuilder CaptureText(Action<TokenBuilder> builderAction,
-			int trimStart = 0, int trimEnd = 0,
-			Func<ParsedRuleResultBase, object?>? factory = null,
-			Action<ParserLocalSettingsBuilder>? config = null)
+			int trimStart = 0, int trimEnd = 0)
 		{
 			if (trimStart < 0) throw new ArgumentOutOfRangeException(nameof(trimStart));
 			if (trimEnd < 0) throw new ArgumentOutOfRangeException(nameof(trimEnd));
@@ -699,7 +614,7 @@ namespace RCParsing.Building
 				Child = builder.BuildingPattern.Value,
 				TrimStart = trimStart,
 				TrimEnd = trimEnd
-			}, factory, config);
+			});
 		}
 	}
 }

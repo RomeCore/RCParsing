@@ -34,6 +34,8 @@ namespace RCParsing.ParserRules
 
 		protected override void Initialize(ParserInitFlags initFlags)
 		{
+			base.Initialize(initFlags);
+
 			ParsedRule Parse(ref ParserContext context, ref ParserSettings settings, ref ParserSettings childSettings)
 			{
 				var result = TryParseRule(Rule, context, childSettings);

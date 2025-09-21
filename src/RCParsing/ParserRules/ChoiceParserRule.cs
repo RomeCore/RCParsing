@@ -48,6 +48,8 @@ namespace RCParsing.ParserRules
 
 		protected override void Initialize(ParserInitFlags initFlags)
 		{
+			base.Initialize(initFlags);
+
 			if (!initFlags.HasFlag(ParserInitFlags.FirstCharacterMatch))
 			{
 				var parseFunctions = new Func<ParserContext, ParserSettings, ParsedRule>[_choicesIds.Length];

@@ -39,24 +39,11 @@ namespace RCParsing
 		/// </summary>
 		public IReadOnlyList<ErrorGroup> Groups { get; }
 
-		private IReadOnlyList<ErrorGroup>? _relevantGroups;
-		/// <summary>
-		/// Gets the list of error groups that are relevant to the current parsing context.
-		/// These are the groups that contain errors at positions that have not been successfully parsed yet.
-		/// </summary>
-		public IReadOnlyList<ErrorGroup> RelevantGroups => _relevantGroups ??= Groups.Where(g => g.IsRelevant).ToArray().AsReadOnlyList();
-
 		/// <summary>
 		/// Gets the error group that contains the latest position in the input text where an error occurred.
 		/// If no errors were found, returns <see langword="null"/>.
 		/// </summary>
 		public ErrorGroup? Last => Groups.Count > 0 ? Groups[Groups.Count - 1] : null;
-
-		/// <summary>
-		/// Gets the relevant error group that contains the latest position in the input text where an error occurred.
-		/// If no errors were found, returns <see langword="null"/>.
-		/// </summary>
-		public ErrorGroup? LastRelevant => RelevantGroups.Count > 0 ? RelevantGroups[RelevantGroups.Count - 1] : null;
 
 		private IReadOnlyList<ErrorGroup> _reversed;
 		/// <summary>
@@ -65,15 +52,6 @@ namespace RCParsing
 		/// Each group contains a set of errors that occurred at the same position, but in reverse order from the original list.
 		/// </summary>
 		public IReadOnlyList<ErrorGroup> Reversed => _reversed ??= new ReversedList<ErrorGroup>(Groups);
-
-		private IReadOnlyList<ErrorGroup> _relevantReversed;
-		/// <summary>
-		/// Gets the list of relevant error groups in reverse order, meaning the first group is the one with the
-		/// latest position in the input text where an error occurred, and so on.
-		/// Each group contains a set of errors that occurred at the same position, but in reverse order from the original list.
-		/// These are the groups that contain errors at positions that have not been successfully parsed yet.
-		/// </summary>
-		public IReadOnlyList<ErrorGroup> RelevantReversed => _relevantReversed ??= new ReversedList<ErrorGroup>(RelevantGroups);
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="ErrorGroupCollection"/> class.

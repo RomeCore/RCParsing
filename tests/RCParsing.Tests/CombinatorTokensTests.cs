@@ -139,7 +139,7 @@ namespace RCParsing.Tests
 				.Map<string>(b => b.LiteralChoice("true", "false"), m => m == "true");
 
 			builder.CreateToken("null")
-				.Literal("null", _ => null);
+				.Return(b => b.Literal("null"), null);
 
 			builder.CreateToken("value")
 				.SkipWhitespaces(b =>
