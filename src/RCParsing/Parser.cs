@@ -1,22 +1,90 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Data;
 using System.Data.Common;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Text;
 using RCParsing.ParserRules;
 using RCParsing.TokenPatterns;
+using RCParsing.Utils;
 
 namespace RCParsing
 {
-	// Ooofff... So much code... 1200 lines of code...
+	// Ooofff... So much code... 1600 lines of code...
+
+	/// <summary>
+	/// Represents a change in the input text.
+	/// </summary>
+	/// <remarks>
+	/// Used for incremental parsing.
+	/// </remarks>
+	public readonly struct TextChange
+	{
+		/// <summary>
+		/// Gets the start index of the change in the input text.
+		/// </summary>
+		public readonly int startIndex;
+
+		/// <summary>
+		/// Gets the old length of the change in the input text.
+		/// </summary>
+		public readonly int oldLength;
+
+		/// <summary>
+		/// Gets the new length of the change in the input text.
+		/// </summary>
+		public readonly int newLength;
+
+		/// <summary>
+		/// Gets the resulting text after applying the change.
+		/// </summary>
+		public readonly string resultingText;
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="TextChange"/> struct.
+		/// </summary>
+		/// <param name="startIndex">The start index of the change in the input text.</param>
+		/// <param name="oldLength">The old length of the change in the input text.</param>
+		/// <param name="newLength">The new length of the change in the input text.</param>
+		/// <param name="resultingText">The resulting text after applying the change.</param>
+		public TextChange(int startIndex, int oldLength, int newLength, string resultingText)
+		{
+			this.startIndex = startIndex;
+			this.oldLength = oldLength;
+			this.newLength = newLength;
+			this.resultingText = resultingText;
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="TextChange"/> struct.
+		/// </summary>
+		/// <param name="oldText">The old text before the change.</param>
+		/// <param name="startIndex">The start index of the change in the input text.</param>
+		/// <param name="oldLength">The old length of the change in the input text.</param>
+		/// <param name="newDelta">The new text to insert at the change index.</param>
+		public TextChange(string oldText, int startIndex, int oldLength, string newDelta)
+		{
+			this.startIndex = startIndex;
+			this.oldLength = oldLength;
+			this.newLength = newDelta.Length;
+
+			var sb = new StringBuilder();
+			sb.Append(oldText, 0, startIndex);
+			sb.Append(newDelta);
+			sb.Append(oldText, startIndex + oldLength, oldText.Length - (startIndex + oldLength));
+			this.resultingText = sb.ToString();
+		}
+	}
 
 	/// <summary>
 	/// Represents a parser for parsing text data into AST.
 	/// </summary>
 	public class Parser
 	{
+		private readonly TokenPattern[] _tokenPatterns;
+		private readonly ParserRule[] _rules;
+		private readonly BarrierTokenizer[] _tokenizers;
 		private readonly Dictionary<string, int> _tokenPatternsAliases = new Dictionary<string, int>();
 		private readonly Dictionary<string, int> _rulesAliases = new Dictionary<string, int>();
 		private readonly int _mainRuleId = -1;
@@ -24,17 +92,17 @@ namespace RCParsing
 		/// <summary>
 		/// Gets the token patterns registered in this parser.
 		/// </summary>
-		public ImmutableArray<TokenPattern> TokenPatterns { get; }
+		public IReadOnlyList<TokenPattern> TokenPatterns { get; }
 
 		/// <summary>
 		/// Gets the rules registered in this parser.
 		/// </summary>
-		public ImmutableArray<ParserRule> Rules { get; }
+		public IReadOnlyList<ParserRule> Rules { get; }
 
 		/// <summary>
 		/// Gets the barrier tokenizers used by when tokenizing input strings.
 		/// </summary>
-		public ImmutableArray<BarrierTokenizer> Tokenizers { get; }
+		public IReadOnlyList<BarrierTokenizer> Tokenizers { get; }
 
 		/// <summary>
 		/// Gets the main settings used by this parser.
@@ -54,7 +122,7 @@ namespace RCParsing
 		/// <summary>
 		/// Gets the main rule that used by default, if any.
 		/// </summary>
-		public ParserRule? MainRule => _mainRuleId == -1 ? null : Rules[_mainRuleId];
+		public ParserRule? MainRule => _mainRuleId == -1 ? null : _rules[_mainRuleId];
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="Parser"/> class.
@@ -66,8 +134,8 @@ namespace RCParsing
 		/// <param name="globalSettings">The global settings to use.</param>
 		/// <param name="mainRuleId">The ID of the main rule to use.</param>
 		/// <param name="initFlags">The initialization flags to use. Default is <see cref="ParserInitFlags.None"/>.</param>
-		public Parser(ImmutableArray<TokenPattern> tokenPatterns, ImmutableArray<ParserRule> rules,
-			ImmutableArray<BarrierTokenizer> tokenizers, ParserMainSettings mainSettings, ParserSettings globalSettings,
+		public Parser(IReadOnlyList<TokenPattern> tokenPatterns, IReadOnlyList<ParserRule> rules,
+			IReadOnlyList<BarrierTokenizer> tokenizers, ParserMainSettings mainSettings, ParserSettings globalSettings,
 			int mainRuleId = -1, ParserInitFlags initFlags = ParserInitFlags.None)
 
 			: this(tokenPatterns, rules, tokenizers, mainSettings, globalSettings, mainRuleId, e => initFlags)
@@ -84,20 +152,23 @@ namespace RCParsing
 		/// <param name="globalSettings">The global settings to use.</param>
 		/// <param name="mainRuleId">The ID of the main rule to use.</param>
 		/// <param name="initFlagsFactory">The initialization flags factory to use.</param>
-		public Parser(ImmutableArray<TokenPattern> tokenPatterns, ImmutableArray<ParserRule> rules,
-			ImmutableArray<BarrierTokenizer> tokenizers, ParserMainSettings mainSettings, ParserSettings globalSettings,
+		public Parser(IReadOnlyList<TokenPattern> tokenPatterns, IReadOnlyList<ParserRule> rules,
+			IReadOnlyList<BarrierTokenizer> tokenizers, ParserMainSettings mainSettings, ParserSettings globalSettings,
 			int mainRuleId = -1, Func<ParserElement, ParserInitFlags>? initFlagsFactory = null)
 		{
 			if (mainSettings.tabSize <= 0)
 				mainSettings.tabSize = 4;
 
-			Rules = rules;
-			TokenPatterns = tokenPatterns;
-			Tokenizers = tokenizers;
+			_tokenPatterns = tokenPatterns.ToArray();
+			TokenPatterns = _tokenPatterns.AsReadOnlyList();
+			_rules = rules.ToArray();
+			Rules = _rules.AsReadOnlyCollection();
+			_tokenizers = tokenizers.ToArray();
+			Tokenizers = _tokenizers.AsReadOnlyList();
 			MainSettings = mainSettings;
 			GlobalSettings = globalSettings;
 
-			for (int i = 0; i < rules.Length; i++)
+			for (int i = 0; i < rules.Count; i++)
 			{
 				var rule = rules[i];
 				if (rule.Parser != null)
@@ -113,7 +184,7 @@ namespace RCParsing
 				}
 			}
 			
-			for (int i = 0; i < tokenPatterns.Length; i++)
+			for (int i = 0; i < tokenPatterns.Count; i++)
 			{
 				var token = tokenPatterns[i];
 				if (token.Parser != null)
@@ -168,7 +239,7 @@ namespace RCParsing
 		public TokenPattern GetTokenPattern(string alias)
 		{
 			if (_tokenPatternsAliases.TryGetValue(alias, out var id))
-				return TokenPatterns[id];
+				return _tokenPatterns[id];
 			throw new InvalidOperationException($"Token pattern not found with alias '{alias}'.");
 		}
 
@@ -180,8 +251,8 @@ namespace RCParsing
 		/// <exception cref="ArgumentOutOfRangeException">Thrown if the provided ID is out of range.</exception>
 		public TokenPattern GetTokenPattern(int id)
 		{
-			if (id >= 0 && id < TokenPatterns.Length)
-				return TokenPatterns[id];
+			if (id >= 0 && id < _tokenPatterns.Length)
+				return _tokenPatterns[id];
 			throw new ArgumentOutOfRangeException(nameof(id), "Invalid token pattern ID.");
 		}
 
@@ -194,7 +265,7 @@ namespace RCParsing
 		public ParserRule GetRule(string alias)
 		{
 			if (_rulesAliases.TryGetValue(alias, out var id))
-				return Rules[id];
+				return _rules[id];
 			throw new InvalidOperationException($"Rule not found with alias '{alias}'.");
 		}
 
@@ -206,8 +277,8 @@ namespace RCParsing
 		/// <exception cref="ArgumentOutOfRangeException">Thrown if the provided ID is out of range.</exception>
 		public ParserRule GetRule(int id)
 		{
-			if (id >= 0 && id < Rules.Length)
-				return Rules[id];
+			if (id >= 0 && id < _rules.Length)
+				return _rules[id];
 			throw new ArgumentOutOfRangeException(nameof(id), "Invalid rule ID.");
 		}
 
@@ -227,8 +298,23 @@ namespace RCParsing
 		internal ParsedElement MatchToken(int tokenPatternId, string input, int position,
 			int barrierPosition, object? parameter, bool calculateIntermediateValue)
 		{
-			var tokenPattern = TokenPatterns[tokenPatternId];
-			return tokenPattern.Match(input, position, barrierPosition, parameter, calculateIntermediateValue);
+			var tokenPattern = _tokenPatterns[tokenPatternId];
+			var error = new ParsingError(-1, 0);
+			return tokenPattern.Match(input, position, barrierPosition, parameter,
+				calculateIntermediateValue, ref error);
+		}
+
+		/// <summary>
+		/// Matches the given input using the specified token identifier and parser context.
+		/// </summary>
+		/// <returns>A parsed token object containing the result of the match.</returns>
+		internal ParsedElement MatchToken(int tokenPatternId, string input, int position,
+			int barrierPosition, object? parameter, bool calculateIntermediateValue, out ParsingError furthestError)
+		{
+			var tokenPattern = _tokenPatterns[tokenPatternId];
+			furthestError = new ParsingError(-1, 0);
+			return tokenPattern.Match(input, position, barrierPosition, parameter,
+				calculateIntermediateValue, ref furthestError);
 		}
 
 		/// <summary>
@@ -298,7 +384,7 @@ namespace RCParsing
 		/// <returns>A parsed rule object containing the result of the parse.</returns>
 		internal ParsedRule TryParseRule(int ruleId, ParserContext context, ParserSettings settings)
 		{
-			var rule = Rules[ruleId];
+			var rule = _rules[ruleId];
 			rule.AdvanceContext(ref context, ref settings, out var childSettings);
 
 			if (MainSettings.useOptimizedWhitespaceSkip)
@@ -315,7 +401,7 @@ namespace RCParsing
 
 			// Skip rule preparation
 
-			var skipRule = Rules[settings.skipRule];
+			var skipRule = _rules[settings.skipRule];
 			var skipSettings = settings;
 			var skipContext = context;
 			skipRule.AdvanceContext(ref skipContext, ref skipSettings, out var childSkipSettings);
@@ -419,7 +505,7 @@ namespace RCParsing
 		/// <returns>The all matches found in the input.</returns>
 		internal IEnumerable<ParsedRule> FindAllMatches(int ruleId, ParserContext context, ParserSettings settings, bool overlap = false)
 		{
-			var rule = Rules[ruleId];
+			var rule = _rules[ruleId];
 			rule.AdvanceContext(ref context, ref settings, out var childSettings);
 
 			if (MainSettings.useOptimizedWhitespaceSkip)
@@ -474,7 +560,7 @@ namespace RCParsing
 				yield break;
 			}
 
-			var skipRule = Rules[settings.skipRule];
+			var skipRule = _rules[settings.skipRule];
 			var skipSettings = settings;
 			var skipContext = context;
 			skipRule.AdvanceContext(ref skipContext, ref skipSettings, out var childSkipSettings);
@@ -673,14 +759,32 @@ namespace RCParsing
 			}
 		}
 
+
+
+		/*internal ParsedRule ParseIncrementally(ParsedRule node,
+			string input, int startIndex, int length, TextChange change)
+		{
+			var context = CreateContext(change.resultingText, startIndex, length);
+			EmitBarriers(ref context);
+			return ParseIncrementally(ref context, input, node, change, node.version + 1);
+		}
+
+		internal ParsedRule ParseIncrementally(ref ParserContext context,
+			string input, ParsedRule node, TextChange change, int newVersion)
+		{
+
+		}*/
+
+
+
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private void EmitBarriers(ref ParserContext context)
 		{
-			if (Tokenizers.Length == 0)
+			if (_tokenizers.Length == 0)
 				return;
 
 			var ctx = context;
-			var tokens = Tokenizers.SelectMany(t => t.Tokenize(ctx));
+			var tokens = _tokenizers.SelectMany(t => t.Tokenize(ctx));
 			context.barrierTokens.FillWith(tokens, context.input, this);
 		}
 
@@ -690,7 +794,8 @@ namespace RCParsing
 			{
 				case ParserASTType.Lazy:
 					return new ParsedRuleResultLazy(ParseTreeOptimization.None, null, context, parsedRule);
-					default:
+
+				default:
 				case ParserASTType.Lightweight:
 					return new ParsedRuleResult(null, context, parsedRule);
 			}
@@ -747,45 +852,108 @@ namespace RCParsing
 		/// Parses the given input using the specified token pattern alias and input text.
 		/// </summary>
 		/// <remarks>
-		/// Does not throw an exception if parsing fails.
+		/// Throws an exception if parsing fails.
 		/// </remarks>
 		/// <param name="tokenPatternAlias">The alias for the token pattern to use.</param>
 		/// <param name="context">The parser context to use for matching.</param>
-		/// <param name="parameter">Optional parameter to pass to the parser. Can be used to pass additional information to the custom token patterns.</param>
 		/// <returns>A parsed token pattern containing the result of the parse.</returns>
-		public ParsedTokenResult MatchToken(string tokenPatternAlias, ParserContext context, object? parameter = null)
+		/// <exception cref="ParsingException">Thrown if parsing fails.</exception>
+		public ParsedTokenResult MatchToken(string tokenPatternAlias, ParserContext context)
 		{
 			if (!_tokenPatternsAliases.TryGetValue(tokenPatternAlias, out var tokenPatternId))
 				throw new ArgumentException("Invalid token pattern alias", nameof(tokenPatternAlias));
 
 			var parsedToken = MatchToken(tokenPatternId, context.input, context.position,
-				context.maxPosition, parameter, true);
-			return new ParsedTokenResult(null, context, parsedToken, tokenPatternId);
-		}
+				context.maxPosition, context.parserParameter, true, out var error);
+			
+			if (!parsedToken.success && error.position >= 0)
+				context.errors.Add(error);
+			if (parsedToken.success)
+				return new ParsedTokenResult(null, context, parsedToken, tokenPatternId);
 
-		/// <summary>
-		/// Parses the given input using the specified token pattern alias and input text.
-		/// Converts intermediate value of the token to <typeparamref name="T"/>
-		/// </summary>
-		/// <param name="tokenPatternAlias">The alias for the token pattern to use.</param>
-		/// <param name="context">The parser context to use for matching.</param>
-		/// <param name="parameter">Optional parameter to pass to the parser. Can be used to pass additional information to the custom token patterns.</param>
-		/// <returns>A parsed token pattern containing the result of the parse.</returns>
-		public T MatchToken<T>(string tokenPatternAlias, ParserContext context, object? parameter = null)
-		{
-			if (!_tokenPatternsAliases.TryGetValue(tokenPatternAlias, out var tokenPatternId))
-				throw new ArgumentException("Invalid token pattern alias", nameof(tokenPatternAlias));
-
-			var parsedToken = MatchToken(tokenPatternId, context.input, context.position,
-				context.maxPosition, context.parserParameter, true);
-			return (T)parsedToken.intermediateValue;
+			if (error.position >= 0)
+				context.errors.Add(error);
+			throw new ParsingException(context, error);
 		}
 
 		/// <summary>
 		/// Parses the given input using the specified token pattern alias and input text.
 		/// </summary>
 		/// <remarks>
-		/// Does not throw an exception if parsing fails.
+		/// Does not throws an exception if parsing fails.
+		/// </remarks>
+		/// <param name="tokenPatternAlias">The alias for the token pattern to use.</param>
+		/// <param name="context">The parser context to use for matching.</param>
+		/// <returns>A parsed token pattern containing the result of the parse.</returns>
+		public ParsedTokenResult TryMatchToken(string tokenPatternAlias, ParserContext context)
+		{
+			if (!_tokenPatternsAliases.TryGetValue(tokenPatternAlias, out var tokenPatternId))
+				throw new ArgumentException("Invalid token pattern alias", nameof(tokenPatternAlias));
+
+			var parsedToken = MatchToken(tokenPatternId, context.input, context.position,
+				context.maxPosition, context.parserParameter, true, out var error);
+			if (!parsedToken.success && error.position >= 0)
+				context.errors.Add(error);
+			return new ParsedTokenResult(null, context, parsedToken, tokenPatternId);
+		}
+
+		/// <summary>
+		/// Parses the given input using the specified token pattern alias and input text.
+		/// </summary>
+		/// <remarks>
+		/// Converts intermediate value of the token to <typeparamref name="T"/>.
+		/// Throws an exception if parsing fails.
+		/// </remarks>
+		/// <param name="tokenPatternAlias">The alias for the token pattern to use.</param>
+		/// <param name="context">The parser context to use for matching.</param>
+		/// <returns>A parsed token pattern containing the result of the parse.</returns>
+		/// <exception cref="ParsingException">Thrown if parsing fails.</exception>
+		public T MatchToken<T>(string tokenPatternAlias, ParserContext context)
+		{
+			if (!_tokenPatternsAliases.TryGetValue(tokenPatternAlias, out var tokenPatternId))
+				throw new ArgumentException("Invalid token pattern alias", nameof(tokenPatternAlias));
+
+			var parsedToken = MatchToken(tokenPatternId, context.input, context.position,
+				context.maxPosition, context.parserParameter, true, out var error);
+			if (parsedToken.success)
+				return (T)parsedToken.intermediateValue;
+
+			if (error.position >= 0)
+				context.errors.Add(error);
+			throw new ParsingException(context, error);
+		}
+
+		/// <summary>
+		/// Parses the given input using the specified token pattern alias and input text.
+		/// </summary>
+		/// <remarks>
+		/// Converts intermediate value of the token to <typeparamref name="T"/>
+		/// if parsing was successful, otherwise returns <see langword="default"/>.
+		/// Does not throws an exception if parsing fails.
+		/// </remarks>
+		/// <param name="tokenPatternAlias">The alias for the token pattern to use.</param>
+		/// <param name="context">The parser context to use for matching.</param>
+		/// <returns>A parsed token pattern containing the result of the parse.</returns>
+		public T? TryMatchToken<T>(string tokenPatternAlias, ParserContext context)
+		{
+			if (!_tokenPatternsAliases.TryGetValue(tokenPatternAlias, out var tokenPatternId))
+				throw new ArgumentException("Invalid token pattern alias", nameof(tokenPatternAlias));
+
+			var parsedToken = MatchToken(tokenPatternId, context.input, context.position,
+				context.maxPosition, context.parserParameter, true, out var error);
+			if (parsedToken.success)
+				return (T)parsedToken.intermediateValue;
+
+			if (error.position >= 0)
+				context.errors.Add(error);
+			return default;
+		}
+
+		/// <summary>
+		/// Parses the given input using the specified token pattern alias and input text.
+		/// </summary>
+		/// <remarks>
+		/// Throws an exception if parsing fails.
 		/// </remarks>
 		/// <param name="tokenPatternAlias">The alias for the token pattern to use.</param>
 		/// <param name="input">The input text to parse.</param>
@@ -798,14 +966,48 @@ namespace RCParsing
 
 			var context = CreateContext(input, parameter);
 			var parsedToken = MatchToken(tokenPatternId, context.input, context.position,
-				context.maxPosition, parameter, true);
+				context.maxPosition, parameter, true, out var error);
+
+			if (!parsedToken.success && error.position >= 0)
+				context.errors.Add(error);
+			if (parsedToken.success)
+				return new ParsedTokenResult(null, context, parsedToken, tokenPatternId);
+
+			if (error.position >= 0)
+				context.errors.Add(error);
+			throw new ParsingException(context, error);
+		}
+
+		/// <summary>
+		/// Parses the given input using the specified token pattern alias and input text.
+		/// </summary>
+		/// <remarks>
+		/// Does not throws an exception if parsing fails.
+		/// </remarks>
+		/// <param name="tokenPatternAlias">The alias for the token pattern to use.</param>
+		/// <param name="input">The input text to parse.</param>
+		/// <param name="parameter">Optional parameter to pass to the parser. Can be used to pass additional information to the custom token patterns.</param>
+		/// <returns>A parsed token pattern containing the result of the parse.</returns>
+		public ParsedTokenResult TryMatchToken(string tokenPatternAlias, string input, object? parameter = null)
+		{
+			if (!_tokenPatternsAliases.TryGetValue(tokenPatternAlias, out var tokenPatternId))
+				throw new ArgumentException("Invalid token pattern alias", nameof(tokenPatternAlias));
+
+			var context = CreateContext(input, parameter);
+			var parsedToken = MatchToken(tokenPatternId, context.input, context.position,
+				context.maxPosition, parameter, true, out var error);
+			if (!parsedToken.success && error.position >= 0)
+				context.errors.Add(error);
 			return new ParsedTokenResult(null, context, parsedToken, tokenPatternId);
 		}
 
 		/// <summary>
 		/// Parses the given input using the specified token pattern alias and input text.
-		/// Converts intermediate value of the token to <typeparamref name="T"/>
 		/// </summary>
+		/// <remarks>
+		/// Converts intermediate value of the token to <typeparamref name="T"/>.
+		/// Throws an exception if parsing fails.
+		/// </remarks>
 		/// <param name="tokenPatternAlias">The alias for the token pattern to use.</param>
 		/// <param name="input">The input text to parse.</param>
 		/// <param name="parameter">Optional parameter to pass to the parser. Can be used to pass additional information to the custom token patterns.</param>
@@ -816,7 +1018,9 @@ namespace RCParsing
 				throw new ArgumentException("Invalid token pattern alias", nameof(tokenPatternAlias));
 
 			var parsedToken = MatchToken(tokenPatternId, input, 0,
-				input.Length, parameter, true);
+				input.Length, parameter, true, out var error);
+			if (!parsedToken.success)
+				throw new ParsingException(CreateContext(input, parameter), error);
 			return (T)parsedToken.intermediateValue;
 		}
 
@@ -824,7 +1028,31 @@ namespace RCParsing
 		/// Parses the given input using the specified token pattern alias and input text.
 		/// </summary>
 		/// <remarks>
-		/// Does not throw an exception if parsing fails.
+		/// Converts intermediate value of the token to <typeparamref name="T"/>
+		/// if parsing was successful, otherwise returns <see langword="default"/>.
+		/// Does not throws an exception if parsing fails.
+		/// </remarks>
+		/// <param name="tokenPatternAlias">The alias for the token pattern to use.</param>
+		/// <param name="input">The input text to parse.</param>
+		/// <param name="parameter">Optional parameter to pass to the parser. Can be used to pass additional information to the custom token patterns.</param>
+		/// <returns>A parsed token pattern containing the result of the parse.</returns>
+		public T? TryMatchToken<T>(string tokenPatternAlias, string input, object? parameter = null)
+		{
+			if (!_tokenPatternsAliases.TryGetValue(tokenPatternAlias, out var tokenPatternId))
+				throw new ArgumentException("Invalid token pattern alias", nameof(tokenPatternAlias));
+
+			var parsedToken = MatchToken(tokenPatternId, input, 0,
+				input.Length, parameter, true);
+			if (parsedToken.success && parsedToken.intermediateValue is T result)
+				return result;
+			return default;
+		}
+
+		/// <summary>
+		/// Parses the given input using the specified token pattern alias and input text.
+		/// </summary>
+		/// <remarks>
+		/// Throws an exception if parsing fails.
 		/// </remarks>
 		/// <param name="tokenPatternAlias">The alias for the token pattern to use.</param>
 		/// <param name="input">The input text to parse.</param>
@@ -838,14 +1066,49 @@ namespace RCParsing
 
 			var context = CreateContext(input, startIndex, parameter);
 			var parsedToken = MatchToken(tokenPatternId, context.input, context.position,
-				context.maxPosition, parameter, true);
+				context.maxPosition, parameter, true, out var error);
+
+			if (!parsedToken.success && error.position >= 0)
+				context.errors.Add(error);
+			if (parsedToken.success)
+				return new ParsedTokenResult(null, context, parsedToken, tokenPatternId);
+
+			if (error.position >= 0)
+				context.errors.Add(error);
+			throw new ParsingException(context, error);
+		}
+
+		/// <summary>
+		/// Parses the given input using the specified token pattern alias and input text.
+		/// </summary>
+		/// <remarks>
+		/// Does not throws an exception if parsing fails.
+		/// </remarks>
+		/// <param name="tokenPatternAlias">The alias for the token pattern to use.</param>
+		/// <param name="input">The input text to parse.</param>
+		/// <param name="startIndex">Starting index in the input text to parse.</param>
+		/// <param name="parameter">Optional parameter to pass to the parser. Can be used to pass additional information to the custom token patterns.</param>
+		/// <returns>A parsed token pattern containing the result of the parse.</returns>
+		public ParsedTokenResult TryMatchToken(string tokenPatternAlias, string input, int startIndex, object? parameter = null)
+		{
+			if (!_tokenPatternsAliases.TryGetValue(tokenPatternAlias, out var tokenPatternId))
+				throw new ArgumentException("Invalid token pattern alias", nameof(tokenPatternAlias));
+
+			var context = CreateContext(input, startIndex, parameter);
+			var parsedToken = MatchToken(tokenPatternId, context.input, context.position,
+				context.maxPosition, parameter, true, out var error);
+			if (!parsedToken.success && error.position >= 0)
+				context.errors.Add(error);
 			return new ParsedTokenResult(null, context, parsedToken, tokenPatternId);
 		}
 
 		/// <summary>
 		/// Parses the given input using the specified token pattern alias and input text.
-		/// Converts intermediate value of the token to <typeparamref name="T"/>
 		/// </summary>
+		/// <remarks>
+		/// Converts intermediate value of the token to <typeparamref name="T"/>.
+		/// Throws an exception if parsing fails.
+		/// </remarks>
 		/// <param name="tokenPatternAlias">The alias for the token pattern to use.</param>
 		/// <param name="input">The input text to parse.</param>
 		/// <param name="startIndex">Starting index in the input text to parse.</param>
@@ -857,7 +1120,9 @@ namespace RCParsing
 				throw new ArgumentException("Invalid token pattern alias", nameof(tokenPatternAlias));
 
 			var parsedToken = MatchToken(tokenPatternId, input, startIndex,
-				input.Length, parameter, true);
+				input.Length, parameter, true, out var error);
+			if (!parsedToken.success)
+				throw new ParsingException(CreateContext(input, parameter), error);
 			return (T)parsedToken.intermediateValue;
 		}
 
@@ -865,7 +1130,32 @@ namespace RCParsing
 		/// Parses the given input using the specified token pattern alias and input text.
 		/// </summary>
 		/// <remarks>
-		/// Does not throw an exception if parsing fails.
+		/// Converts intermediate value of the token to <typeparamref name="T"/>
+		/// if parsing was successful, otherwise returns <see langword="default"/>.
+		/// Does not throws an exception if parsing fails.
+		/// </remarks>
+		/// <param name="tokenPatternAlias">The alias for the token pattern to use.</param>
+		/// <param name="input">The input text to parse.</param>
+		/// <param name="startIndex">Starting index in the input text to parse.</param>
+		/// <param name="parameter">Optional parameter to pass to the parser. Can be used to pass additional information to the custom token patterns.</param>
+		/// <returns>A parsed token pattern containing the result of the parse.</returns>
+		public T? TryMatchToken<T>(string tokenPatternAlias, string input, int startIndex, object? parameter = null)
+		{
+			if (!_tokenPatternsAliases.TryGetValue(tokenPatternAlias, out var tokenPatternId))
+				throw new ArgumentException("Invalid token pattern alias", nameof(tokenPatternAlias));
+
+			var parsedToken = MatchToken(tokenPatternId, input, startIndex,
+				input.Length, parameter, true);
+			if (parsedToken.success && parsedToken.intermediateValue is T result)
+				return result;
+			return default;
+		}
+
+		/// <summary>
+		/// Parses the given input using the specified token pattern alias and input text.
+		/// </summary>
+		/// <remarks>
+		/// Throws an exception if parsing fails.
 		/// </remarks>
 		/// <param name="tokenPatternAlias">The alias for the token pattern to use.</param>
 		/// <param name="input">The input text to parse.</param>
@@ -880,7 +1170,40 @@ namespace RCParsing
 
 			var context = CreateContext(input, startIndex, length, parameter);
 			var parsedToken = MatchToken(tokenPatternId, context.input, context.position,
-				context.maxPosition, parameter, true);
+				context.maxPosition, parameter, true, out var error);
+
+			if (!parsedToken.success && error.position >= 0)
+				context.errors.Add(error);
+			if (parsedToken.success)
+				return new ParsedTokenResult(null, context, parsedToken, tokenPatternId);
+
+			if (error.position >= 0)
+				context.errors.Add(error);
+			throw new ParsingException(context, error);
+		}
+
+		/// <summary>
+		/// Parses the given input using the specified token pattern alias and input text.
+		/// </summary>
+		/// <remarks>
+		/// Does not throws an exception if parsing fails.
+		/// </remarks>
+		/// <param name="tokenPatternAlias">The alias for the token pattern to use.</param>
+		/// <param name="input">The input text to parse.</param>
+		/// <param name="startIndex">Starting index in the input text to parse.</param>
+		/// <param name="length">Number of characters to parse from the input text.</param>
+		/// <param name="parameter">Optional parameter to pass to the parser. Can be used to pass additional information to the custom token patterns.</param>
+		/// <returns>A parsed token pattern containing the result of the parse.</returns>
+		public ParsedTokenResult TryMatchToken(string tokenPatternAlias, string input, int startIndex, int length, object? parameter = null)
+		{
+			if (!_tokenPatternsAliases.TryGetValue(tokenPatternAlias, out var tokenPatternId))
+				throw new ArgumentException("Invalid token pattern alias", nameof(tokenPatternAlias));
+
+			var context = CreateContext(input, startIndex, length, parameter);
+			var parsedToken = MatchToken(tokenPatternId, context.input, context.position,
+				context.maxPosition, parameter, true, out var error);
+			if (!parsedToken.success && error.position >= 0)
+				context.errors.Add(error);
 			return new ParsedTokenResult(null, context, parsedToken, tokenPatternId);
 		}
 
@@ -888,6 +1211,10 @@ namespace RCParsing
 		/// Parses the given input using the specified token pattern alias and input text.
 		/// Converts intermediate value of the token to <typeparamref name="T"/>
 		/// </summary>
+		/// <remarks>
+		/// Converts intermediate value of the token to <typeparamref name="T"/>.
+		/// Throws an exception if parsing fails.
+		/// </remarks>
 		/// <param name="tokenPatternAlias">The alias for the token pattern to use.</param>
 		/// <param name="input">The input text to parse.</param>
 		/// <param name="startIndex">Starting index in the input text to parse.</param>
@@ -900,8 +1227,37 @@ namespace RCParsing
 				throw new ArgumentException("Invalid token pattern alias", nameof(tokenPatternAlias));
 
 			var parsedToken = MatchToken(tokenPatternId, input, startIndex,
-				startIndex + length, parameter, true);
+				startIndex + length, parameter, true, out var error);
+			if (!parsedToken.success)
+				throw new ParsingException(CreateContext(input, parameter), error);
 			return (T)parsedToken.intermediateValue;
+		}
+
+		/// <summary>
+		/// Parses the given input using the specified token pattern alias and input text.
+		/// Converts intermediate value of the token to <typeparamref name="T"/>
+		/// </summary>
+		/// <remarks>
+		/// Converts intermediate value of the token to <typeparamref name="T"/>
+		/// if parsing was successful, otherwise returns <see langword="default"/>.
+		/// Does not throws an exception if parsing fails.
+		/// </remarks>
+		/// <param name="tokenPatternAlias">The alias for the token pattern to use.</param>
+		/// <param name="input">The input text to parse.</param>
+		/// <param name="startIndex">Starting index in the input text to parse.</param>
+		/// <param name="length">Number of characters to parse from the input text.</param>
+		/// <param name="parameter">Optional parameter to pass to the parser. Can be used to pass additional information to the custom token patterns.</param>
+		/// <returns>A parsed token pattern containing the result of the parse.</returns>
+		public T? TryMatchToken<T>(string tokenPatternAlias, string input, int startIndex, int length, object? parameter = null)
+		{
+			if (!_tokenPatternsAliases.TryGetValue(tokenPatternAlias, out var tokenPatternId))
+				throw new ArgumentException("Invalid token pattern alias", nameof(tokenPatternAlias));
+
+			var parsedToken = MatchToken(tokenPatternId, input, startIndex,
+				startIndex + length, parameter, true, out var error);
+			if (parsedToken.success && parsedToken.intermediateValue is T result)
+				return result;
+			return default;
 		}
 
 

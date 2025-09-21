@@ -73,6 +73,32 @@ namespace RCParsing.Building
 		/// - <see cref="string"/>: The input text to match. <br/>
 		/// - <see cref="int"/>: The position in the input text to start matching from. <br/>
 		/// - <see cref="int"/>: The position in the input text to stop matching at. <br/>
+		/// Returns: <br/>
+		/// - <see cref="ParsedElement"/>: The parsed element containing the result of the match.
+		/// </param>
+		/// <param name="stringRepresentation">The string representation of custom token pattern.</param>
+		/// <param name="factory">The factory function to create a parsed value.</param>
+		/// <param name="config">The action to configure the local settings for this token.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T Custom(Func<CustomTokenPattern, string, int, int, ParsedElement> matchFunction,
+			string stringRepresentation = "custom",
+			Func<ParsedRuleResultBase, object?>? factory = null,
+			Action<ParserLocalSettingsBuilder>? config = null)
+		{
+			return Token(new CustomTokenPattern((self, i, s, e, p, c) => matchFunction(self, i, s, e),
+				stringRepresentation), factory, config);
+		}
+
+		/// <summary>
+		/// Adds a custom token pattern to the current sequence.
+		/// </summary>
+		/// <param name="matchFunction">
+		/// The function to use for matching the token pattern. <br/>
+		/// Parameters: <br/>
+		/// - <see cref="CustomTokenPattern"/>: The current custom token pattern. <br/>
+		/// - <see cref="string"/>: The input text to match. <br/>
+		/// - <see cref="int"/>: The position in the input text to start matching from. <br/>
+		/// - <see cref="int"/>: The position in the input text to stop matching at. <br/>
 		/// - <see cref="object"/>?: The optional context parameter to that have been passed from parser. <br/>
 		/// Returns: <br/>
 		/// - <see cref="ParsedElement"/>: The parsed element containing the result of the match.
@@ -82,6 +108,34 @@ namespace RCParsing.Building
 		/// <param name="config">The action to configure the local settings for this token.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		public T Custom(Func<CustomTokenPattern, string, int, int, object?, ParsedElement> matchFunction,
+			string stringRepresentation = "custom",
+			Func<ParsedRuleResultBase, object?>? factory = null,
+			Action<ParserLocalSettingsBuilder>? config = null)
+		{
+			return Token(new CustomTokenPattern((self, i, s, e, p, c) => matchFunction(self, i, s, e, p),
+				stringRepresentation), factory, config);
+		}
+
+		/// <summary>
+		/// Adds a custom token pattern to the current sequence.
+		/// </summary>
+		/// <param name="matchFunction">
+		/// The function to use for matching the token pattern. <br/>
+		/// Parameters: <br/>
+		/// - <see cref="CustomTokenPattern"/>: The current custom token pattern. <br/>
+		/// - <see cref="string"/>: The input text to match. <br/>
+		/// - <see cref="int"/>: The position in the input text to start matching from. <br/>
+		/// - <see cref="int"/>: The position in the input text to stop matching at. <br/>
+		/// - <see cref="object"/>?: The optional context parameter to that have been passed from parser. <br/>
+		/// - <see cref="bool"/>: Whether to calculate intermediate value. <br/>
+		/// Returns: <br/>
+		/// - <see cref="ParsedElement"/>: The parsed element containing the result of the match.
+		/// </param>
+		/// <param name="stringRepresentation">The string representation of custom token pattern.</param>
+		/// <param name="factory">The factory function to create a parsed value.</param>
+		/// <param name="config">The action to configure the local settings for this token.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T Custom(Func<CustomTokenPattern, string, int, int, object?, bool, ParsedElement> matchFunction,
 			string stringRepresentation = "custom",
 			Func<ParsedRuleResultBase, object?>? factory = null,
 			Action<ParserLocalSettingsBuilder>? config = null)

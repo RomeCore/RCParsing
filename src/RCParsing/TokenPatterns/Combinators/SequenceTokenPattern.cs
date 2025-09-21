@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using System.Net;
 using RCParsing.Utils;
@@ -12,10 +11,12 @@ namespace RCParsing.TokenPatterns.Combinators
 	/// </summary>
 	public class SequenceTokenPattern : TokenPattern
 	{
+		private readonly int[] _tokenPatternsIds;
+
 		/// <summary>
 		/// The IDs of the token patterns to match in sequence.
 		/// </summary>
-		public ImmutableArray<int> TokenPatterns { get; }
+		public IReadOnlyList<int> TokenPatterns { get; }
 
 		/// <summary>
 		/// The function to pass the intermediate values from each pattern to the result intermediate value.
@@ -31,9 +32,9 @@ namespace RCParsing.TokenPatterns.Combinators
 		/// <param name="passageFunction">The function to pass the intermediate values from each pattern to the result intermediate value.</param>
 		public SequenceTokenPattern(IEnumerable<int> tokenPatternIds, Func<IReadOnlyList<object?>, object?>? passageFunction = null)
 		{
-			TokenPatterns = tokenPatternIds?.ToImmutableArray()
-				?? throw new ArgumentNullException(nameof(tokenPatternIds));
-			if (TokenPatterns.IsEmpty)
+			_tokenPatternsIds = tokenPatternIds?.ToArray() ?? throw new ArgumentNullException(nameof(tokenPatternIds));
+			TokenPatterns = _tokenPatternsIds.AsReadOnlyList();
+			if (_tokenPatternsIds.Length == 0)
 				throw new ArgumentException("At least one token pattern must be provided.", nameof(tokenPatternIds));
 			PassageFunction = passageFunction;
 		}
@@ -50,7 +51,7 @@ namespace RCParsing.TokenPatterns.Combinators
 		}
 
 		public override ParsedElement Match(string input, int position, int barrierPosition,
-			object? parserParameter, bool calculateIntermediateValue)
+			object? parserParameter, bool calculateIntermediateValue, ref ParsingError furthestError)
 		{
 			if (calculateIntermediateValue && PassageFunction != null)
 			{
@@ -60,13 +61,13 @@ namespace RCParsing.TokenPatterns.Combinators
 				for (int i = 0; i < _patterns.Length; i++)
 				{
 					var pattern = _patterns[i];
-					var token = pattern.Match(input, position, barrierPosition, parserParameter, true);
+					var token = pattern.Match(input, position, barrierPosition, parserParameter, true, ref furthestError);
 					if (!token.success)
 						return ParsedElement.Fail;
 
 					if (PassageFunction != null)
 					{
-						intermediateValues ??= new object?[TokenPatterns.Length];
+						intermediateValues ??= new object?[_patterns.Length];
 						intermediateValues[i] = token.intermediateValue;
 					}
 					position = token.startIndex + token.length;
@@ -83,7 +84,7 @@ namespace RCParsing.TokenPatterns.Combinators
 				for (int i = 0; i < _patterns.Length; i++)
 				{
 					var pattern = _patterns[i];
-					var token = pattern.Match(input, position, barrierPosition, parserParameter, false);
+					var token = pattern.Match(input, position, barrierPosition, parserParameter, false, ref furthestError);
 					if (!token.success)
 						return ParsedElement.Fail;
 

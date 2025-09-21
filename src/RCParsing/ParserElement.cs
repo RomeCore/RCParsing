@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -21,7 +20,7 @@ namespace RCParsing
 		/// <summary>
 		/// Gets the aliases for this parser element.
 		/// </summary>
-		public ImmutableList<string> Aliases { get; internal set; } = ImmutableList<string>.Empty;
+		public IReadOnlyList<string> Aliases { get; internal set; } = Array.Empty<string>();
 		
 		/// <summary>
 		/// Gets the last alias for this parser element.
@@ -144,6 +143,17 @@ namespace RCParsing
 		}
 
 		/// <summary>
+		/// Records an error associated with this element in the provided parser context.
+		/// </summary>
+		/// <param name="context">The parser context to record the error in.</param>
+		/// <param name="settings">The settings that affects the recording behavior.</param>
+		/// <param name="error">The parsing error to record.</param>
+		protected void RecordError(ref ParserContext context, ref ParserSettings settings, ParsingError error)
+		{
+			context.RecordError(settings, error);
+		}
+
+		/// <summary>
 		/// Records an error associated with this element and the specific message in the provided parser context.
 		/// </summary>
 		/// <param name="context">The parser context to record the error in.</param>
@@ -195,6 +205,27 @@ namespace RCParsing
 		{
 			return Parser.MatchToken(tokenId, input, position, barrierPosition,
 				parserParameter, calculateIntermediateValue);
+		}
+
+		/// <summary>
+		/// Tries to match a token with the given ID using the specified parsing context.
+		/// </summary>
+		/// <param name="tokenId">The ID of the token to match.</param>
+		/// <param name="input">The input string to match against.</param>
+		/// <param name="position">The starting position in the input string to match against.</param>
+		/// <param name="barrierPosition">The position in the input string to stop matching at.</param>
+		/// <param name="parserParameter">The optional parameter to pass to the token pattern. Can be used to pass additional information to the custom token patterns.</param>
+		/// <param name="calculateIntermediateValue">
+		/// Whether to calculate intermediate value.
+		/// Will be <see langword="false"/> when it will be ignored and should not be calculated.
+		/// </param>
+		/// <param name="furthestError">The furthest error encountered during the match operation. If no error was encountered, this will be <see cref="ParsingError.Empty"/>.</param>
+		/// <returns>The parsed token containing the result of the match operation or <see cref="ParsedElement.Fail"/> if the match failed.</returns>
+		protected ParsedElement TryMatchToken(int tokenId, string input, int position, int barrierPosition,
+			object? parserParameter, bool calculateIntermediateValue, out ParsingError furthestError)
+		{
+			return Parser.MatchToken(tokenId, input, position, barrierPosition,
+				parserParameter, calculateIntermediateValue, out furthestError);
 		}
 
 		/// <summary>

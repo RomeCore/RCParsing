@@ -41,7 +41,7 @@ namespace RCParsing.TokenPatterns
 
 
 		public override ParsedElement Match(string input, int position, int barrierPosition,
-			object? parserParameter, bool calculateIntermediateValue)
+			object? parserParameter, bool calculateIntermediateValue, ref ParsingError furthestError)
 		{
 			if (position + Literal.Length > barrierPosition)
 				return ParsedElement.Fail;
@@ -49,6 +49,8 @@ namespace RCParsing.TokenPatterns
 			if (input.AsSpan(position, Literal.Length).Equals(Literal.AsSpan(), Comparison))
 				return new ParsedElement(position, Literal.Length, Literal);
 
+			if (position >= furthestError.position)
+				furthestError = new ParsingError(position, 0, "Cannot match literal string.", Id, true);
 			return ParsedElement.Fail;
 		}
 

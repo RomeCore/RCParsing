@@ -27,7 +27,7 @@ namespace RCParsing.TokenPatterns
 
 
 		public override ParsedElement Match(string input, int position, int barrierPosition,
-			object? parserParameter, bool calculateIntermediateValue)
+			object? parserParameter, bool calculateIntermediateValue, ref ParsingError furthestError)
 		{
 			throw new InvalidOperationException("This pattern is not meant to be used directly. Should be used from a parent rule (not token pattern).");
 		}

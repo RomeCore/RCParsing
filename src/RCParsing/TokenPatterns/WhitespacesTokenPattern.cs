@@ -19,7 +19,7 @@ namespace RCParsing.TokenPatterns
 
 
 		public override ParsedElement Match(string input, int position, int barrierPosition,
-			object? parserParameter, bool calculateIntermediateValue)
+			object? parserParameter, bool calculateIntermediateValue, ref ParsingError furthestError)
 		{
 			int initialPosition = position;
 			while (position < barrierPosition && char.IsWhiteSpace(input[position]))
@@ -28,6 +28,8 @@ namespace RCParsing.TokenPatterns
 			if (initialPosition < position)
 				return new ParsedElement(initialPosition, position - initialPosition);
 
+			if (position >= furthestError.position)
+				furthestError = new ParsingError(position, 0, "Cannot match whitespaces.", Id, true);
 			return ParsedElement.Fail;
 		}
 

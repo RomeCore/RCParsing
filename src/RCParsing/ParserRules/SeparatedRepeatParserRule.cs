@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Linq;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Data;
 using System.Text;
 using RCParsing.Utils;
@@ -80,17 +79,17 @@ namespace RCParsing.ParserRules
 
 
 
-		private Func<ParserContext, ParserSettings, ParserSettings, ParsedRule> parseFunction;
+		private ParseDelegate parseFunction;
 
 		protected override void Initialize(ParserInitFlags initFlags)
 		{
-			parseFunction = (ctx, stng, chStng) =>
+			ParsedRule Parse(ref ParserContext context, ref ParserSettings settings, ref ParserSettings childSettings)
 			{
 				var elements = new List<ParsedRule>();
-				var initialPosition = ctx.position;
+				var initialPosition = context.position;
 
 				// Try to parse the first element (if required - error if not found; if optional - may return empty result)
-				var firstElement = TryParseRule(Rule, ctx, chStng);
+				var firstElement = TryParseRule(Rule, context, childSettings);
 				if (!firstElement.success)
 				{
 					// No first element found
@@ -98,20 +97,20 @@ namespace RCParsing.ParserRules
 					if (MinCount == 0)
 					{
 						// If there is a separator at the start — this is an error (unexpected leading separator)
-						var sepAtStart = TryParseRule(Separator, ctx, chStng);
+						var sepAtStart = TryParseRule(Separator, context, childSettings);
 						if (sepAtStart.success)
 						{
-							RecordError(ref ctx, ref stng, "Unexpected separator before any element.");
+							RecordError(ref context, ref settings, "Unexpected separator before any element.");
 							return ParsedRule.Fail;
 						}
 
 						// No elements and no separator — return successful empty result
-						return ParsedRule.Rule(Id, initialPosition, 0, ctx.passedBarriers, elements);
+						return ParsedRule.Rule(Id, initialPosition, 0, context.passedBarriers, elements);
 					}
 					else
 					{
 						// Minimum count > 0, but first element not found — explicit error
-						RecordError(ref ctx, ref stng, $"Expected at least {MinCount} repetitions of child rule, but found 0.");
+						RecordError(ref context, ref settings, $"Expected at least {MinCount} repetitions of child rule, but found 0.");
 						return ParsedRule.Fail;
 					}
 				}
@@ -119,28 +118,28 @@ namespace RCParsing.ParserRules
 				// We have the first element
 				if (firstElement.length == 0)
 				{
-					RecordError(ref ctx, ref stng, "Parsed child element has zero length, which is not allowed.");
+					RecordError(ref context, ref settings, "Parsed child element has zero length, which is not allowed.");
 					return ParsedRule.Fail;
 				}
 
 				firstElement.occurency = elements.Count;
 				elements.Add(firstElement);
-				ctx.position = firstElement.startIndex + firstElement.length;
-				ctx.passedBarriers = firstElement.passedBarriers;
+				context.position = firstElement.startIndex + firstElement.length;
+				context.passedBarriers = firstElement.passedBarriers;
 
 				// Parse "separator + element" until limit reached
 				while (MaxCount == -1 || elements.Count < MaxCount)
 				{
-					var beforeSepPos = ctx.position;
+					var beforeSepPos = context.position;
 
 					// Try to parse the separator
-					var parsedSep = TryParseRule(Separator, ctx, chStng);
+					var parsedSep = TryParseRule(Separator, context, childSettings);
 					if (!parsedSep.success)
 						break; // no separator — end of sequence
 
 					if (parsedSep.length == 0)
 					{
-						RecordError(ref ctx, ref stng, "Parsed separator has zero length, which is not allowed.");
+						RecordError(ref context, ref settings, "Parsed separator has zero length, which is not allowed.");
 						return ParsedRule.Fail;
 					}
 
@@ -149,11 +148,11 @@ namespace RCParsing.ParserRules
 						elements.Add(parsedSep);
 
 					// Separator successfully parsed — position already updated inside TryParseRule, but update again for safety:
-					ctx.position = parsedSep.startIndex + parsedSep.length;
-					ctx.passedBarriers = parsedSep.passedBarriers;
+					context.position = parsedSep.startIndex + parsedSep.length;
+					context.passedBarriers = parsedSep.passedBarriers;
 
 					// Try to parse the next element
-					var nextElement = TryParseRule(Rule, ctx, chStng);
+					var nextElement = TryParseRule(Rule, context, childSettings);
 					if (!nextElement.success)
 					{
 						// Separator was found, but next element is missing
@@ -165,21 +164,21 @@ namespace RCParsing.ParserRules
 						}
 						else
 						{
-							RecordError(ref ctx, ref stng, "Expected element after separator, but found none.");
+							RecordError(ref context, ref settings, "Expected element after separator, but found none.");
 							return ParsedRule.Fail;
 						}
 					}
 
 					if (nextElement.length == 0)
 					{
-						RecordError(ref ctx, ref stng, "Parsed child element has zero length, which is not allowed.");
+						RecordError(ref context, ref settings, "Parsed child element has zero length, which is not allowed.");
 						return ParsedRule.Fail;
 					}
 
 					nextElement.occurency = elements.Count;
 					elements.Add(nextElement);
-					ctx.position = nextElement.startIndex + nextElement.length;
-					ctx.passedBarriers = nextElement.passedBarriers;
+					context.position = nextElement.startIndex + nextElement.length;
+					context.passedBarriers = nextElement.passedBarriers;
 
 					// loop continues — try to find next separator + element
 				}
@@ -187,30 +186,21 @@ namespace RCParsing.ParserRules
 				// Check minimum count
 				if (elements.Count < MinCount)
 				{
-					RecordError(ref ctx, ref stng, $"Expected at least {MinCount} repetitions of child rule, but found {elements.Count}.");
+					RecordError(ref context, ref settings, $"Expected at least {MinCount} repetitions of child rule, but found {elements.Count}.");
 					return ParsedRule.Fail;
 				}
 
-				return ParsedRule.Rule(Id, initialPosition, ctx.position - initialPosition, ctx.passedBarriers, elements);
+				return ParsedRule.Rule(Id, initialPosition, context.position - initialPosition, context.passedBarriers, elements);
 			};
 
-			if (initFlags.HasFlag(ParserInitFlags.EnableMemoization))
-			{
-				var previous = parseFunction;
-				parseFunction = (ctx, stng, chStng) =>
-				{
-					if (ctx.cache.TryGetRule(Id, ctx.position, out var cachedResult))
-						return cachedResult;
-					cachedResult = previous(ctx, stng, chStng);
-					ctx.cache.AddRule(Id, ctx.position, cachedResult);
-					return cachedResult;
-				};
-			}
+			parseFunction = Parse;
+
+			parseFunction = WrapParseFunction(parseFunction, initFlags);
 		}
 
 		public override ParsedRule Parse(ParserContext context, ParserSettings settings, ParserSettings childSettings)
 		{
-			return parseFunction(context, settings, childSettings);
+			return parseFunction(ref context, ref settings, ref childSettings);
 		}
 
 

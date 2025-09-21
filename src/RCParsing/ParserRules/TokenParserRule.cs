@@ -35,9 +35,7 @@ namespace RCParsing.ParserRules
 
 
 
-		delegate ParsedRule ParseDelegate(ref ParserContext ctx, ref ParserSettings settings, ref ParserSettings childSettings);
-
-		private bool parseIgnoringBarriers = false;
+		private bool _recordDeepTokenErrors;
 		private TokenPattern _pattern;
 		private ParseDelegate parseFunction;
 
@@ -45,6 +43,7 @@ namespace RCParsing.ParserRules
 		{
 			base.PreInitialize(initFlags);
 
+			_recordDeepTokenErrors = initFlags.HasFlag(ParserInitFlags.RecordTokenErrors);
 			_pattern = Parser.TokenPatterns[TokenPatternId];
 			ParsedValueFactory ??= _pattern.DefaultParsedValueFactory;
 		}
@@ -55,11 +54,21 @@ namespace RCParsing.ParserRules
 
 			ParsedRule ParseIgnoringBarriers(ref ParserContext ctx, ref ParserSettings stng, ref ParserSettings chStng)
 			{
+				var error = ParsingError.Empty;
 				var match = _pattern.Match(ctx.input, ctx.position, ctx.maxPosition,
-					ctx.parserParameter, true);
+					ctx.parserParameter, true, ref error);
+
 				if (!match.success)
 				{
-					RecordError(ref ctx, ref stng, "Failed to parse token");
+					if (_recordDeepTokenErrors && error.position >= 0)
+					{
+						error.stackFrame = ctx.topStackFrame;
+						RecordError(ref ctx, ref stng, error);
+					}
+					else
+					{
+						RecordError(ref ctx, ref stng, "Failed to parse token");
+					}
 					return ParsedRule.Fail;
 				}
 
@@ -96,10 +105,19 @@ namespace RCParsing.ParserRules
 				int maxPos = ctx.barrierTokens.GetNextBarrierPosition(ctx.position, ctx.passedBarriers);
 				if (maxPos == -1) maxPos = ctx.maxPosition;
 
-				var match = _pattern.Match(ctx.input, ctx.position, maxPos, ctx.parserParameter, true);
+				var error = new ParsingError(-1, 0);
+				var match = _pattern.Match(ctx.input, ctx.position, maxPos, ctx.parserParameter, true, ref error);
 				if (!match.success)
 				{
-					RecordError(ref ctx, ref stng, "Failed to parse token.");
+					if (_recordDeepTokenErrors && error.position >= 0)
+					{
+						error.stackFrame = ctx.topStackFrame;
+						RecordError(ref ctx, ref stng, error);
+					}
+					else
+					{
+						RecordError(ref ctx, ref stng, "Failed to parse token");
+					}
 					return ParsedRule.Fail;
 				}
 
@@ -107,29 +125,12 @@ namespace RCParsing.ParserRules
 					ctx.passedBarriers, match.intermediateValue);
 			}
 
-			parseFunction = Parser.Tokenizers.Length == 0 ? ParseIgnoringBarriers : ParseUsingBarriers;
+			parseFunction = Parser.Tokenizers.Count == 0 ? ParseIgnoringBarriers : ParseUsingBarriers;
 
-			if (Parser.Tokenizers.Length == 0 && _pattern is BarrierTokenPattern)
+			if (Parser.Tokenizers.Count == 0 && _pattern is BarrierTokenPattern)
 				throw new InvalidOperationException($"Cannot use barrier token pattern '{_pattern}' without tokenizers.");
 
-			if (initFlags.HasFlag(ParserInitFlags.EnableMemoization))
-			{
-				var prev = parseFunction;
-
-				ParsedRule ParseMemoized(ref ParserContext ctx, ref ParserSettings stng, ref ParserSettings chStng)
-				{
-					if (ctx.cache.TryGetRule(Id, ctx.position, out var cachedResult))
-						return cachedResult;
-
-					cachedResult = prev(ref ctx, ref stng, ref chStng);
-					ctx.cache.AddRule(Id, ctx.position, cachedResult);
-					return cachedResult;
-				}
-
-				parseFunction = ParseMemoized;
-			}
-
-			parseIgnoringBarriers = parseFunction == ParseIgnoringBarriers;
+			parseFunction = WrapParseFunction(parseFunction, initFlags);
 		}
 
 		public override ParsedRule Parse(ParserContext context, ParserSettings settings, ParserSettings childSettings)

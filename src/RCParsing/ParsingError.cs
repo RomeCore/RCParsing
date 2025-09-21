@@ -7,37 +7,37 @@ namespace RCParsing
 	/// <summary>
 	/// Represents a parsing error encountered during the parsing of input string.
 	/// </summary>
-	public readonly struct ParsingError : IEquatable<ParsingError>
+	public struct ParsingError : IEquatable<ParsingError>
 	{
 		/// <summary>
 		/// Gets the position in the input string where the error occurred.
 		/// </summary>
-		public readonly int position;
+		public int position;
 
 		/// <summary>
 		/// Gets the count of barriers that were successfully parsed before encountering this error.
 		/// </summary>
-		public readonly int passedBarriers;
+		public int passedBarriers;
 
 		/// <summary>
 		/// Gets an optional description of the parsing error.
 		/// </summary>
-		public readonly string? message;
+		public string? message;
 
 		/// <summary>
 		/// Gets the ID of the element (rule or token) that caused the error or been expected at this position.
 		/// </summary>
-		public readonly int elementId;
+		public int elementId;
 
 		/// <summary>
 		/// Gets a value indicating whether the element that caused the error is a token.
 		/// </summary>
-		public readonly bool isToken;
+		public bool isToken;
 
 		/// <summary>
 		/// Gets the stack frame that describes the state of the parser when the error occurred.
 		/// </summary>
-		public readonly IntermediateParserStackFrame? stackFrame;
+		public IntermediateParserStackFrame? stackFrame;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="ParsingError"/> struct.
@@ -78,6 +78,11 @@ namespace RCParsing
 		{
 			return new ParsingException(context, this);
 		}
+
+		/// <summary>
+		/// Gets the empty instance of <see cref="ParsingError"/>.
+		/// </summary>
+		public static readonly ParsingError Empty = new ParsingError(-1, 0);
 
 		public override string ToString()
 		{

@@ -33,9 +33,26 @@ namespace RCParsing
 		/// Whether to calculate intermediate value.
 		/// Will be <see langword="false"/> when it will be ignored and should not be calculated.
 		/// </param>
+		/// <param name="furthestError">The last and furthest error that occurred during the parsing.</param>
 		/// <returns>The parsed element containing the result of the match.</returns>
 		public abstract ParsedElement Match(string input, int position, int barrierPosition,
-			object? parserParameter, bool calculateIntermediateValue);
+			object? parserParameter, bool calculateIntermediateValue, ref ParsingError furthestError);
+
+		/// <inheritdoc cref="Match(string, int, int, object?, bool, ref ParsingError)"/>
+		public ParsedElement Match(string input, int position, int barrierPosition,
+			object? parserParameter, bool calculateIntermediateValue)
+		{
+			var furthestError = ParsingError.Empty;
+			return Match(input, position, barrierPosition, parserParameter, calculateIntermediateValue, ref furthestError);
+		}
+
+		/// <inheritdoc cref="Match(string, int, int, object?, bool, ref ParsingError)"/>
+		public ParsedElement Match(string input, int position, int barrierPosition,
+			bool calculateIntermediateValue = true)
+		{
+			var furthestError = ParsingError.Empty;
+			return Match(input, position, barrierPosition, null, calculateIntermediateValue, ref furthestError);
+		}
 
 		public override bool Equals(object? obj)
 		{

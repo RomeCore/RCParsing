@@ -53,12 +53,16 @@ namespace RCParsing.TokenPatterns
 
 
 		public override ParsedElement Match(string input, int position, int barrierPosition,
-			object? parserParameter, bool calculateIntermediateValue)
+			object? parserParameter, bool calculateIntermediateValue, ref ParsingError furthestError)
 		{
 			var match = Regex.Match(input, position, barrierPosition - position);
 
 			if (!match.Success || match.Index != position)
+			{
+				if (position >= furthestError.position)
+					furthestError = new ParsingError(position, 0, "Cannot match regular expression,", Id, true);
 				return ParsedElement.Fail;
+			}
 			else
 				return new ParsedElement(position, match.Length, match);
 		}

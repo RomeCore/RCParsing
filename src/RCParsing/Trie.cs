@@ -19,6 +19,11 @@ namespace RCParsing
 		private readonly IEqualityComparer<char> comparer;
 
 		/// <summary>
+		/// Gets the number of elements in this trie.
+		/// </summary>
+		public int Count { get; }
+
+		/// <summary>
 		/// Initializes a new empty instance of the <see cref="Trie"/> class.
 		/// </summary>
 		public Trie()
@@ -52,6 +57,7 @@ namespace RCParsing
 				if (e.Key == null) throw new ArgumentException("Key cannot be null", nameof(entries));
 				// Node.Add will mutate node fields while building — it's allowed during constructor.
 				this.root.Add(e.Key, e.Value, this.comparer);
+				Count++;
 			}
 		}
 

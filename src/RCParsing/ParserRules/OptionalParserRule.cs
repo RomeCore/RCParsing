@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -31,40 +30,31 @@ namespace RCParsing.ParserRules
 
 
 
-		private Func<ParserContext, ParserSettings, ParserSettings, ParsedRule> parseFunction;
+		private ParseDelegate parseFunction;
 
 		protected override void Initialize(ParserInitFlags initFlags)
 		{
-			parseFunction = (ctx, stng, chStng) =>
+			ParsedRule Parse(ref ParserContext context, ref ParserSettings settings, ref ParserSettings childSettings)
 			{
-				var result = TryParseRule(Rule, ctx, chStng);
+				var result = TryParseRule(Rule, context, childSettings);
 				if (result.success)
 				{
 					return ParsedRule.Rule(Id, result.startIndex, result.length, result.passedBarriers, ParsedRuleChildUtils.Single(ref result), result.intermediateValue);
 				}
 				else
 				{
-					return ParsedRule.Rule(Id, ctx.position, 0, ctx.passedBarriers, ParsedRuleChildUtils.empty, null);
+					return ParsedRule.Rule(Id, context.position, 0, context.passedBarriers, ParsedRuleChildUtils.empty, null);
 				}
 			};
 
-			if (initFlags.HasFlag(ParserInitFlags.EnableMemoization))
-			{
-				var previous = parseFunction;
-				parseFunction = (ctx, stng, chStng) =>
-				{
-					if (ctx.cache.TryGetRule(Id, ctx.position, out var cachedResult))
-						return cachedResult;
-					cachedResult = previous(ctx, stng, chStng);
-					ctx.cache.AddRule(Id, ctx.position, cachedResult);
-					return cachedResult;
-				};
-			}
+			parseFunction = Parse;
+
+			parseFunction = WrapParseFunction(parseFunction, initFlags);
 		}
 
 		public override ParsedRule Parse(ParserContext context, ParserSettings settings, ParserSettings childSettings)
 		{
-			return parseFunction(context, settings, childSettings);
+			return parseFunction(ref context, ref settings, ref childSettings);
 		}
 
 

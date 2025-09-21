@@ -51,7 +51,7 @@ namespace RCParsing.TokenPatterns
 
 
 		public override ParsedElement Match(string input, int position, int barrierPosition,
-			object? parserParameter, bool calculateIntermediateValue)
+			object? parserParameter, bool calculateIntermediateValue, ref ParsingError furthestError)
 		{
 			int initialPosition = position;
 			while (position < barrierPosition &&
@@ -61,7 +61,11 @@ namespace RCParsing.TokenPatterns
 
 			int count = position - initialPosition;
 			if (count < MinCount)
+			{
+				if (position >= furthestError.position)
+					furthestError = new ParsingError(position, 0, "Minimum count of repeated characters not met.", Id, true);
 				return ParsedElement.Fail;
+			}
 
 			return new ParsedElement(initialPosition, count);
 		}

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Data;
 using System.Linq;
 using System.Text;
@@ -430,7 +429,7 @@ namespace RCParsing.Building
 				var builtElement = element.Build(ruleChildren, tokenChildren);
 
 				builtElement.Id = id;
-				builtElement.Aliases = aliases.ToImmutableList();
+				builtElement.Aliases = aliases.ToArray().AsReadOnlyList();
 
 				var elementSettings = element.Settings;
 				var builtSettings = elementSettings.Build(settingsRuleChildren);
@@ -450,7 +449,7 @@ namespace RCParsing.Building
 			}
 
 			// Return the fully built parser instance with rules and token patterns
-			return new Parser(resultTokenPatterns.ToImmutableArray(), resultRules.ToImmutableArray(),
+			return new Parser(resultTokenPatterns, resultRules,
 				tokenizers, mainSettings, globalSettings, mainRuleId, initFlagsFactory);
 		}
 	}

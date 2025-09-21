@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using System.Xml.Linq;
@@ -225,7 +224,7 @@ namespace RCParsing
 			{
 				if (_errorMessages != null)
 					return _errorMessages;
-				return _errorMessages = Errors.Select(e => e.message).Where(p => p != null).Distinct().ToImmutableList();
+				return _errorMessages = Errors.Select(e => e.message).Where(p => p != null).Distinct().ToArray().AsReadOnlyList();
 			}
 		}
 
@@ -247,7 +246,7 @@ namespace RCParsing
 		{
 			Context = context;
 			Position = position;
-			Errors = errors.ToImmutableList();
+			Errors = errors.ToArray().AsReadOnlyList();
 
 			if (Errors.Count == 0)
 				throw new ArgumentException("No errors provided.", nameof(errors));

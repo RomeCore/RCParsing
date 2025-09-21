@@ -20,8 +20,9 @@ namespace RCParsing.Benchmarks.JSON
 			builder.Settings
 				.SkipWhitespaces();
 
+			// I prefer manual tokens for maximum speed!
 			builder.CreateToken("string_inner")
-				.Custom((self, input, start, end, parameter) =>
+				.Custom((self, input, start, end, parameter, calc) =>
 				{
 					int pos = start;
 					while (pos < end && input[pos] != '"')
@@ -33,7 +34,8 @@ namespace RCParsing.Benchmarks.JSON
 				.Between(
 					b => b.Literal('"'),
 					b => b.Token("string_inner"),
-					b => b.Literal('"'));
+					b => b.Literal('"')
+				);
 
 			builder.CreateToken("number")
 				.Number<double>(NumberFlags.Integer); // Match integer, without convertation

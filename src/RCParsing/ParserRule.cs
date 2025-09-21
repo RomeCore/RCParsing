@@ -6,6 +6,17 @@ using System.Text;
 namespace RCParsing
 {
 	/// <summary>
+	/// The delegate used for inner parser rules optimizations.
+	/// </summary>
+	/// <param name="ctx">The context used for parsing.</param>
+	/// <param name="settings">The settings to apply for current element.</param>
+	/// <param name="childSettings">The settings to propagate for children elements.</param>
+	/// <returns>The parsed rule result.</returns>
+	public delegate ParsedRule ParseDelegate(ref ParserContext ctx, ref ParserSettings settings, ref ParserSettings childSettings);
+
+
+
+	/// <summary>
 	/// Represents a parser rule that can be used to parse input strings.
 	/// </summary>
 	public abstract class ParserRule : ParserElement
@@ -37,15 +48,48 @@ namespace RCParsing
 		}
 
 		/// <summary>
+		/// Wraps parse function to implement memoization and other things.
+		/// </summary>
+		/// <param name="toWrap">The function to wrap.</param>
+		/// <param name="flags">The parser initialization flags.</param>
+		/// <returns>The wrapped or original function.</returns>
+		protected ParseDelegate WrapParseFunction(ParseDelegate toWrap, ParserInitFlags flags)
+		{
+			if (flags.HasFlag(ParserInitFlags.EnableMemoization))
+			{
+				var prev = toWrap;
+				ParsedRule ParseMemoized(ref ParserContext ctx, ref ParserSettings stng, ref ParserSettings chStng)
+				{
+					if (ctx.cache.TryGetRule(Id, ctx.position, out var cachedResult))
+						return cachedResult;
+/*
+					if (!ctx.cache.TryBeginRule(Id, ctx.position))
+						return ParsedRule.Fail;
+*/
+					int position = ctx.position;
+					cachedResult = prev(ref ctx, ref stng, ref chStng);
+					ctx.cache.AddRule(Id, position, cachedResult);
+					return cachedResult;
+				}
+				toWrap = ParseMemoized;
+			}
+
+			return toWrap;
+		}
+
+		/// <summary>
 		/// Advances the parser context to use for this and child elements.
 		/// </summary>
 		public void AdvanceContext(ref ParserContext context, ref ParserSettings settings, out ParserSettings childSettings)
 		{
 			if (_writeStackTrace)
 				context.AppendStackFrame(Id);
-			childSettings = settings;
 
-			if (!Settings.isDefault)
+			if (Settings.isDefault)
+			{
+				childSettings = settings;
+			}
+			else
 			{
 				settings.Resolve(Settings, Parser.GlobalSettings, out var forLocal, out var forChildren);
 				settings = forLocal;

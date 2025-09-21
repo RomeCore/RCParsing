@@ -16,7 +16,7 @@ namespace RCParsing.Benchmarks.JSON
 		public static void FillWithRules(ParserBuilder builder)
 		{
 			builder.CreateToken("string_inner")
-				.Custom((self, input, start, end, parameter) =>
+				.Custom((self, input, start, end, parameter, calc) =>
 				{
 					int pos = start;
 					while (pos < end && input[pos] != '"')
@@ -114,7 +114,8 @@ namespace RCParsing.Benchmarks.JSON
 
 		public static object Parse(string text)
 		{
-			return valueTokenPattern.Match(text, 0, text.Length, null, true).intermediateValue;
+			ParsingError error = new ParsingError(-1, 0);
+			return valueTokenPattern.Match(text, 0, text.Length, null, true, ref error).intermediateValue;
 		}
 	}
 }

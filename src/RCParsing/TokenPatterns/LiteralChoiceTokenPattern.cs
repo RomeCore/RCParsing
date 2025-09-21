@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using RCParsing.Utils;
@@ -23,7 +22,7 @@ namespace RCParsing.TokenPatterns
 		/// <summary>
 		/// Gets the set of literal strings to match.
 		/// </summary>
-		public ImmutableHashSet<string> Literals { get; }
+		public IReadOnlyList<string> Literals { get; }
 
 		/// <summary>
 		/// Gets the comparer used for matching.
@@ -47,7 +46,7 @@ namespace RCParsing.TokenPatterns
 
 			Comparer = comparer ?? StringComparer.Ordinal;
 			CharComparer = new CharComparer(Comparer);
-			Literals = ImmutableHashSet.CreateRange(Comparer, literals);
+			Literals = literals.ToList().AsReadOnlyList();
 
 			_comparerWasSet = comparer != null;
 			_root = new Trie(Literals.Select(l => new KeyValuePair<string, object?>(l, l)), _comparerWasSet ? CharComparer : null);
@@ -59,13 +58,15 @@ namespace RCParsing.TokenPatterns
 
 
 		public override ParsedElement Match(string input, int position, int barrierPosition,
-			object? parserParameter, bool calculateIntermediateValue)
+			object? parserParameter, bool calculateIntermediateValue, ref ParsingError furthestError)
 		{
 			if (_root.TryGetLongestMatch(input, position, barrierPosition, out var matchedLiteral, out int matchedLength))
 			{
 				return new ParsedElement(position, matchedLength, matchedLiteral);
 			}
 
+			if (position >= furthestError.position)
+				furthestError = new ParsingError(position, 0, "Cannot match literal choice.", Id, true);
 			return ParsedElement.Fail;
 		}
 
@@ -80,7 +81,7 @@ namespace RCParsing.TokenPatterns
 		{
 			return base.Equals(obj) &&
 				   obj is LiteralChoiceTokenPattern other &&
-				   Literals.SetEquals(other.Literals) &&
+				   Literals.SetEqual(other.Literals) &&
 				   Equals(Comparer, other.Comparer);
 		}
 

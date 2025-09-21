@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 
@@ -50,54 +49,45 @@ namespace RCParsing.ParserRules
 
 
 
-		private Func<ParserContext, ParserSettings, ParserSettings, ParsedRule> parseFunction;
+		private ParseDelegate parseFunction;
 
 		protected override void Initialize(ParserInitFlags initFlags)
 		{
-			parseFunction = (ctx, stng, chStng) =>
+			ParsedRule Parse(ref ParserContext context, ref ParserSettings settings, ref ParserSettings childSettings)
 			{
 				var rules = new List<ParsedRule>();
-				var initialPosition = ctx.position;
+				var initialPosition = context.position;
 				ParsedRule parsedRule = default;
 
 				for (int i = 0; i < this.MaxCount || this.MaxCount == -1; i++)
 				{
-					parsedRule = TryParseRule(Rule, ctx, chStng);
+					parsedRule = TryParseRule(Rule, context, childSettings);
 					if (!parsedRule.success)
 						break;
 
-					ctx.position = parsedRule.startIndex + parsedRule.length;
-					ctx.passedBarriers = parsedRule.passedBarriers;
+					context.position = parsedRule.startIndex + parsedRule.length;
+					context.passedBarriers = parsedRule.passedBarriers;
 					parsedRule.occurency = i;
 					rules.Add(parsedRule);
 				}
 
 				if (rules.Count < MinCount)
 				{
-					RecordError(ref ctx, ref stng, $"Expected at least {MinCount} repetitions of child rule, but found {rules.Count}.");
+					RecordError(ref context, ref settings, $"Expected at least {MinCount} repetitions of child rule, but found {rules.Count}.");
 					return ParsedRule.Fail;
 				}
 
-				return ParsedRule.Rule(Id, initialPosition, ctx.position - initialPosition, ctx.passedBarriers, rules, null);
+				return ParsedRule.Rule(Id, initialPosition, context.position - initialPosition, context.passedBarriers, rules, null);
 			};
 
-			if (initFlags.HasFlag(ParserInitFlags.EnableMemoization))
-			{
-				var previous = parseFunction;
-				parseFunction = (ctx, stng, chStng) =>
-				{
-					if (ctx.cache.TryGetRule(Id, ctx.position, out var cachedResult))
-						return cachedResult;
-					cachedResult = previous(ctx, stng, chStng);
-					ctx.cache.AddRule(Id, ctx.position, cachedResult);
-					return cachedResult;
-				};
-			}
+			parseFunction = Parse;
+
+			parseFunction = WrapParseFunction(parseFunction, initFlags);
 		}
 
 		public override ParsedRule Parse(ParserContext context, ParserSettings settings, ParserSettings childSettings)
 		{
-			return parseFunction(context, settings, childSettings);
+			return parseFunction(ref context, ref settings, ref childSettings);
 		}
 
 

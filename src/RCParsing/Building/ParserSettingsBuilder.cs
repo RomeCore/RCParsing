@@ -113,6 +113,18 @@ namespace RCParsing.Building
 		}
 
 		/// <summary>
+		/// Enables token error recording. If not set, only rule parsing errors will be recorded.
+		/// </summary>
+		/// <remarks>
+		/// Very useful when working with complex token combinators.
+		/// </remarks>
+		/// <returns>Current instance for method chaining.</returns>
+		public ParserSettingsBuilder RecordTokenErrors()
+		{
+			return UseInitFlags(ParserInitFlags.RecordTokenErrors);
+		}
+
+		/// <summary>
 		/// Sets the no error record handling mode.
 		/// </summary>
 		/// <remarks>

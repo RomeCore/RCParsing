@@ -28,13 +28,15 @@ namespace RCParsing.TokenPatterns
 
 
 		public override ParsedElement Match(string input, int position, int barrierPosition,
-			object? parserParameter, bool calculateIntermediateValue)
+			object? parserParameter, bool calculateIntermediateValue, ref ParsingError furthestError)
 		{
 			if (position < barrierPosition && CharacterPredicate(input[position]))
 			{
 				return new ParsedElement(position, 1);
 			}
 
+			if (position >= furthestError.position)
+				furthestError = new ParsingError(position, 0, "Failed to match predicate", Id, true);
 			return ParsedElement.Fail;
 		}
 

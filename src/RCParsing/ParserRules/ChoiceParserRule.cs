@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Data;
 using System.Linq;
 using RCParsing.Utils;
 
@@ -12,10 +10,12 @@ namespace RCParsing.ParserRules
 	/// </summary>
 	public class ChoiceParserRule : ParserRule
 	{
+		private int[] _choicesIds;
+
 		/// <summary>
 		/// The rule ids that are being chosen from.
 		/// </summary>
-		public ImmutableArray<int> Choices { get; }
+		public IReadOnlyList<int> Choices { get; }
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="ChoiceParserRule"/> class.
@@ -23,9 +23,9 @@ namespace RCParsing.ParserRules
 		/// <param name="parserRuleIds">The parser rules ids to choose from.</param>
 		public ChoiceParserRule(IEnumerable<int> parserRuleIds)
 		{
-			Choices = parserRuleIds?.ToImmutableArray()
-				?? throw new ArgumentNullException(nameof(parserRuleIds));
-			if (Choices.IsEmpty)
+			_choicesIds = parserRuleIds?.ToArray() ?? throw new ArgumentNullException(nameof(parserRuleIds));
+			Choices = _choicesIds.AsReadOnlyList();
+			if (_choicesIds.Length == 0)
 				throw new ArgumentException("At least one parser rule must be provided.", nameof(parserRuleIds));
 		}
 
@@ -44,15 +44,15 @@ namespace RCParsing.ParserRules
 
 		#region Optimization
 
-		private Func<ParserContext, ParserSettings, ParserSettings, ParsedRule> parseFunction;
+		private ParseDelegate parseFunction;
 
 		protected override void Initialize(ParserInitFlags initFlags)
 		{
 			if (!initFlags.HasFlag(ParserInitFlags.FirstCharacterMatch))
 			{
-				var parseFunctions = new Func<ParserContext, ParserSettings, ParsedRule>[Choices.Length];
+				var parseFunctions = new Func<ParserContext, ParserSettings, ParsedRule>[_choicesIds.Length];
 
-				for (int i = 0; i < Choices.Length; i++)
+				for (int i = 0; i < _choicesIds.Length; i++)
 				{
 					var id = Choices[i];
 					var rule = GetRule(id);
@@ -67,11 +67,11 @@ namespace RCParsing.ParserRules
 					}
 				}
 
-				parseFunction = (ctx, stng, chStng) =>
+				ParsedRule Parse(ref ParserContext context, ref ParserSettings settings, ref ParserSettings childSettings)
 				{
 					for (int i = 0; i < parseFunctions.Length; i++)
 					{
-						var parsedRule = parseFunctions[i](ctx, chStng);
+						var parsedRule = parseFunctions[i](context, childSettings);
 
 						if (parsedRule.success)
 						{
@@ -85,9 +85,11 @@ namespace RCParsing.ParserRules
 						}
 					}
 
-					RecordError(ref ctx, ref stng, "Found no matching choice.");
+					RecordError(ref context, ref settings, "Found no matching choice.");
 					return ParsedRule.Fail;
-				};
+				}
+
+				parseFunction = Parse;
 			}
 			else
 			{
@@ -128,14 +130,14 @@ namespace RCParsing.ParserRules
 
 				var nonDeterministicCandidates = _nonDeterministicCandidates.ToArray();
 
-				parseFunction = (ctx, stng, chStng) =>
+				ParsedRule Parse(ref ParserContext context, ref ParserSettings settings, ref ParserSettings childSettings)
 				{
-					if (!candidatesByFirstChar.TryGetValue(ctx.input[ctx.position], out var candidates))
+					if (!candidatesByFirstChar.TryGetValue(context.input[context.position], out var candidates))
 						candidates = nonDeterministicCandidates;
 
 					for (int i = 0; i < candidates.Length; i++)
 					{
-						var parsedRule = candidates[i](ctx, chStng);
+						var parsedRule = candidates[i](context, childSettings);
 
 						if (parsedRule.success)
 						{
@@ -149,30 +151,21 @@ namespace RCParsing.ParserRules
 						}
 					}
 
-					RecordError(ref ctx, ref stng, "Found no matching choice.");
+					RecordError(ref context, ref settings, "Found no matching choice.");
 					return ParsedRule.Fail;
-				};
+				}
+
+				parseFunction = Parse;
 			}
 
-			if (initFlags.HasFlag(ParserInitFlags.EnableMemoization))
-			{
-				var previous = parseFunction;
-				parseFunction = (ctx, stng, chStng) =>
-				{
-					if (ctx.cache.TryGetRule(Id, ctx.position, out var cachedResult))
-						return cachedResult;
-					cachedResult = previous(ctx, stng, chStng);
-					ctx.cache.AddRule(Id, ctx.position, cachedResult);
-					return cachedResult;
-				};
-			}
+			parseFunction = WrapParseFunction(parseFunction, initFlags);
 		}
 
 		#endregion
 
 		public override ParsedRule Parse(ParserContext context, ParserSettings settings, ParserSettings childSettings)
 		{
-			return parseFunction(context, settings, childSettings);
+			return parseFunction(ref context, ref settings, ref childSettings);
 		}
 
 

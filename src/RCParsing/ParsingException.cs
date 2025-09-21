@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -52,7 +51,7 @@ namespace RCParsing
 				new ParsingError[] { CreateError(message, context.position, out var error) }))
 		{
 			Context = context;
-			Errors = ImmutableList.Create(error);
+			Errors = new ParsingError[] { error }.AsReadOnlyList();
 			LastErrorMessage = message;
 			LastPosition = context.position;
 			Groups = groups;
@@ -69,7 +68,7 @@ namespace RCParsing
 				new ParsingError[] { CreateError(message, position, out var error) }))
 		{
 			Context = context;
-			Errors = ImmutableList.Create(error);
+			Errors = new ParsingError[] { error }.AsReadOnlyList();
 			LastErrorMessage = message;
 			LastPosition = position;
 			Groups = groups;

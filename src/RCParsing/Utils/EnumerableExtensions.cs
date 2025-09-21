@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
@@ -12,6 +11,14 @@ namespace RCParsing.Utils
 {
 	internal static class EnumerableExtensions
 	{
+		/// <summary>
+		/// Converts to new <see cref="ReadOnlyCollection{T}"/>.
+		/// </summary>
+		public static IReadOnlyList<T> AsReadOnlyList<T>(this IList<T> collection)
+		{
+			return new ReadOnlyCollection<T>(collection);
+		}
+		
 		/// <summary>
 		/// Casts to <see cref="ReadOnlyCollection{T}"/> or creates new.
 		/// </summary>
@@ -34,6 +41,24 @@ namespace RCParsing.Utils
 		public static IReadOnlyDictionary<TKey, TValue> AsReadOnly<TKey, TValue>(this IDictionary<TKey, TValue> dictionary)
 		{
 			return dictionary as ReadOnlyDictionary<TKey, TValue> ?? new ReadOnlyDictionary<TKey, TValue>(dictionary);
+		}
+
+		/// <summary>
+		/// Checks if two collections are equal using the specified comparer. If no comparer is provided, uses default equality comparer for type T.
+		/// </summary>
+		public static bool SetEqual<T>(this IEnumerable<T> first, IEnumerable<T> second, IEqualityComparer<T>? comparer = null)
+		{
+			if (first == null)
+				throw new ArgumentNullException(nameof(first));
+			if (second == null)
+				throw new ArgumentNullException(nameof(second));
+
+			comparer ??= EqualityComparer<T>.Default;
+
+			var firstSet = new HashSet<T>(first, comparer);
+			var secondSet = new HashSet<T>(second, comparer);
+
+			return firstSet.SetEquals(secondSet);
 		}
 
 		/// <summary>
@@ -238,14 +263,6 @@ namespace RCParsing.Utils
 		public static T[] WrapIntoArray<T>(this T value)
 		{
 			return new T[] { value };
-		}
-
-		/// <summary>
-		/// Creates an immutable array that contains this value.
-		/// </summary>
-		public static ImmutableArray<T> WrapIntoImmutableArray<T>(this T value)
-		{
-			return ImmutableArray.Create(value);
 		}
 	}
 }

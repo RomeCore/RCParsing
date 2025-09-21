@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using RCParsing.Utils;
@@ -18,18 +18,19 @@ namespace RCParsing.TokenPatterns
 	public class EscapedTextTokenPattern : TokenPattern
 	{
 		private readonly bool _comparerWasSet;
+		private readonly bool _escapeNonEmpty;
 		private readonly Trie _escape;
 		private readonly Trie _forbidden;
 
 		/// <summary>
 		/// The set of escape mappings to use for escaping sequences in the input text.
 		/// </summary>
-		public ImmutableDictionary<string, string> EscapeMappings { get; }
+		public IDictionary<string, string> EscapeMappings { get; }
 
 		/// <summary>
 		/// The set of forbidden sequences that cannot appear in the input text if they are not escaped.
 		/// </summary>
-		public ImmutableHashSet<string> ForbiddenSequences { get; }
+		public IReadOnlyList<string> ForbiddenSequences { get; }
 
 		/// <summary>
 		/// Gets a value indicating whether empty strings are allowed as valid matches.
@@ -63,14 +64,15 @@ namespace RCParsing.TokenPatterns
 
 			Comparer = comparer ?? StringComparer.Ordinal;
 			CharComparer = new CharComparer(Comparer);
-			EscapeMappings = ImmutableDictionary.CreateRange(Comparer, escapeMappings);
-			ForbiddenSequences = ImmutableHashSet.CreateRange(Comparer, forbidden);
+			EscapeMappings = new ReadOnlyDictionary<string, string>(escapeMappings.ToDictionary(k => k.Key, v => v.Value, Comparer));
+			ForbiddenSequences = forbidden.ToArray().AsReadOnlyList();
 			AllowsEmpty = allowsEmpty;
 
 			_comparerWasSet = comparer != null;
 			_escape = new Trie(escapeMappings.Select(kvp => new KeyValuePair<string, object?>(kvp.Key, kvp.Value)),
 				comparer != null ? CharComparer : null);
 			_forbidden = new Trie(forbidden,comparer != null ? CharComparer : null);
+			_escapeNonEmpty = _escape.Count > 0;
 		}
 
 		protected override HashSet<char>? FirstCharsCore => null;
@@ -203,33 +205,34 @@ namespace RCParsing.TokenPatterns
 
 
 
+		// Two identical methods for maximum speed
+		// It's been already tested and will be barely changed
 
-		public override ParsedElement Match(string input, int position, int barrierPosition,
-			object? parserParameter, bool calculateIntermediateValue)
+		private ParsedElement MatchWithoutCalculation(string input, int position, int barrierPosition, ref ParsingError furthestError)
 		{
 			int start = position;
 			int pos = start;
-			var sb = calculateIntermediateValue ? new StringBuilder() : null;
 
 			while (pos < barrierPosition)
 			{
 				// 1) Try to match the longest escape starting at pos.
 				//    If found — apply replacement and continue.
-				if (_escape.TryGetLongestMatch(input, pos, barrierPosition, out var replacement, out int escapeConsumed))
+				if (_escapeNonEmpty && _escape.TryGetLongestMatch(input, pos, barrierPosition, out var replacement, out int escapeConsumed))
 				{
-					sb?.Append(replacement as string ?? string.Empty);
 					pos += escapeConsumed;
 					continue;
 				}
 
 				// 2) No escape terminal at this position.
 				//    If a forbidden terminal starts here, stop (do not consume forbidden).
-				if (_forbidden.TryGetLongestMatch(input, pos, barrierPosition, out _, out int forbiddenConsumed))
+				if (_forbidden.ContainsMatch(input, pos, barrierPosition, out int forbiddenConsumed))
 				{
 					break; // unescaped forbidden sequence -> end of matched text
 				}
 
-				// 3) No terminal found for escape or forbidden.
+				// TODO: Maybe remove this? Needs tesing
+
+				/*// 3) No terminal found for escape or forbidden.
 				//    We must detect the *real* incomplete-escape case:
 				//    If the remainder of the input starting at pos is a strict prefix of some escape
 				//    AND we are at the end of the input (no more chars to try) => incomplete escape -> error.
@@ -246,10 +249,9 @@ namespace RCParsing.TokenPatterns
 					}
 					// If we are not at EOF, we still append current char as normal — future iterations
 					// may complete into a terminal escape (rare here because we scan the whole input).
-				}
+				}*/
 
-				// 4) Append normal character and advance.
-				sb?.Append(input[pos]);
+				// 4) Advance.
 				pos++;
 			}
 
@@ -258,10 +260,99 @@ namespace RCParsing.TokenPatterns
 
 			if (length == 0 && !AllowsEmpty) // empty match and not allowed -> error
 			{
+				if (position >= furthestError.position)
+					furthestError = new ParsingError(position, 0, "Empty match is not allowed.", Id, true);
 				return ParsedElement.Fail;
 			}
 
+			return new ParsedElement(start, length);
+		}
+
+		private ParsedElement MatchWithCalculation(string input, int position, int barrierPosition, ref ParsingError furthestError)
+		{
+			int start = position;
+			int pos = start;
+			int lastFoundEscape = start;
+			StringBuilder? sb = null;
+
+			while (pos < barrierPosition)
+			{
+				// 1) Try to match the longest escape starting at pos.
+				//    If found — apply replacement and continue.
+				if (_escapeNonEmpty && _escape.TryGetLongestMatch(input, pos, barrierPosition, out var replacement, out int escapeConsumed))
+				{
+					sb ??= new StringBuilder();
+
+					if (pos > lastFoundEscape)
+						sb.Append(input, lastFoundEscape, pos - lastFoundEscape);
+					sb.Append(replacement as string ?? string.Empty);
+
+					pos += escapeConsumed;
+					lastFoundEscape = pos;
+					continue;
+				}
+
+				// 2) No escape terminal at this position.
+				//    If a forbidden terminal starts here, stop (do not consume forbidden).
+				if (_forbidden.ContainsMatch(input, pos, barrierPosition, out int forbiddenConsumed))
+				{
+					break; // unescaped forbidden sequence -> end of matched text
+				}
+
+				// TODO: Maybe remove this? Needs tesing
+
+				/*// 3) No terminal found for escape or forbidden.
+				//    We must detect the *real* incomplete-escape case:
+				//    If the remainder of the input starting at pos is a strict prefix of some escape
+				//    AND we are at the end of the input (no more chars to try) => incomplete escape -> error.
+				//    Otherwise treat the current char as normal text.
+				if (_escape.IsStrictPrefixOfAny(input, pos, barrierPosition))
+				{
+					// If the remaining input is a strict prefix of some escape and we are at EOF
+					// (i.e. there are no more characters to complete that escape), then it's invalid.
+					// We only error when pos..end matches prefix-of-some-escape and there are no more characters
+					// that can arrive (we operate on the full string), so this is true incomplete escape.
+					if (pos + (barrierPosition - pos) >= barrierPosition) // redundant but explicit: we are at end-of-input suffix
+					{
+						return ParsedElement.Fail;
+					}
+					// If we are not at EOF, we still append current char as normal — future iterations
+					// may complete into a terminal escape (rare here because we scan the whole input).
+				}*/
+
+				// 4) Advance.
+				pos++;
+			}
+
+			// Produce token
+			int length = pos - start;
+
+			if (length == 0) // empty match and not allowed -> error
+			{
+				if (!AllowsEmpty)
+				{
+					if (position >= furthestError.position)
+						furthestError = new ParsingError(position, 0, "Empty match is not allowed.", Id, true);
+					return ParsedElement.Fail;
+				}
+				return new ParsedElement(start, 0, string.Empty);
+			}
+
+			if (lastFoundEscape == start)
+				return new ParsedElement(start, length, input.Substring(start, length));
+			if (pos > lastFoundEscape)
+				sb.Append(input, lastFoundEscape, pos - lastFoundEscape);
+
 			return new ParsedElement(start, length, sb?.ToString());
+		}
+
+		public override ParsedElement Match(string input, int position, int barrierPosition,
+			object? parserParameter, bool calculateIntermediateValue, ref ParsingError furthestError)
+		{
+			if (calculateIntermediateValue)
+				return MatchWithCalculation(input, position, barrierPosition, ref furthestError);
+			else
+				return MatchWithoutCalculation(input, position, barrierPosition, ref furthestError);
 		}
 
 
@@ -278,8 +369,8 @@ namespace RCParsing.TokenPatterns
 		{
 			return base.Equals(obj) &&
 				   obj is EscapedTextTokenPattern other &&
-				   EscapeMappings.SequenceEqual(other.EscapeMappings) &&
-				   ForbiddenSequences.SetEquals(other.ForbiddenSequences) &&
+				   EscapeMappings.SetEqual(other.EscapeMappings) &&
+				   ForbiddenSequences.SetEqual(other.ForbiddenSequences) &&
 				   Equals(Comparer, other.Comparer) &&
 				   AllowsEmpty == other.AllowsEmpty &&
 				   _comparerWasSet == other._comparerWasSet;

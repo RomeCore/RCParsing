@@ -37,8 +37,13 @@ namespace RCParsing
 		EnableMemoization = 1 << 2,
 
 		/// <summary>
+		/// Enables recording detailed error information about token parsing, which can be helpful for debugging token combinators.
+		/// </summary>
+		RecordTokenErrors = 1 << 3,
+
+		/// <summary>
 		/// Enables writing stack traces for debugging purposes during parsing. This can be useful to understand the flow of execution and identify potential issues.
 		/// </summary>
-		StackTraceWriting = 1 << 3,
+		StackTraceWriting = 1 << 4,
 	}
 }

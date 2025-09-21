@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Text;
 using System.Text.RegularExpressions;
 using RCParsing.Utils;
@@ -38,14 +37,14 @@ namespace RCParsing
 			Context = context;
 			TopFrame = new(this, topFrame ?? throw new ArgumentNullException(nameof(topFrame)));
 
-			var frames = ImmutableList.CreateBuilder<ParserStackFrame>();
+			var frames = new List<ParserStackFrame>();
 			var _topFrame = TopFrame;
 			while (_topFrame != null)
 			{
 				frames.Add(_topFrame);
 				_topFrame = _topFrame.Previous;
 			}
-			Frames = frames.ToImmutable();
+			Frames = frames.AsReadOnlyList();
 		}
 
 		public int Count => Frames.Count;

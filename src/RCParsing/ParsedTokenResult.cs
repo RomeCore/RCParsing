@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Data;
 using System.Text;
 
@@ -49,7 +48,7 @@ namespace RCParsing
 		/// <summary>
 		/// Gets the aliases for the token pattern that was parsed.
 		/// </summary>
-		public ImmutableList<string> TokenAliases => Token.Aliases;
+		public IReadOnlyList<string> TokenAliases => Token.Aliases;
 
 		/// <summary>
 		/// Gets the starting index of the token in the input text.

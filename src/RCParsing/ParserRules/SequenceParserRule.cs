@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Data;
 using System.Linq;
-using System.Text;
 using RCParsing.Utils;
 
 namespace RCParsing.ParserRules
@@ -13,10 +10,12 @@ namespace RCParsing.ParserRules
 	/// </summary>
 	public class SequenceParserRule : ParserRule
 	{
+		private readonly int[] _rules;
+		
 		/// <summary>
 		/// The rules ids that make up the sequence.
 		/// </summary>
-		public ImmutableArray<int> Rules { get; }
+		public IReadOnlyList<int> Rules { get; }
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="SequenceParserRule"/> class.
@@ -24,8 +23,9 @@ namespace RCParsing.ParserRules
 		/// <param name="parserRules">The rules ids that make up the sequence.</param>
 		public SequenceParserRule(IEnumerable<int> parserRules)
 		{
-			Rules = parserRules?.ToImmutableArray() ?? throw new ArgumentNullException(nameof(parserRules));
-			if (Rules.Length == 0)
+			_rules = parserRules?.ToArray() ?? throw new ArgumentNullException(nameof(parserRules));
+			Rules = _rules.AsReadOnlyList();
+			if (_rules.Length == 0)
 				throw new ArgumentException("Sequence must have at least one rule");
 		}
 
@@ -35,14 +35,14 @@ namespace RCParsing.ParserRules
 
 		#region Optimization
 
-		private Func<ParserContext, ParserSettings, ParserSettings, ParsedRule> parseFunction;
+		private ParseDelegate parseFunction;
 		private Func<ParserContext, ParserSettings, ParsedRule>[] parseFunctions;
 
 		protected override void Initialize(ParserInitFlags initFlags)
 		{
-			parseFunctions = new Func<ParserContext, ParserSettings, ParsedRule>[Rules.Length];
+			parseFunctions = new Func<ParserContext, ParserSettings, ParsedRule>[_rules.Length];
 
-			for (int i = 0; i < Rules.Length; i++)
+			for (int i = 0; i < _rules.Length; i++)
 			{
 				var id = Rules[i];
 				var rule = GetRule(id);
@@ -53,49 +53,40 @@ namespace RCParsing.ParserRules
 					parseFunctions[i] = (ctx, chStng) => TryParseRule(id, ctx, chStng);
 			}
 
-			parseFunction = (ctx, stng, chStng) =>
+			ParsedRule Parse(ref ParserContext context, ref ParserSettings settings, ref ParserSettings childSettings)
 			{
-				var startIndex = ctx.position;
+				var startIndex = context.position;
 				ParsedRule[]? rules = null;
 
 				for (int i = 0; i < parseFunctions.Length; i++)
 				{
-					var parsedRule = parseFunctions[i](ctx, chStng);
+					var parsedRule = parseFunctions[i](context, childSettings);
 					if (!parsedRule.success)
 					{
-						RecordError(ref ctx, ref stng, "Failed to parse sequence rule.");
+						RecordError(ref context, ref settings, "Failed to parse sequence rule.");
 						return ParsedRule.Fail;
 					}
 
-					rules ??= new ParsedRule[Rules.Length];
+					rules ??= new ParsedRule[_rules.Length];
 					parsedRule.occurency = i;
 					rules[i] = parsedRule;
-					ctx.position = parsedRule.startIndex + parsedRule.length;
-					ctx.passedBarriers = parsedRule.passedBarriers;
+					context.position = parsedRule.startIndex + parsedRule.length;
+					context.passedBarriers = parsedRule.passedBarriers;
 				}
 
-				return ParsedRule.Rule(Id, startIndex, ctx.position - startIndex, ctx.passedBarriers, rules);
+				return ParsedRule.Rule(Id, startIndex, context.position - startIndex, context.passedBarriers, rules);
 			};
 
-			if (initFlags.HasFlag(ParserInitFlags.EnableMemoization))
-			{
-				var previous = parseFunction;
-				parseFunction = (ctx, stng, chStng) =>
-				{
-					if (ctx.cache.TryGetRule(Id, ctx.position, out var cachedResult))
-						return cachedResult;
-					cachedResult = previous(ctx, stng, chStng);
-					ctx.cache.AddRule(Id, ctx.position, cachedResult);
-					return cachedResult;
-				};
-			}
+			parseFunction = Parse;
+
+			parseFunction = WrapParseFunction(parseFunction, initFlags);
 		}
 
 		#endregion
 
 		public override ParsedRule Parse(ParserContext context, ParserSettings settings, ParserSettings childSettings)
 		{
-			return parseFunction.Invoke(context, settings, childSettings);
+			return parseFunction.Invoke(ref context, ref settings, ref childSettings);
 		}
 
 
