@@ -11,6 +11,8 @@ namespace RCParsing.Tests
 		[Fact]
 		public void BasicErrorRecovery()
 		{
+			var builder = new ParserBuilder();
+
 
 		}
 	}

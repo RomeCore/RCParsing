@@ -4,13 +4,14 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Text;
+using RCParsing.Building;
 using RCParsing.Building.ParserRules;
 using RCParsing.Building.TokenPatterns;
 using RCParsing.ParserRules;
 using RCParsing.TokenPatterns;
 using RCParsing.Utils;
 
-namespace RCParsing.Building
+namespace RCParsing
 {
 	/* Concept (its very old)
 	
