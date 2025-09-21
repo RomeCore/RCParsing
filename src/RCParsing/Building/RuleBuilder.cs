@@ -230,7 +230,7 @@ namespace RCParsing.Building
 		}
 
 		/// <summary>
-		/// Configures the local settings for the current sequence rule.
+		/// Configures the local settings for the current rule.
 		/// </summary>
 		/// <param name="configAction">The configuration action.</param>
 		/// <returns>Current instance for method chaining.</returns>
@@ -262,6 +262,44 @@ namespace RCParsing.Building
 			}
 			else if (BuildingRule?.AsT2() is BuildableParserRule rule)
 				configAction(rule.Settings);
+			else
+				throw new ParserBuildingException("Parser rule is not set or it is a direct reference to named rule.");
+			return this;
+		}
+
+		/// <summary>
+		/// Configures the error recovery settings for the current rule.
+		/// </summary>
+		/// <param name="recoveryConfigAction">The error recovery configuration action.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if the parser rule is not set or it is a direct reference to a named rule.</exception>
+		public RuleBuilder Recovery(Action<ErrorRecoveryBuilder> recoveryConfigAction)
+		{
+			if (BuildingRule?.AsT2() is BuildableParserRule rule)
+				recoveryConfigAction(rule.ErrorRecovery);
+			else
+				throw new ParserBuildingException("Parser rule is not set or it is a direct reference to named rule.");
+			return this;
+		}
+
+		/// <summary>
+		/// Configures the error recovery settings for the last rule in the sequence.
+		/// </summary>
+		/// <param name="recoveryConfigAction">The error recovery configuration action.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if the parser rule is not set or it is a direct reference to a named rule.</exception>
+		public RuleBuilder RecoveryLast(Action<ErrorRecoveryBuilder> recoveryConfigAction)
+		{
+			if (BuildingRule?.AsT2() is BuildableSequenceParserRule sequenceRule)
+			{
+				if (sequenceRule.Elements.LastOrDefault().AsT2() is BuildableParserRule rule)
+					recoveryConfigAction(rule.ErrorRecovery);
+				else
+					throw new ParserBuildingException("Last rule in the sequence is not set or it is a direct reference to named rule.");
+				return this;
+			}
+			else if (BuildingRule?.AsT2() is BuildableParserRule rule)
+				recoveryConfigAction(rule.ErrorRecovery);
 			else
 				throw new ParserBuildingException("Parser rule is not set or it is a direct reference to named rule.");
 			return this;

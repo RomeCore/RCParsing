@@ -6,10 +6,11 @@ namespace RCParsing
 {
 	public partial class Parser
 	{
-		static ParsedRule TryRecovery(ParserRule rule, ref ParserContext context,
+		static ParsedRule TryRecover(ParserRule rule, ref ParserContext context,
 			ref ParserSettings settings, ref ParserSettings childSettings)
 		{
 			var recovery = rule.ErrorRecovery;
+			context.position++;
 			switch (recovery.strategy)
 			{
 				default:
@@ -29,8 +30,8 @@ namespace RCParsing
 
 
 
-		private static ParsedRule RecoverFindNext(ref ErrorRecovery recovery, ParserRule rule, ref ParserContext context,
-			ref ParserSettings settings, ref ParserSettings childSettings)
+		private static ParsedRule RecoverFindNext(ref ErrorRecovery recovery, ParserRule rule,
+			ref ParserContext context, ref ParserSettings settings, ref ParserSettings childSettings)
 		{
 			if (recovery.stopRule != -1)
 			{
@@ -39,7 +40,7 @@ namespace RCParsing
 				var stopSettings = settings;
 				stopRule.AdvanceContext(ref stopCtx, ref stopSettings, out var stopChildSettings);
 
-				while (context.position < context.maxPosition)
+				while (context.position <= context.maxPosition)
 				{
 					if (TryParse(rule, ref context, ref settings, ref childSettings, out var parsedRule))
 						return parsedRule;
@@ -54,7 +55,7 @@ namespace RCParsing
 				return ParsedRule.Fail;
 			}
 
-			while (context.position < context.maxPosition)
+			while (context.position <= context.maxPosition)
 			{
 				if (TryParse(rule, ref context, ref settings, ref childSettings, out var parsedRule))
 					return parsedRule;
@@ -64,10 +65,11 @@ namespace RCParsing
 			return ParsedRule.Fail;
 		}
 
-		private static ParsedRule RecoverSkipUntilAnchor(ref ErrorRecovery recovery, ParserRule rule, ref ParserContext context,
-			ref ParserSettings settings, ref ParserSettings childSettings)
+		private static ParsedRule RecoverSkipUntilAnchor(ref ErrorRecovery recovery, ParserRule rule,
+			ref ParserContext context, ref ParserSettings settings, ref ParserSettings childSettings)
 		{
-			var anchorRule = rule.Parser.Rules[recovery.anchorRule];
+			var parser = rule.Parser;
+			var anchorRule = parser.Rules[recovery.anchorRule];
 			var anchorCtx = context;
 			var anchorSettings = settings;
 			anchorRule.AdvanceContext(ref anchorCtx, ref anchorSettings, out var anchorChildSettings);
@@ -79,13 +81,16 @@ namespace RCParsing
 				var stopSettings = settings;
 				stopRule.AdvanceContext(ref stopCtx, ref stopSettings, out var stopChildSettings);
 
-				while (context.position < context.maxPosition)
+				while (context.position <= context.maxPosition)
 				{
 					var parsedAnchorRule = anchorRule.Parse(context, anchorSettings, anchorChildSettings);
 					if (parsedAnchorRule.success)
 					{
 						context.position = parsedAnchorRule.startIndex;
-						if (TryParse(rule, ref context, ref settings, ref childSettings, out var parsedRule))
+						var parsedRule = TryParseRule(rule, parser._rules, ref context,
+							ref settings, ref childSettings, parser.MainSettings, false);
+
+						if (parsedRule.success)
 							return parsedRule;
 						if (!recovery.repeatSkip)
 							return ParsedRule.Fail;
@@ -101,13 +106,16 @@ namespace RCParsing
 				return ParsedRule.Fail;
 			}
 
-			while (context.position < context.maxPosition)
+			while (context.position <= context.maxPosition)
 			{
 				var parsedAnchorRule = anchorRule.Parse(context, anchorSettings, anchorChildSettings);
 				if (parsedAnchorRule.success)
 				{
 					context.position = parsedAnchorRule.startIndex;
-					if (TryParse(rule, ref context, ref settings, ref childSettings, out var parsedRule))
+					var parsedRule = TryParseRule(rule, parser._rules, ref context,
+						ref settings, ref childSettings, parser.MainSettings, false);
+
+					if (parsedRule.success)
 						return parsedRule;
 					if (!recovery.repeatSkip)
 						return ParsedRule.Fail;
@@ -119,10 +127,11 @@ namespace RCParsing
 			return ParsedRule.Fail;
 		}
 
-		private static ParsedRule RecoverSkipAfterAnchor(ref ErrorRecovery recovery, ParserRule rule, ref ParserContext context,
-			ref ParserSettings settings, ref ParserSettings childSettings)
+		private static ParsedRule RecoverSkipAfterAnchor(ref ErrorRecovery recovery, ParserRule rule,
+			ref ParserContext context, ref ParserSettings settings, ref ParserSettings childSettings)
 		{
-			var anchorRule = rule.Parser.Rules[recovery.anchorRule];
+			var parser = rule.Parser;
+			var anchorRule = parser.Rules[recovery.anchorRule];
 			var anchorCtx = context;
 			var anchorSettings = settings;
 			anchorRule.AdvanceContext(ref anchorCtx, ref anchorSettings, out var anchorChildSettings);
@@ -134,13 +143,16 @@ namespace RCParsing
 				var stopSettings = settings;
 				stopRule.AdvanceContext(ref stopCtx, ref stopSettings, out var stopChildSettings);
 
-				while (context.position < context.maxPosition)
+				while (context.position <= context.maxPosition)
 				{
 					var parsedAnchorRule = anchorRule.Parse(context, anchorSettings, anchorChildSettings);
 					if (parsedAnchorRule.success)
 					{
 						context.position = parsedAnchorRule.startIndex + parsedAnchorRule.length;
-						if (TryParse(rule, ref context, ref settings, ref childSettings, out var parsedRule))
+						var parsedRule = TryParseRule(rule, parser._rules, ref context,
+							ref settings, ref childSettings, parser.MainSettings, false);
+
+						if (parsedRule.success)
 							return parsedRule;
 						if (!recovery.repeatSkip)
 							return ParsedRule.Fail;
@@ -156,13 +168,16 @@ namespace RCParsing
 				return ParsedRule.Fail;
 			}
 
-			while (context.position < context.maxPosition)
+			while (context.position <= context.maxPosition)
 			{
 				var parsedAnchorRule = anchorRule.Parse(context, anchorSettings, anchorChildSettings);
 				if (parsedAnchorRule.success)
 				{
 					context.position = parsedAnchorRule.startIndex + parsedAnchorRule.length;
-					if (TryParse(rule, ref context, ref settings, ref childSettings, out var parsedRule))
+					var parsedRule = TryParseRule(rule, parser._rules, ref context,
+						ref settings, ref childSettings, parser.MainSettings, false);
+
+					if (parsedRule.success)
 						return parsedRule;
 					if (!recovery.repeatSkip)
 						return ParsedRule.Fail;

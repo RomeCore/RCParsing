@@ -40,7 +40,6 @@ namespace RCParsing
 
 		private string? _lineText = null;
 		private string? _formattedLineText = null;
-		private bool? _isRelevant = null;
 		private int? _passedBarriers = null;
 
 		private int _lineStart = -1;

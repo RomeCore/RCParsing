@@ -19,6 +19,7 @@ This library focuses on **Developer-experience (DX)** first, providing best tool
 - 🎨 **Fluent API**: Write parsers in C# that read like clean BNF grammars, boosting readability and maintainability compared to imperative or functional approaches.
 - 🧩 **Combinator Style**: Unlock maximum performance by defining complex tokens with immediate value transformation, bypassing the AST construction entirely for a direct, allocation-free result. Perfect for high-speed parsing of well-defined formats. Also can be used with AST mode.
 - 🐛 **Debug-Friendly**: Get detailed, actionable error messages with stack traces and precise source locations. Richest API for manual error information included.
+- 🚑 **Intelligent Error Recovery**: Define custom recovery strategies per rule to handle syntax errors and go further.
 - ⚡ **Fast**: Performance is now on par with the fastest .NET parsing libraries (see benchmarks below).
 - 🌳 **Rich AST**: Parser makes an AST (Abstract Syntax Tree) from raw text, with ability to optimize, fully analyze and calculate the result value entirely lazy, reducing unnecessary allocations.
 - 🔧 **Configurable Skipping**: Advanced strategies for whitespace and comments, allowing you to use conflicting tokens in your main rules.
@@ -580,7 +581,6 @@ The future development of `RCParsing` is focused on:
 - **API Ergonomics:** Introducing even more expressive and fluent methods (such as expression builder).
 - **New Built-in Rules:** Adding common patterns (e.g., number with wide range of notations).
 - **Visualization Tooling:** Exploring tools for debugging and visualizing resulting AST.
-- **Error recovery:** Ability to re-parse the content when encountering an error using the anchor token.
 - ***Incremental parsing:*** Parsing only changed parts in the middle of text that will be good for IDE and LSP (Language Server Protocol).
 - ***Cosmic levels of debug:*** Very detailed parse walk traces, showing the order of what was parsed with success/fail status.
 

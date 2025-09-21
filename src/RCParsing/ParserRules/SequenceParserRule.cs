@@ -40,6 +40,8 @@ namespace RCParsing.ParserRules
 
 		protected override void Initialize(ParserInitFlags initFlags)
 		{
+			base.Initialize(initFlags);
+
 			parseFunctions = new Func<ParserContext, ParserSettings, ParsedRule>[_rules.Length];
 
 			for (int i = 0; i < _rules.Length; i++)

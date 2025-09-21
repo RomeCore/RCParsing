@@ -124,7 +124,7 @@ namespace RCParsing.Building
 		}
 
 		/// <summary>
-		/// Sets the default transformation function (parsed value factory) to the current pattern.
+		/// Sets the default transformation function (parsed value factory) to the current pattern that will be applied to parent rule.
 		/// </summary>
 		/// <param name="factory">The transformation function (parsed value factory) to set.</param>
 		/// <returns>Current instance for method chaining.</returns>
@@ -139,7 +139,7 @@ namespace RCParsing.Building
 		}
 
 		/// <summary>
-		/// Sets the default configuration action for the current token pattern.
+		/// Configures the default local settings for the current token pattern that will be applied to parent rule.
 		/// </summary>
 		/// <param name="configAction">The configuration action.</param>
 		/// <returns>Current instance for method chaining.</returns>
@@ -148,6 +148,21 @@ namespace RCParsing.Building
 		{
 			if (BuildingPattern?.AsT2() is BuildableTokenPattern pattern)
 				configAction(pattern.Settings);
+			else
+				throw new ParserBuildingException("Token pattern is not set or it is a direct reference to a named pattern.");
+			return this;
+		}
+
+		/// <summary>
+		/// Configures the default error recovery settings for the current token pattern that will be applied to parent rule.
+		/// </summary>
+		/// <param name="recoveryConfigAction">The error recovery configuration action.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if the parser rule is not set or it is a direct reference to a named rule.</exception>
+		public TokenBuilder Recovery(Action<ErrorRecoveryBuilder> recoveryConfigAction)
+		{
+			if (BuildingPattern?.AsT2() is BuildableTokenPattern pattern)
+				recoveryConfigAction(pattern.ErrorRecovery);
 			else
 				throw new ParserBuildingException("Token pattern is not set or it is a direct reference to a named pattern.");
 			return this;

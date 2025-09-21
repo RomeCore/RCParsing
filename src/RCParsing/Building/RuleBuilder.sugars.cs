@@ -102,7 +102,7 @@ namespace RCParsing.Building
 		/// <returns>Current instance for method chaining.</returns>
 		public RuleBuilder RequiredWhitespaces(ParserSkippingStrategy skippingStrategy = ParserSkippingStrategy.TryParseThenSkipLazy)
 		{
-			return Whitespaces().Configure(c => c.SkippingStrategy(skippingStrategy));
+			return Whitespaces().ConfigureLast(c => c.SkippingStrategy(skippingStrategy));
 		}
 
 		/// <summary>
