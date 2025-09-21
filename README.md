@@ -118,22 +118,22 @@ builder.CreateRule("skip")
 	.Choice(
 		b => b.Whitespaces(),
 		b => b.Literal("//").TextUntil('\n', '\r'))
-	.ConfigureForSkip(); // Prevents from error recording
+	.ConfigureForSkip();
 
 builder.CreateToken("string")
-	.Literal("\"")
-	.EscapedTextPrefix(prefix: '\\', '\\', '\"') // This sub-token automaticaly escapes the source string and puts it into intermediate value
-	.Literal("\"")
+	.Literal('"')
+	.EscapedTextPrefix(prefix: '\\', '\\', '\"') // This sub-token automatically escapes the source string and puts it into intermediate value
+	.Literal('"')
 	.Pass(index: 1); // Pass the EscapedTextPrefix's intermediate value up (it will be used as token's result value)
 
 builder.CreateToken("number")
 	.Number<double>();
 
 builder.CreateToken("boolean")
-	.LiteralChoice(["true", "false"], v => v.Text == "true");
+	.LiteralChoice("true", "false").Transform(v => v.Text == "true");
 
 builder.CreateToken("null")
-	.Literal("null", _ => null);
+	.Literal("null").Transform(v => null);
 
 builder.CreateRule("value")
 	.Choice(
@@ -148,16 +148,16 @@ builder.CreateRule("value")
 builder.CreateRule("array")
 	.Literal("[")
 	.ZeroOrMoreSeparated(v => v.Rule("value"), s => s.Literal(","),
-		allowTrailingSeparator: true, includeSeparatorsInResult: false,
-		factory: v => v.SelectArray())
+		allowTrailingSeparator: true, includeSeparatorsInResult: false)
+		.TransformLast(v => v.SelectArray())
 	.Literal("]")
 	.TransformSelect(1); // Selects the Children[1]'s value
 
 builder.CreateRule("object")
 	.Literal("{")
 	.ZeroOrMoreSeparated(v => v.Rule("pair"), s => s.Literal(","),
-		allowTrailingSeparator: true, includeSeparatorsInResult: false,
-		factory: v => v.SelectValues<KeyValuePair<string, object>>().ToDictionary(k => k.Key, v => v.Value))
+		allowTrailingSeparator: true, includeSeparatorsInResult: false)
+		.TransformLast(v => v.SelectValues<KeyValuePair<string, object>>().ToDictionary(k => k.Key, v => v.Value))
 	.Literal("}")
 	.TransformSelect(1);
 

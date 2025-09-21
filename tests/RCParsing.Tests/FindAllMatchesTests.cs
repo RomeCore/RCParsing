@@ -50,7 +50,7 @@ namespace RCParsing.Tests
 
 				.Literal("Price:")
 				.Number<double>()
-				.LiteralChoice(["USD", "EUR"], currency => currency.Text)
+				.LiteralChoice(["USD", "EUR"])
 
 				.Transform(v =>
 				{

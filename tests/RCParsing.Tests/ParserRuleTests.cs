@@ -99,8 +99,8 @@ namespace RCParsing.Tests
 				.Regex(@"\s+");
 
 			builder.CreateToken("string")
-				.Regex(@"""(?:\\""|[^""])*""", match =>
-					(match.Result.intermediateValue as Match)!.Value[1..^1].Replace("\\\"", "\""));
+				.Regex(@"""(?:\\""|[^""])*""")
+				.Transform(v => v.GetIntermediateValue<Match>().Value[1..^1].Replace("\\\"", "\""));
 
 			builder.CreateRule("string_list")
 				.Token("string")
@@ -126,7 +126,7 @@ namespace RCParsing.Tests
 				.Regex(@"\s+");
 
 			builder.CreateToken("number")
-				.Regex(@"\d+", match => int.Parse(match.Text));
+				.Regex(@"\d+").Transform(v => int.Parse(v.Text));
 
 			builder.CreateRule("expression")
 				.Token("number")
@@ -173,10 +173,10 @@ namespace RCParsing.Tests
 				.Number<double>(TokenPatterns.NumberFlags.StrictScientific);
 
 			builder.CreateToken("boolean")
-				.LiteralChoice(["true", "false"], v => v.Text == "true"); // LiteralChoice uses Trie
+				.LiteralChoice(["true", "false"]).Transform(v => v.Text == "true"); // LiteralChoice uses Trie
 
 			builder.CreateToken("null")
-				.Literal("null", _ => null);
+				.Literal("null").Transform(v => null);
 
 			builder.CreateRule("value")
 				.Choice(
@@ -287,12 +287,10 @@ namespace RCParsing.Tests
 				.Number<double>(TokenPatterns.NumberFlags.StrictScientific);
 
 			builder.CreateToken("boolean")
-				.LiteralChoice(["true", "false"],
-					v => v.Text == "true");
+				.LiteralChoice("true", "false").Transform(v => v.Text == "true");
 
 			builder.CreateToken("null")
-				.Literal("null",
-					_ => null);
+				.Literal("null").Transform(v => null);
 
 			// Operators
 

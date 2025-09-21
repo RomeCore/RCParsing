@@ -13,12 +13,9 @@ namespace RCParsing.Building
 		/// <param name="separatorBuilderAction">Action for creating separator.</param>
 		/// <param name="allowTrailing">Whether to allow trailing separator.</param>
 		/// <param name="includeSeparators">Whether to include separators in the AST.</param>
-		/// <param name="factory">The factory function to create a parsed value.</param>
-		/// <param name="config">The action to configure the local settings for this rule.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		public RuleBuilder SeparatedBy(Action<RuleBuilder> separatorBuilderAction,
-			bool allowTrailing = false, bool includeSeparators = false,
-			Func<ParsedRuleResultBase, object?>? factory = null, Action<ParserLocalSettingsBuilder>? config = null)
+			bool allowTrailing = false, bool includeSeparators = false)
 		{
 			var builder = new RuleBuilder(ParserBuilder);
 			separatorBuilderAction(builder);
@@ -39,8 +36,9 @@ namespace RCParsing.Building
 				AllowTrailingSeparator = allowTrailing,
 				IncludeSeparatorsInResult = includeSeparators,
 				Child = prevRule.Value,
-				Separator = builder.BuildingRule.Value
-			}, factory, config);
+				Separator = builder.BuildingRule.Value,
+				ParsedValueFactory = DefaultFactory_RepeatSeparated
+			});
 		}
 
 		/// <summary>
@@ -49,12 +47,9 @@ namespace RCParsing.Building
 		/// <param name="separatorBuilderAction">Action for creating separator.</param>
 		/// <param name="allowTrailing">Whether to allow trailing separator.</param>
 		/// <param name="includeSeparators">Whether to include separators in the AST.</param>
-		/// <param name="factory">The factory function to create a parsed value.</param>
-		/// <param name="config">The action to configure the local settings for this rule.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		public RuleBuilder OptionallySeparatedBy(Action<RuleBuilder> separatorBuilderAction,
-			bool allowTrailing = false, bool includeSeparators = false,
-			Func<ParsedRuleResultBase, object?>? factory = null, Action<ParserLocalSettingsBuilder>? config = null)
+			bool allowTrailing = false, bool includeSeparators = false)
 		{
 			var builder = new RuleBuilder(ParserBuilder);
 			separatorBuilderAction(builder);
@@ -75,8 +70,9 @@ namespace RCParsing.Building
 				AllowTrailingSeparator = allowTrailing,
 				IncludeSeparatorsInResult = includeSeparators,
 				Child = prevRule.Value,
-				Separator = builder.BuildingRule.Value
-			}, factory, config);
+				Separator = builder.BuildingRule.Value,
+				ParsedValueFactory = DefaultFactory_RepeatSeparated
+			});
 		}
 
 		/// <summary>
@@ -96,7 +92,7 @@ namespace RCParsing.Building
 			bool allowTrailing = false, bool includeSeparators = false,
 			Func<ParsedRuleResultBase, object?>? factory = null, Action<ParserLocalSettingsBuilder>? config = null)
 		{
-			return ZeroOrMoreSeparated(itemBuilderAction, b => b.Literal(separator), allowTrailing, includeSeparators, factory, config);
+			return ZeroOrMoreSeparated(itemBuilderAction, b => b.Literal(separator), allowTrailing, includeSeparators);
 		}
 
 		/// <summary>
@@ -106,7 +102,7 @@ namespace RCParsing.Building
 		/// <returns>Current instance for method chaining.</returns>
 		public RuleBuilder RequiredWhitespaces(ParserSkippingStrategy skippingStrategy = ParserSkippingStrategy.TryParseThenSkipLazy)
 		{
-			return Whitespaces(config: c => c.SkippingStrategy(skippingStrategy));
+			return Whitespaces().Configure(c => c.SkippingStrategy(skippingStrategy));
 		}
 
 		/// <summary>
