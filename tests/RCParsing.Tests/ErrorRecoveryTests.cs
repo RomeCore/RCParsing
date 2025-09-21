@@ -258,6 +258,36 @@ namespace RCParsing.Tests
 		}
 
 		[Fact]
+		public void ErrorRecovery_NoAnchor_ShouldNotRecover()
+		{
+			var builder = new ParserBuilder();
+			builder.Settings.SkipWhitespaces();
+
+			builder.CreateRule("statement")
+				.Literal("var")
+				.RequiredWhitespaces()
+				.Identifier()
+				.Literal('=')
+				.Identifier()
+				.Literal(';')
+				.Recovery(r => r.SkipAfter(a => a.Literal(';')));
+
+			builder.CreateMainRule("program")
+				.ZeroOrMore(b => b.Rule("statement"));
+
+			var parser = builder.Build();
+
+			// Input with error in the middle: missing semicolon and garbage content
+			string input = "var a = b garbage garbage garbage";
+
+			var result = parser.Parse(input);
+
+			// Yes it succeeds (it matches zero elements), but no recovery happens
+			Assert.True(result.Success);
+			Assert.Empty(result.Children);
+		}
+
+		[Fact]
 		public void ErrorRecovery_WithRepeat_HandlesMultipleConsecutiveErrors()
 		{
 			var builder = new ParserBuilder();

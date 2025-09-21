@@ -87,8 +87,8 @@ namespace RCParsing
 					if (parsedAnchorRule.success)
 					{
 						context.position = parsedAnchorRule.startIndex;
-						var parsedRule = TryParseRule(rule, parser._rules, ref context,
-							ref settings, ref childSettings, parser.MainSettings, false);
+						var parsedRule = parser.TryParseRule(rule, ref context,
+							ref settings, ref childSettings, false);
 
 						if (parsedRule.success)
 							return parsedRule;
@@ -112,8 +112,8 @@ namespace RCParsing
 				if (parsedAnchorRule.success)
 				{
 					context.position = parsedAnchorRule.startIndex;
-					var parsedRule = TryParseRule(rule, parser._rules, ref context,
-						ref settings, ref childSettings, parser.MainSettings, false);
+					var parsedRule = parser.TryParseRule(rule, ref context,
+						ref settings, ref childSettings, false);
 
 					if (parsedRule.success)
 						return parsedRule;
@@ -149,8 +149,8 @@ namespace RCParsing
 					if (parsedAnchorRule.success)
 					{
 						context.position = parsedAnchorRule.startIndex + parsedAnchorRule.length;
-						var parsedRule = TryParseRule(rule, parser._rules, ref context,
-							ref settings, ref childSettings, parser.MainSettings, false);
+						var parsedRule = parser.TryParseRule(rule, ref context,
+							ref settings, ref childSettings, false);
 
 						if (parsedRule.success)
 							return parsedRule;
@@ -174,8 +174,8 @@ namespace RCParsing
 				if (parsedAnchorRule.success)
 				{
 					context.position = parsedAnchorRule.startIndex + parsedAnchorRule.length;
-					var parsedRule = TryParseRule(rule, parser._rules, ref context,
-						ref settings, ref childSettings, parser.MainSettings, false);
+					var parsedRule = parser.TryParseRule(rule, ref context,
+						ref settings, ref childSettings, false);
 
 					if (parsedRule.success)
 						return parsedRule;

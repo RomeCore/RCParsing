@@ -19,8 +19,8 @@ This library focuses on **Developer-experience (DX)** first, providing best tool
 - 🎨 **Fluent API**: Write parsers in C# that read like clean BNF grammars, boosting readability and maintainability compared to imperative or functional approaches.
 - 🧩 **Combinator Style**: Unlock maximum performance by defining complex tokens with immediate value transformation, bypassing the AST construction entirely for a direct, allocation-free result. Perfect for high-speed parsing of well-defined formats. Also can be used with AST mode.
 - 🐛 **Debug-Friendly**: Get detailed, actionable error messages with stack traces and precise source locations. Richest API for manual error information included.
-- 🚑 **Intelligent Error Recovery**: Define custom recovery strategies per rule to handle syntax errors and go further.
-- ⚡ **Fast**: Performance is now on par with the fastest .NET parsing libraries (see benchmarks below).
+- 🚑 **Error Recovery**: Define custom recovery strategies per rule to handle syntax errors and go further.
+- ⚡ **Blazing Fast**: Performance is now on par with the fastest .NET parsing libraries (see benchmarks below).
 - 🌳 **Rich AST**: Parser makes an AST (Abstract Syntax Tree) from raw text, with ability to optimize, fully analyze and calculate the result value entirely lazy, reducing unnecessary allocations.
 - 🔧 **Configurable Skipping**: Advanced strategies for whitespace and comments, allowing you to use conflicting tokens in your main rules.
 - 📦 **Batteries Included**: Useful built-in tokens and rules (regex, identifiers, numbers, escaped strings, separated lists, custom tokens, and more...).
@@ -60,7 +60,7 @@ Or do it manually by cloning this repository.
 
 # Tutorials, docs and examples
 
-- [Tutorials](https://github.com/RomeCore/RCParsing/blob/main/docs/tutorials.md) - detailed tutorials, explaining features and mechanics of this library, highly recommended to read!
+- [Tutorials](https://github.com/RomeCore/RCParsing/blob/main/docs/tutorials.md) - detailed tutorials, explaining features and mechanics of this library, highly recommended to read!]
 
 # Simple examples
 
@@ -458,6 +458,28 @@ This table highlights the unique architectural and usability features of each li
 | **Error Messages**         | **Extremely Detailed, extendable with API** | Simple              | Manual messages        | Simple              | **Simple by default, extendable** |
 | **Minimum .NET Target**    | **.NET Standard 2.0**                       | .NET 7.0            | .NET Standard 2.0      | .NET Standard 2.0   | **.NET Framework 4.5**            |
 
+## Comparison with each library
+
+### ANTLR
+
+This is a powerful tool for creating own DSLs with a wide ecosystem and multiple languages support (C#, Java, Python, C++ and others). But it requires a step of code generation and it can be a bit complex to set up for beginners. Also it uses a lexer-based algorithm, so you need to carefully setup a lexer for complex languages, also it barely fits for code/text mixed grammars. Therefore, RCParsing can be a bit slow for complex grammars, but it not tested yet.
+
+### Parlot
+
+Parlot is known as fastest parser combinator library for .NET with support of context-specific parsing, global skipping and compilation via expression trees. But it's not that friendly for debug, you required to manually place errors in parsers, otherwise you just get nothing on parsing. But RCParsing shown that it is faster than Parlot, and it handles errors automatically, but it does not have global skip-tokens in the combinator style.
+
+### Pidgin
+
+Pidgin is a memory-efficient and fast parser combinator library for .NET with some kind of incremental parsing support. It was created before Parlot and supports streams of any type of input, even binary. It supports LINQ-based syntax for creating parsers, but needs to manually place skip parsers in everything. 
+
+### Sprache and Superpower
+
+The legacy parser combinators for .NET, came out more than 10 years ago, but somewhat unefficient in performance, especially memory usage. But Sprache has the most readable API comparing than Pidgin and Parlot (in my opinion). Superpower is a more modern alternative to Sprache, but uses lexer-based approach and requires more amount of code.
+
+## Why RCParsing outstands
+
+It designed to be a more convenient than other libraries, and later it been optimized and now it has a better performance than other libraries. It also supports both modes: AST and immediate calculations, or them together. RCParsing can produce stack traces for errors, recover from them, and soon will support walk traces and incremental parsing (in the next update).
+
 # Benchmarks
 
 All benchmarks are done via `BenchmarkDotNet`.
@@ -477,27 +499,27 @@ The JSON value calculation with the typeset `Dictionary<string, object>`, `objec
 
 | Method                               | Mean           | Error        | StdDev      | Ratio | RatioSD | Gen0     | Gen1    | Allocated | Alloc Ratio |
 |------------------------------------- |---------------:|-------------:|------------:|------:|--------:|---------:|--------:|----------:|------------:|
-| JsonBig_RCParsing                    |   152,532.8 ns |    854.06 ns |   379.21 ns |  1.00 |    0.00 |  13.1836 |  3.6621 |  222760 B |        1.00 |
-| JsonBig_RCParsing_Optimized          |    93,680.2 ns |    685.66 ns |   244.51 ns |  0.61 |    0.00 |   9.2773 |  2.0752 |  157136 B |        0.71 |
-| JsonBig_RCParsing_TokenCombination   |    28,965.7 ns |    236.12 ns |    84.20 ns |  0.19 |    0.00 |   2.5635 |  0.1831 |   43096 B |        0.19 |
-| JsonBig_SystemTextJson               |    12,157.5 ns |     45.38 ns |    16.18 ns |  0.08 |    0.00 |   0.5035 |  0.0153 |    8648 B |        0.04 |
-| JsonBig_NewtonsoftJson               |    47,584.0 ns |    543.76 ns |   241.43 ns |  0.31 |    0.00 |   4.7607 |  0.9766 |   80176 B |        0.36 |
-| JsonBig_ANTLR                        |   186,483.0 ns |  1,046.27 ns |   373.11 ns |  1.22 |    0.00 |  19.5313 |  7.5684 |  330584 B |        1.48 |
-| JsonBig_Parlot                       |    41,449.1 ns |    622.65 ns |   276.46 ns |  0.27 |    0.00 |   1.9531 |  0.1221 |   32848 B |        0.15 |
-| JsonBig_Pidgin                       |   206,499.7 ns |    635.98 ns |   282.38 ns |  1.35 |    0.00 |   3.9063 |  0.2441 |   66816 B |        0.30 |
-| JsonBig_Superpower                   | 1,187,126.7 ns |  4,197.44 ns | 1,496.85 ns |  7.78 |    0.02 |  39.0625 |  5.8594 |  653627 B |        2.93 |
-| JsonBig_Sprache                      | 1,156,650.1 ns | 18,351.44 ns | 6,544.30 ns |  7.58 |    0.04 | 232.4219 | 27.3438 | 3899736 B |       17.51 |
+| JsonBig_RCParsing                    |   164,590.7 ns |    996.83 ns |   355.48 ns |  1.00 |    0.00 |  13.1836 |  4.1504 |  222264 B |        1.00 |
+| JsonBig_RCParsing_Optimized          |    99,452.6 ns |    730.99 ns |   324.57 ns |  0.60 |    0.00 |   9.2773 |  2.0752 |  156640 B |        0.70 |
+| JsonBig_RCParsing_TokenCombination   |    29,387.6 ns |    330.30 ns |   117.79 ns |  0.18 |    0.00 |   2.5635 |  0.1831 |   43096 B |        0.19 |
+| JsonBig_SystemTextJson               |    12,100.5 ns |     38.82 ns |    13.84 ns |  0.07 |    0.00 |   0.5035 |  0.0153 |    8648 B |        0.04 |
+| JsonBig_NewtonsoftJson               |    52,827.6 ns |    494.00 ns |   219.34 ns |  0.32 |    0.00 |   4.7607 |  0.9766 |   80176 B |        0.36 |
+| JsonBig_ANTLR                        |   189,947.9 ns |  1,218.53 ns |   541.04 ns |  1.15 |    0.00 |  19.5313 |  7.5684 |  330584 B |        1.49 |
+| JsonBig_Parlot                       |    41,206.8 ns |    105.96 ns |    47.05 ns |  0.25 |    0.00 |   1.9531 |  0.1221 |   32848 B |        0.15 |
+| JsonBig_Pidgin                       |   208,721.8 ns |    418.89 ns |   185.99 ns |  1.27 |    0.00 |   3.9063 |  0.2441 |   66816 B |        0.30 |
+| JsonBig_Superpower                   | 1,184,573.2 ns |  3,998.11 ns | 1,425.76 ns |  7.20 |    0.02 |  39.0625 |  5.8594 |  653627 B |        2.94 |
+| JsonBig_Sprache                      | 1,213,870.0 ns | 17,241.27 ns | 7,655.23 ns |  7.38 |    0.05 | 232.4219 | 27.3438 | 3899736 B |       17.55 |
 |                                      |                |              |             |       |         |          |         |           |             |
-| JsonShort_RCParsing                  |     8,507.2 ns |     50.21 ns |    22.29 ns |  1.00 |    0.00 |   0.6561 |  0.0153 |   11016 B |        1.00 |
-| JsonShort_RCParsing_Optimized        |     5,144.8 ns |     51.58 ns |    22.90 ns |  0.60 |    0.00 |   0.5341 |  0.0076 |    9000 B |        0.82 |
-| JsonShort_RCParsing_TokenCombination |     1,468.7 ns |      3.41 ns |     1.51 ns |  0.17 |    0.00 |   0.1354 |       - |    2280 B |        0.21 |
-| JsonShort_SystemTextJson             |       779.5 ns |     15.43 ns |     6.85 ns |  0.09 |    0.00 |   0.0401 |       - |     672 B |        0.06 |
-| JsonShort_NewtonsoftJson             |     3,025.1 ns |     50.05 ns |    17.85 ns |  0.36 |    0.00 |   0.3891 |       - |    6552 B |        0.59 |
-| JsonShort_ANTLR                      |     9,957.9 ns |     47.95 ns |    21.29 ns |  1.17 |    0.00 |   1.1444 |  0.0305 |   19360 B |        1.76 |
-| JsonShort_Parlot                     |     2,262.5 ns |      7.29 ns |     3.24 ns |  0.27 |    0.00 |   0.1144 |       - |    1960 B |        0.18 |
-| JsonShort_Pidgin                     |    11,293.2 ns |    104.51 ns |    46.41 ns |  1.33 |    0.01 |   0.2136 |       - |    3664 B |        0.33 |
-| JsonShort_Superpower                 |    64,184.5 ns |    273.02 ns |   121.22 ns |  7.54 |    0.02 |   1.9531 |       - |   34117 B |        3.10 |
-| JsonShort_Sprache                    |    62,077.0 ns |    884.81 ns |   392.86 ns |  7.30 |    0.05 |  12.6953 |  0.2441 |  213168 B |       19.35 |
+| JsonShort_RCParsing                  |     9,207.7 ns |    104.64 ns |    46.46 ns |  1.00 |    0.01 |   0.6409 |       - |   10920 B |        1.00 |
+| JsonShort_RCParsing_Optimized        |     5,397.9 ns |     32.37 ns |    14.37 ns |  0.59 |    0.00 |   0.5264 |  0.0076 |    8904 B |        0.82 |
+| JsonShort_RCParsing_TokenCombination |     1,515.0 ns |     14.39 ns |     6.39 ns |  0.16 |    0.00 |   0.1354 |       - |    2280 B |        0.21 |
+| JsonShort_SystemTextJson             |       814.8 ns |     12.44 ns |     5.52 ns |  0.09 |    0.00 |   0.0401 |       - |     672 B |        0.06 |
+| JsonShort_NewtonsoftJson             |     3,126.4 ns |     31.03 ns |    13.78 ns |  0.34 |    0.00 |   0.3891 |       - |    6552 B |        0.60 |
+| JsonShort_ANTLR                      |    10,106.1 ns |     51.06 ns |    18.21 ns |  1.10 |    0.01 |   1.1444 |  0.0305 |   19360 B |        1.77 |
+| JsonShort_Parlot                     |     2,271.2 ns |     10.79 ns |     4.79 ns |  0.25 |    0.00 |   0.1144 |       - |    1960 B |        0.18 |
+| JsonShort_Pidgin                     |    11,160.6 ns |     22.50 ns |     9.99 ns |  1.21 |    0.01 |   0.2136 |       - |    3664 B |        0.34 |
+| JsonShort_Superpower                 |    66,312.3 ns |    240.99 ns |    85.94 ns |  7.20 |    0.04 |   1.9531 |       - |   34117 B |        3.12 |
+| JsonShort_Sprache                    |    63,855.1 ns |    858.85 ns |   306.27 ns |  6.94 |    0.04 |  12.6953 |  0.2441 |  213168 B |       19.52 |
 
 Notes:
 
@@ -512,19 +534,19 @@ Notes:
 
 The `int` value calculation from expression with parentheses `()`, spaces and operators `+-/*` with priorities.
 
-| Method                                     | Mean         | Error       | StdDev    | Ratio | Gen0    | Gen1    | Allocated | Alloc Ratio |
-|------------------------------------------- |-------------:|------------:|----------:|------:|--------:|--------:|----------:|------------:|
-| ExpressionBig_RCParsing                    | 249,036.7 ns | 2,789.77 ns | 724.49 ns |  1.00 | 23.4375 | 11.2305 |  399968 B |        1.00 |
-| ExpressionBig_RCParsing_Optimized          | 174,142.2 ns | 3,675.43 ns | 568.78 ns |  0.70 | 19.7754 |  9.7656 |  334344 B |        0.84 |
-| ExpressionBig_RCParsing_TokenCombination   |  55,547.7 ns | 2,532.53 ns | 657.69 ns |  0.22 |  4.1504 |  0.0610 |   70288 B |        0.18 |
-| ExpressionBig_Parlot                       |  62,733.1 ns |   515.32 ns | 133.83 ns |  0.25 |  3.2959 |       - |   56608 B |        0.14 |
-| ExpressionBig_Pidgin                       | 667,301.0 ns | 3,776.84 ns | 980.83 ns |  2.68 |  0.9766 |       - |   23540 B |        0.06 |
-|                                            |              |             |           |       |         |         |           |             |
-| ExpressionShort_RCParsing                  |   2,167.0 ns |    65.63 ns |  10.16 ns |  1.00 |  0.2251 |       - |    3768 B |        1.00 |
-| ExpressionShort_RCParsing_Optimized        |   1,654.2 ns |   110.21 ns |  17.06 ns |  0.76 |  0.2155 |       - |    3616 B |        0.96 |
-| ExpressionShort_RCParsing_TokenCombination |     463.7 ns |    21.04 ns |   5.46 ns |  0.21 |  0.0391 |       - |     656 B |        0.17 |
-| ExpressionShort_Parlot                     |     574.8 ns |    17.30 ns |   2.68 ns |  0.27 |  0.0534 |       - |     896 B |        0.24 |
-| ExpressionShort_Pidgin                     |   6,389.0 ns |    96.65 ns |  14.96 ns |  2.95 |  0.0153 |       - |     344 B |        0.09 |
+| Method                                     | Mean         | Error       | StdDev      | Ratio | RatioSD | Gen0    | Gen1    | Allocated | Alloc Ratio |
+|------------------------------------------- |-------------:|------------:|------------:|------:|--------:|--------:|--------:|----------:|------------:|
+| ExpressionBig_RCParsing                    | 258,484.1 ns | 4,221.70 ns |   653.31 ns |  1.00 |    0.00 | 23.4375 | 11.2305 |  399704 B |        1.00 |
+| ExpressionBig_RCParsing_Optimized          | 179,193.0 ns |   622.43 ns |    96.32 ns |  0.69 |    0.00 | 19.7754 |  8.3008 |  334080 B |        0.84 |
+| ExpressionBig_RCParsing_TokenCombination   |  54,463.7 ns | 1,455.89 ns |   225.30 ns |  0.21 |    0.00 |  4.1504 |  0.0610 |   70288 B |        0.18 |
+| ExpressionBig_Parlot                       |  63,761.8 ns |   339.88 ns |    88.27 ns |  0.25 |    0.00 |  3.2959 |       - |   56608 B |        0.14 |
+| ExpressionBig_Pidgin                       | 700,906.7 ns | 7,006.51 ns | 1,819.57 ns |  2.71 |    0.01 |  0.9766 |       - |   23540 B |        0.06 |
+|                                            |              |             |             |       |         |         |         |           |             |
+| ExpressionShort_RCParsing                  |   2,310.8 ns |    34.09 ns |     8.85 ns |  1.00 |    0.00 |  0.2174 |       - |    3696 B |        1.00 |
+| ExpressionShort_RCParsing_Optimized        |   1,638.7 ns |    22.90 ns |     5.95 ns |  0.71 |    0.00 |  0.2117 |       - |    3544 B |        0.96 |
+| ExpressionShort_RCParsing_TokenCombination |     459.0 ns |     4.37 ns |     1.14 ns |  0.20 |    0.00 |  0.0391 |       - |     656 B |        0.18 |
+| ExpressionShort_Parlot                     |     603.4 ns |     5.78 ns |     1.50 ns |  0.26 |    0.00 |  0.0534 |       - |     896 B |        0.24 |
+| ExpressionShort_Pidgin                     |   6,655.6 ns |   256.88 ns |    66.71 ns |  2.88 |    0.03 |  0.0153 |       - |     344 B |        0.09 |
 
 Notes:
 

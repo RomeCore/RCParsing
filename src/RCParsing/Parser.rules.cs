@@ -60,8 +60,9 @@ namespace RCParsing
 				ref ParserSettings settings, ref ParserSettings childSettings, bool canRecover)
 		{
 			var parsedRule = rule.Parse(context, settings, childSettings);
-			if (!parsedRule.success && canRecover && rule.CanRecover)
-				return TryRecover(rule, ref context, ref settings, ref childSettings);
+			if (!parsedRule.success && canRecover)
+				if (rule.CanRecover)
+					return TryRecover(rule, ref context, ref settings, ref childSettings);
 			return parsedRule;
 		}
 
@@ -165,11 +166,11 @@ namespace RCParsing
 			}
 		}
 
-		private static ParsedRule TryParseRule(ParserRule rule, ParserRule[] rules,
+		private ParsedRule TryParseRule(ParserRule rule, 
 			ref ParserContext context, ref ParserSettings settings, ref ParserSettings childSettings,
-			ParserMainSettings mainSettings, bool canRecover)
+			bool canRecover)
 		{
-			if (mainSettings.useOptimizedWhitespaceSkip)
+			if (MainSettings.useOptimizedWhitespaceSkip)
 			{
 				while (context.position < context.maxPosition && char.IsWhiteSpace(context.input[context.position]))
 					context.position++;
@@ -181,16 +182,18 @@ namespace RCParsing
 				context.positionsToAvoidSkipping[context.position])
 				return Parse(rule, ref context, ref settings, ref childSettings, canRecover);
 
-			var skipRule = rules[settings.skipRule];
+			var skipRule = _rules[settings.skipRule];
 			var skipSettings = settings;
 			var skipContext = context;
 			skipRule.AdvanceContext(ref skipContext, ref skipSettings, out var childSkipSettings);
 			skipSettings.skipRule = -1;
 			childSkipSettings.skipRule = -1;
-			bool record = mainSettings.recordSkippedRules;
+			bool record = MainSettings.recordSkippedRules;
 			return ParseWithSkip(settings.skippingStrategy, rule, skipRule, ref context,
 				 ref settings, ref skipSettings, ref childSettings, ref childSkipSettings, record, canRecover);
 		}
+
+		// Oh yea i know that i duplicated the code down here, but otherwise i will get -10% for speed lol
 
 		/// <summary>
 		/// Tries to parse the given input using the specified rule identifier and parser context.
@@ -200,7 +203,28 @@ namespace RCParsing
 		{
 			var rule = _rules[ruleId];
 			rule.AdvanceContext(ref context, ref settings, out var childSettings);
-			return TryParseRule(rule, _rules, ref context, ref settings, ref childSettings, MainSettings, true);
+
+			if (MainSettings.useOptimizedWhitespaceSkip)
+			{
+				while (context.position < context.maxPosition && char.IsWhiteSpace(context.input[context.position]))
+					context.position++;
+				return Parse(rule, ref context, ref settings, ref childSettings, true);
+			}
+
+			if (settings.skipRule == -1 ||
+				settings.skippingStrategy == ParserSkippingStrategy.Default ||
+				context.positionsToAvoidSkipping[context.position])
+				return Parse(rule, ref context, ref settings, ref childSettings, true);
+
+			var skipRule = _rules[settings.skipRule];
+			var skipSettings = settings;
+			var skipContext = context;
+			skipRule.AdvanceContext(ref skipContext, ref skipSettings, out var childSkipSettings);
+			skipSettings.skipRule = -1;
+			childSkipSettings.skipRule = -1;
+			bool record = MainSettings.recordSkippedRules;
+			return ParseWithSkip(settings.skippingStrategy, rule, skipRule, ref context,
+				 ref settings, ref skipSettings, ref childSettings, ref childSkipSettings, record, true);
 		}
 
 
