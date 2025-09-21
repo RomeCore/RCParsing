@@ -27,14 +27,14 @@ namespace RCParsing
 		private (int position, int maxBarrierIndex)[] _nextPositionMap;
 
 		/// <summary>
-		/// The count of barrier token groups.
+		/// The count of barrier tokens.
 		/// </summary>
 		private int _count;
 
 		/// <summary>
-		/// The length of the input string.
+		/// Gets the count of barrier tokens in the collection.
 		/// </summary>
-		private int _inputLength;
+		public int Count => _count;
 
 		/// <summary>
 		/// Fills the barrier token collection with the given barrier tokens and input string.
@@ -53,8 +53,6 @@ namespace RCParsing
 				.OrderBy(t => t.startIndex)
 				.GroupBy(t => t.startIndex)
 				.ToList();
-
-			_inputLength = input.Length;
 
 			if (sorted.Count == 0)
 			{

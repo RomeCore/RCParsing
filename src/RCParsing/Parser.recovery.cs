@@ -33,6 +33,10 @@ namespace RCParsing
 		private static ParsedRule RecoverFindNext(ref ErrorRecovery recovery, ParserRule rule,
 			ref ParserContext context, ref ParserSettings settings, ref ParserSettings childSettings)
 		{
+			int barrierPosition = context.barrierTokens.GetNextBarrierPosition(context.position, context.passedBarriers);
+			if (barrierPosition == -1)
+				barrierPosition = context.maxPosition;
+
 			if (recovery.stopRule != -1)
 			{
 				var stopRule = rule.Parser.Rules[recovery.stopRule];
@@ -40,7 +44,7 @@ namespace RCParsing
 				var stopSettings = settings;
 				stopRule.AdvanceContext(ref stopCtx, ref stopSettings, out var stopChildSettings);
 
-				while (context.position <= context.maxPosition)
+				while (context.position <= barrierPosition)
 				{
 					if (TryParse(rule, ref context, ref settings, ref childSettings, out var parsedRule))
 						return parsedRule;
@@ -55,7 +59,7 @@ namespace RCParsing
 				return ParsedRule.Fail;
 			}
 
-			while (context.position <= context.maxPosition)
+			while (context.position <= barrierPosition)
 			{
 				if (TryParse(rule, ref context, ref settings, ref childSettings, out var parsedRule))
 					return parsedRule;
@@ -74,6 +78,10 @@ namespace RCParsing
 			var anchorSettings = settings;
 			anchorRule.AdvanceContext(ref anchorCtx, ref anchorSettings, out var anchorChildSettings);
 
+			int barrierPosition = context.barrierTokens.GetNextBarrierPosition(context.position, context.passedBarriers);
+			if (barrierPosition == -1)
+				barrierPosition = context.maxPosition;
+
 			if (recovery.stopRule != -1)
 			{
 				var stopRule = rule.Parser.Rules[recovery.stopRule];
@@ -81,7 +89,7 @@ namespace RCParsing
 				var stopSettings = settings;
 				stopRule.AdvanceContext(ref stopCtx, ref stopSettings, out var stopChildSettings);
 
-				while (context.position <= context.maxPosition)
+				while (context.position <= barrierPosition)
 				{
 					var parsedAnchorRule = anchorRule.Parse(context, anchorSettings, anchorChildSettings);
 					if (parsedAnchorRule.success)
@@ -106,7 +114,7 @@ namespace RCParsing
 				return ParsedRule.Fail;
 			}
 
-			while (context.position <= context.maxPosition)
+			while (context.position <= barrierPosition)
 			{
 				var parsedAnchorRule = anchorRule.Parse(context, anchorSettings, anchorChildSettings);
 				if (parsedAnchorRule.success)
@@ -136,6 +144,10 @@ namespace RCParsing
 			var anchorSettings = settings;
 			anchorRule.AdvanceContext(ref anchorCtx, ref anchorSettings, out var anchorChildSettings);
 
+			int barrierPosition = context.barrierTokens.GetNextBarrierPosition(context.position, context.passedBarriers);
+			if (barrierPosition == -1)
+				barrierPosition = context.maxPosition;
+
 			if (recovery.stopRule != -1)
 			{
 				var stopRule = rule.Parser.Rules[recovery.stopRule];
@@ -143,7 +155,7 @@ namespace RCParsing
 				var stopSettings = settings;
 				stopRule.AdvanceContext(ref stopCtx, ref stopSettings, out var stopChildSettings);
 
-				while (context.position <= context.maxPosition)
+				while (context.position <= barrierPosition)
 				{
 					var parsedAnchorRule = anchorRule.Parse(context, anchorSettings, anchorChildSettings);
 					if (parsedAnchorRule.success)
@@ -168,7 +180,7 @@ namespace RCParsing
 				return ParsedRule.Fail;
 			}
 
-			while (context.position <= context.maxPosition)
+			while (context.position <= barrierPosition)
 			{
 				var parsedAnchorRule = anchorRule.Parse(context, anchorSettings, anchorChildSettings);
 				if (parsedAnchorRule.success)
