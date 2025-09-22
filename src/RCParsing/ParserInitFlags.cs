@@ -45,5 +45,10 @@ namespace RCParsing
 		/// Enables writing stack traces for debugging purposes during parsing. This can be useful to understand the flow of execution and identify potential issues.
 		/// </summary>
 		StackTraceWriting = 1 << 4,
+
+		/// <summary>
+		/// Enables recording a walk trace during parsing, which can be useful for debugging purposes to understand the flow of execution and identify potential issues.
+		/// </summary>
+		WalkTraceRecording = 1 << 5,
 	}
 }

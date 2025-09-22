@@ -132,7 +132,17 @@ namespace RCParsing
 				? "One or more errors occured during parsing:"
 				: "An error occurred during parsing:";
 
-			return $"{header}{Environment.NewLine}{Environment.NewLine}{groups.ToString(flags, maxGroups)}";
+			var sb = new StringBuilder();
+
+			sb.AppendLine(header).AppendLine();
+			sb.Append(groups.ToString(flags, maxGroups));
+
+			if (context.walkTrace.Count > 0)
+				sb.AppendLine().AppendLine().AppendLine("Walk Trace:")
+					.AppendLine().Append(context.walkTrace.Render(maxCount:
+						context.parser.MainSettings.maxWalkStepsDisplay));
+
+			return sb.ToString();
 		}
 	}
 }

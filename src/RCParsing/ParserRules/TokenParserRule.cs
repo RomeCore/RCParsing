@@ -72,7 +72,7 @@ namespace RCParsing.ParserRules
 					}
 					else
 					{
-						RecordError(ref ctx, ref stng, "Failed to parse token");
+						RecordError(ref ctx, ref stng, "Failed to parse token.");
 					}
 					return ParsedRule.Fail;
 				}
@@ -121,7 +121,7 @@ namespace RCParsing.ParserRules
 					}
 					else
 					{
-						RecordError(ref ctx, ref stng, "Failed to parse token");
+						RecordError(ref ctx, ref stng, "Failed to parse token.");
 					}
 					return ParsedRule.Fail;
 				}

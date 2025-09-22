@@ -47,6 +47,11 @@ namespace RCParsing
 		public int tabSize;
 
 		/// <summary>
+		/// Maximum number of last steps that will be displayed in error messages.
+		/// </summary>
+		public int maxWalkStepsDisplay;
+
+		/// <summary>
 		/// Whether to use the optimized skip whitespace mode, where parser directly skips whitespaces before parsing rules. <br/>
 		/// This mode prevents any other skip rules, strategies, barriers calculation and recording.
 		/// </summary>

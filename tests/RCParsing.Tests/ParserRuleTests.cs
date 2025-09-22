@@ -153,7 +153,8 @@ namespace RCParsing.Tests
 			var builder = new ParserBuilder();
 
 			builder.Settings
-				.Skip(r => r.Rule("skip"), ParserSkippingStrategy.SkipBeforeParsingGreedy);
+				.Skip(r => r.Rule("skip"), ParserSkippingStrategy.SkipBeforeParsingGreedy)
+				.UseDebug(maxWalkStepsDisplay: 30);
 
 			// Parser will always try to skip the skip-rules until they are not capturing anything
 			// So we don't need to create another .OneOrMore(c => c.Choice(...))
@@ -219,7 +220,7 @@ namespace RCParsing.Tests
 			{
 				"id": 1,
 				"name": "Sample Data",
-				"created": "2023-01-01T00:00:00", // This is a comment
+				"created": "2023-01-01T00:00:00",
 				"tags": ["tag1", "tag2", "tag3"],
 				"isActive": true,
 				"nested": {
