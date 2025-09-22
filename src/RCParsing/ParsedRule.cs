@@ -113,5 +113,48 @@ namespace RCParsing
 				children = children
 			};
 		}
+
+		/// <summary>
+		/// Moves the start index of the parsed rule and its children by a specified amount.
+		/// </summary>
+		/// <param name="delta">The amount to move the start index by.</param>
+		/// <returns>A new parsed rule with the updated start index.</returns>
+		public readonly ParsedRule Move(int delta)
+		{
+			ParsedRule result = this;
+
+			result.startIndex += delta;
+
+			if (children != null)
+			{
+				var newChildren = new ParsedRule[children.Count];
+				for (int i = 0; i < children.Count; i++)
+					newChildren[i] = children[i].Move(delta);
+				result.children = newChildren;
+			}
+
+			return result;
+		}
+
+		/// <summary>
+		/// Changes the version number of this parsed rule. Used for tracking changes in incremental parsing.
+		/// </summary>
+		/// <param name="newVersion">The new version number.</param>
+		public readonly ParsedRule ChangeVersion(int newVersion)
+		{
+			ParsedRule result = this;
+
+			result.version = newVersion;
+
+			if (children != null)
+			{
+				var newChildren = new ParsedRule[children.Count];
+				for (int i = 0; i < children.Count; i++)
+					newChildren[i] = children[i].ChangeVersion(newVersion);
+				result.children = newChildren;
+			}
+
+			return result;
+		}
 	}
 }

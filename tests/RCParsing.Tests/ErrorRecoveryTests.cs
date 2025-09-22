@@ -171,7 +171,7 @@ namespace RCParsing.Tests
 				.Literal('{')
 				.OneOrMore(b => b.Rule("statement"))
 				.Literal('}')
-					.RecoveryLast(r => r.SkipUntil(a => a.Literal('}'))); // Place recovery to the next closing brace
+					.RecoveryLast(r => r.SkipUntil(a => a.Literal('}'))); // Place recovery strategy to the next closing brace
 
 			builder.CreateMainRule("program")
 				.OneOrMore(b => b.Rule("block"))

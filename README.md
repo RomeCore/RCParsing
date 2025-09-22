@@ -14,6 +14,7 @@ This library focuses on **Developer-experience (DX)** first, providing best tool
 ## Why RCParsing?
 
 - 🐍 **Hybrid Power**: Unique support for **barrier tokens** to parse indent-sensitive languages like Python and YAML.
+- ☄️ **Incremental Parsing**: Edit large documents with instant feedback. Our persistent AST enables efficient re-parsing of only changed sections, perfect for LSP servers and real-time editing scenarios.
 - 💪 **Regex on Steroids**: You can find all matches for target structure in the input text with detailed AST information and transformed value.
 - 🌀 **Lexerless Freedom**: No token priority headaches. Parse directly from raw text, even with keywords embedded in strings. Tokens are used just as lightweight matching primitives.
 - 🎨 **Fluent API**: Write parsers in C# that read like clean BNF grammars, boosting readability and maintainability compared to imperative or functional approaches.
@@ -36,6 +37,7 @@ This library focuses on **Developer-experience (DX)** first, providing best tool
 	- [Python-like](#python-like) - Demonstrating barrier tokens for indentation.
 	- [JSON token combination](#json-token-combination) - A maximum speed approach for getting values without AST.
 	- [Finding patterns](#finding-patterns) - How to find all occurrences of a rule in a string.
+	- [JSON incremental parsing](#json-incremental-parsing) - How to re-parse just the part of content.
 - [Comparison with other parsing libraries](#comparison-with-other-parsing-libraries)
 - [Benchmarks](#benchmarks)
 	- [JSON](#json-1)
@@ -85,7 +87,7 @@ builder.CreateMainRule("expression")
     .Number<double>()
     .Transform(v => {
         var value1 = v.GetValue<double>(0);
-        var op = v.Children[1].Text;
+        var op = v.GetValue<string>(1);
         var value2 = v.GetValue<double>(2);
         return op == "+" ? value1 + value2 : value1 - value2;
     });
@@ -430,6 +432,125 @@ foreach (var price in prices)
 }
 ```
 
+## JSON incremental parsing
+
+RCParsing supports incremental parsing, it allows to re-parse only changed part of text.
+
+```csharp
+var builder = new ParserBuilder();
+
+builder.Settings
+	.Skip(r => r.Rule("skip"), ParserSkippingStrategy.SkipBeforeParsingGreedy)
+	.UseLazyAST(); // Use lazy AST type to store cached resuls
+
+builder.CreateRule("skip")
+	.Choice(
+		b => b.Whitespaces(),
+		b => b.Literal("//").TextUntil('\n', '\r'))
+	.ConfigureForSkip();
+
+builder.CreateToken("string")
+	.Literal('"')
+	.EscapedTextPrefix(prefix: '\\', '\\', '\"')
+	.Literal('"')
+	.Pass(index: 1);
+
+builder.CreateToken("number")
+	.Number<double>();
+
+builder.CreateToken("boolean")
+	.LiteralChoice("true", "false").Transform(v => v.Text == "true");
+
+builder.CreateToken("null")
+	.Literal("null").Transform(v => null);
+
+builder.CreateRule("value")
+	.Choice(
+		c => c.Token("string"),
+		c => c.Token("number"),
+		c => c.Token("boolean"),
+		c => c.Token("null"),
+		c => c.Rule("array"),
+		c => c.Rule("object")
+	);
+
+builder.CreateRule("array")
+	.Literal("[")
+	.ZeroOrMoreSeparated(v => v.Rule("value"), s => s.Literal(","),
+		allowTrailingSeparator: true, includeSeparatorsInResult: false)
+		.TransformLast(v => v.SelectArray())
+	.Literal("]")
+	.TransformSelect(1);
+
+builder.CreateRule("object")
+	.Literal("{")
+	.ZeroOrMoreSeparated(v => v.Rule("pair"), s => s.Literal(","),
+		allowTrailingSeparator: true, includeSeparatorsInResult: false)
+		.TransformLast(v => v.SelectValues<KeyValuePair<string, object>>().ToDictionary(k => k.Key, v => v.Value))
+	.Literal("}")
+	.TransformSelect(1);
+
+builder.CreateRule("pair")
+	.Token("string")
+	.Literal(":")
+	.Rule("value")
+	.Transform(v => KeyValuePair.Create(v.GetValue<string>(0), v.GetValue(2)));
+
+builder.CreateMainRule("content")
+	.Rule("value")
+	.EOF()
+	.TransformSelect(0);
+
+var jsonParser = builder.Build();
+
+var json =
+"""
+{
+	"id": 1,
+	"name": "Sample Data",
+	"created": "2023-01-01T00:00:00", // This is a comment
+	"tags": ["tag1", "tag2", "tag3"],
+	"isActive": true,
+	"nested": {
+		"value": 123.456,
+		"description": "Nested description"
+	}
+}
+""";
+
+// The same JSON, but with 'tags' value changed
+var changedJson =
+"""
+{
+	"id": 1,
+	"name": "Sample Data",
+	"created": "2023-01-01T00:00:00", // This is a comment
+	"tags": { "nested": ["tag1", "tag2", "tag3"] },
+	"isActive": true,
+	"nested": {
+		"value": 123.456,
+		"description": "Nested description"
+	}
+}
+""";
+
+// Parse the input text and calculate values (them will be recorded into the cache because we're using lazy AST)
+var ast = jsonParser.Parse(json);
+var value = ast.Value as Dictionary<string, object>;
+var tags = value!["tags"] as object[];
+var nested = value!["nested"] as Dictionary<string, object>;
+
+// Re-parse the sligtly changed input string and get the values
+var changedAst = ast.Reparsed(changedJson);
+var changedValue = changedAst.Value as Dictionary<string, object>;
+var changedTags = changedValue!["tags"] as Dictionary<string, object>;
+var changedNested = changedValue!["nested"] as Dictionary<string, object>;
+
+// And untouched values remains the same!
+// Prints: True
+Console.WriteLine(ReferenceEquals(nested, changedNested));
+```
+
 # Comparison with Other Parsing Libraries
 
 `RCParsing` is designed to outstand with unique features, and **easy** developer experience, but it is good enough to compete with other fastest parser tools.
@@ -478,7 +599,7 @@ The legacy parser combinators for .NET, came out more than 10 years ago, but som
 
 ## Why RCParsing outstands
 
-It designed to be a more convenient than other libraries, and later it been optimized and now it has a better performance than other libraries. It also supports both modes: AST and immediate calculations, or them together. RCParsing can produce stack traces for errors, recover from them, and soon will support walk traces and incremental parsing (in the next update).
+It designed to be a more convenient than other libraries, and later it been optimized and now it has a better performance than other libraries. It also supports both modes: AST and immediate calculations, or them together. RCParsing can produce stack traces for errors, recover from them, and supports incremental parsing.
 
 # Benchmarks
 
@@ -603,7 +724,6 @@ The future development of `RCParsing` is focused on:
 - **API Ergonomics:** Introducing even more expressive and fluent methods (such as expression builder).
 - **New Built-in Rules:** Adding common patterns (e.g., number with wide range of notations).
 - **Visualization Tooling:** Exploring tools for debugging and visualizing resulting AST.
-- ***Incremental parsing:*** Parsing only changed parts in the middle of text that will be good for IDE and LSP (Language Server Protocol).
 - ***Cosmic levels of debug:*** Very detailed parse walk traces, showing the order of what was parsed with success/fail status.
 
 # Contributing

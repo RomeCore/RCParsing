@@ -51,5 +51,10 @@ namespace RCParsing
 			_ctx = context;
 			Result = result;
 		}
+
+		public override ParsedRuleResultBase Updated(ParserContext newContext, ParsedRule newParsedRule)
+		{
+			return new ParsedRuleResult(Parent, newContext, newParsedRule);
+		}
 	}
 }

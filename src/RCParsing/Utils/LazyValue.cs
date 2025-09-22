@@ -39,8 +39,8 @@ namespace RCParsing.Utils
 			{
 				if (_isValueCreated)
 					return _value;
-				_value = _factory();
 				_isValueCreated = true;
+				_value = _factory();
 				return _value;
 			}
 		}
