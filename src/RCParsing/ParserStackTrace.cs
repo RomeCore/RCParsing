@@ -91,6 +91,8 @@ namespace RCParsing
 				if (topFrame != null)
 					sb.AppendLine("Stack trace truncated...");
 
+				sb.Length -= Environment.NewLine.Length;
+
 				return sb.ToString();
 			}
 

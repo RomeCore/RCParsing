@@ -18,7 +18,7 @@ namespace RCParsing
 		/// <summary>
 		/// Gets the input text being parsed.
 		/// </summary>
-		public readonly string str;
+		public readonly string input;
 
 		/// <summary>
 		/// The optional parameter passed to the parser. Can be used to pass additional information to the
@@ -57,6 +57,11 @@ namespace RCParsing
 		public readonly BarrierTokenCollection barrierTokens;
 
 		/// <summary>
+		/// A collection of walk trace entries that are used for debugging purposes.
+		/// </summary>
+		public readonly ParserWalkTrace walkTrace;
+
+		/// <summary>
 		/// Initializes a new instance of the <see cref="SharedParserContext"/> class.
 		/// </summary>
 		/// <param name="parser">The parser object that is performing the parsing.</param>
@@ -65,7 +70,7 @@ namespace RCParsing
 		/// <exception cref="ArgumentNullException"></exception>
 		public SharedParserContext(Parser parser, string str, object? parserParameter = null)
 		{
-			this.str = str;
+			this.input = str;
 			this.parserParameter = parserParameter;
 			this.parser = parser ?? throw new ArgumentNullException(nameof(parser));
 			this.cache = new ParserCache();
@@ -73,6 +78,7 @@ namespace RCParsing
 			this.errors = new List<ParsingError>();
 			this.skippedRules = new List<ParsedRule>();
 			this.barrierTokens = new BarrierTokenCollection();
+			this.walkTrace = new ParserWalkTrace(this);
 		}
 	}
 
@@ -117,7 +123,7 @@ namespace RCParsing
 		/// <summary>
 		/// The input string to be parsed.
 		/// </summary>
-		public readonly string input => shared.str;
+		public readonly string input => shared.input;
 
 		/// <summary>
 		/// The current position in the input string.
@@ -184,6 +190,11 @@ namespace RCParsing
 		/// A list of barrier tokens that are used to prevent parsing at certain positions.
 		/// </summary>
 		public readonly BarrierTokenCollection barrierTokens => shared.barrierTokens;
+
+		/// <summary>
+		/// A collection of walk trace entries that are used for debugging purposes.
+		/// </summary>
+		public readonly ParserWalkTrace walkTrace => shared.walkTrace;
 
 		/// <summary>
 		/// Gets a summary of first 10 parsing errors encountered during the process.

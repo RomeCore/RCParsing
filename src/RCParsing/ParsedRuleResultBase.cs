@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Xml.Linq;
+using System.Xml.Schema;
 using RCParsing.ParserRules;
 using RCParsing.Utils;
 
@@ -97,6 +98,11 @@ namespace RCParsing
 		public int Occurency => Result.occurency;
 
 		/// <summary>
+		/// Gets the version of the AST. Used for incremental parsing and tracking changes in the parse tree.
+		/// </summary>
+		public int Version => Result.version;
+
+		/// <summary>
 		/// Gets the intermediate value associated with this rule.
 		/// </summary>
 		public object? IntermediateValue => Result.intermediateValue;
@@ -142,6 +148,14 @@ namespace RCParsing
 		{
 			return GetEnumerator();
 		}
+
+		/// <summary>
+		/// Creates a new parsed result with updated context and parsed rule.
+		/// </summary>
+		/// <param name="newContext">The new parser context to use for the parsed result.</param>
+		/// <param name="newParsedRule">The new parsed rule to use for the parsed result.</param>
+		/// <returns>A new parsed result with updated context and parsed rule.</returns>
+		public abstract ParsedRuleResultBase Updated(ParserContext newContext, ParsedRule newParsedRule);
 
 		/// <summary>
 		/// Gets the text captured by child rule at the specific index.
@@ -408,6 +422,114 @@ namespace RCParsing
 		{
 			return new ParsedRuleResultLazy(optimization, Parent, Context, Result);
 		}
+
+
+
+		private static void ValidateReparseContext(ParserContext oldContext, ParserContext newContext)
+		{
+			if (oldContext.position != newContext.position)
+				throw new InvalidOperationException("Cannot reparse the context with mismatched minimum and maximum positions.");
+		}
+
+		/// <summary>
+		/// Incrementally re-parses this parsed rule result with new input.
+		/// </summary>
+		/// <param name="input">The new input to re-parse.</param>
+		/// <param name="parameter">Optional parameter to pass to the parser.</param>
+		/// <returns>A new parsed rule result with the updated input.</returns>
+		public ParsedRuleResultBase Reparsed(string input, object? parameter = null)
+		{
+			var context = Context;
+			var parser = context.parser;
+			var newContext = parser.CreateContext(input, parameter);
+
+			ValidateReparseContext(context, newContext);
+
+			var change = new TextChange(context.input, newContext.input);
+			var reparsed = parser.ParseIncrementally(Result, newContext, change);
+			return Updated(newContext, reparsed);
+		}
+
+		/// <summary>
+		/// Incrementally re-parses this parsed rule result with new input.
+		/// </summary>
+		/// <param name="input">The new input to re-parse.</param>
+		/// <param name="startIndex">The starting index of the new input.</param>
+		/// <param name="parameter">Optional parameter to pass to the parser.</param>
+		/// <returns>A new parsed rule result with the updated input.</returns>
+		public ParsedRuleResultBase Reparsed(string input, int startIndex, object? parameter = null)
+		{
+			var context = Context;
+			var parser = context.parser;
+			var newContext = parser.CreateContext(input, startIndex, parameter);
+
+			ValidateReparseContext(context, newContext);
+
+			var change = new TextChange(context.input, newContext.input);
+			var reparsed = parser.ParseIncrementally(Result, newContext, change);
+			return Updated(newContext, reparsed);
+		}
+
+		/// <summary>
+		/// Incrementally re-parses this parsed rule result with new input.
+		/// </summary>
+		/// <param name="input">The new input to re-parse.</param>
+		/// <param name="startIndex">The starting index of the new input.</param>
+		/// <param name="length">The number of characters to parse from the new input.</param>
+		/// <param name="parameter">Optional parameter to pass to the parser.</param>
+		/// <returns>A new parsed rule result with the updated input.</returns>
+		public ParsedRuleResultBase Reparsed(string input, int startIndex, int length, object? parameter = null)
+		{
+			var context = Context;
+			var parser = context.parser;
+			var newContext = parser.CreateContext(input, startIndex, length, parameter);
+
+			ValidateReparseContext(context, newContext);
+
+			var change = new TextChange(context.input, newContext.input);
+			var reparsed = parser.ParseIncrementally(Result, newContext, change);
+			return Updated(newContext, reparsed);
+		}
+
+		/// <summary>
+		/// Incrementally re-parses this parsed rule result with new input.
+		/// </summary>
+		/// <param name="context">The new parser context to re-parse.</param>
+		/// <returns>A new parsed rule result with the updated input.</returns>
+		public ParsedRuleResultBase Reparsed(ParserContext context)
+		{
+			var _context = Context;
+			var parser = _context.parser;
+			if (context.parser != _context.parser)
+				throw new InvalidOperationException("Cannot reparse the context with different parsers.");
+
+			ValidateReparseContext(_context, context);
+
+			var change = new TextChange(_context.input, context.input);
+			var reparsed = parser.ParseIncrementally(Result, context, change);
+			return Updated(context, reparsed);
+		}
+
+		/// <summary>
+		/// Incrementally re-parses this parsed rule result with new input.
+		/// </summary>
+		/// <param name="context">The new parser context to re-parse.</param>
+		/// <param name="change">Optional text change to apply during re-parsing.</param>
+		/// <returns>A new parsed rule result with the updated input.</returns>
+		public ParsedRuleResultBase Reparsed(ParserContext context, TextChange change)
+		{
+			var _context = Context;
+			var parser = _context.parser;
+			if (context.parser != _context.parser)
+				throw new InvalidOperationException("Cannot reparse the context with different parsers.");
+
+			ValidateReparseContext(_context, context);
+
+			var reparsed = parser.ParseIncrementally(Result, context, change);
+			return Updated(context, reparsed);
+		}
+
+
 
 		public string Dump(int maxDepth)
 		{

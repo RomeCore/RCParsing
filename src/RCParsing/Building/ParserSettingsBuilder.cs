@@ -460,15 +460,45 @@ namespace RCParsing.Building
 		}
 
 		/// <summary>
-		/// Sets the stack trace writing mode and detailed errors mode to enabled.
+		/// Sets the maximum number of walk steps to display in error messages. Default is 30.
+		/// </summary>
+		/// <param name="maxWalkStepsDisplay">The maximum number of walk steps to display. Default is 30.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public ParserSettingsBuilder SetMaxStepsToDisplay(int maxWalkStepsDisplay = 30)
+		{
+			_mainSettings.maxWalkStepsDisplay = maxWalkStepsDisplay;
+			return this;
+		}
+
+		/// <summary>
+		/// Records the walk trace during parsing.
+		/// </summary>
+		/// <returns>Current instance for method chaining.</returns>
+		public ParserSettingsBuilder RecordWalkTrace()
+		{
+			var prevFactory = _initFlagsFactory;
+			_initFlagsFactory = e =>
+			{
+				var flags = prevFactory(e);
+				flags |= ParserInitFlags.WalkTraceRecording;
+				return flags;
+			};
+			return this;
+		}
+
+		/// <summary>
+		/// Sets the stack trace writing mode, walk trace recording mode and detailed errors mode to enabled.
 		/// </summary>
 		/// <remarks>
 		/// Useful for debuggings grammars.
 		/// </remarks>
+		/// <param name="tabSize">The tab size used for formatting the error messages and visual column calculation.</param>
+		/// <param name="maxWalkStepsDisplay">The maximum number of steps to display in the walk trace when formatting errors.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public ParserSettingsBuilder UseDebug()
+		public ParserSettingsBuilder UseDebug(int tabSize = 4, int maxWalkStepsDisplay = 40)
 		{
-			return this.WriteStackTrace().DetailedErrors();
+			return this.SetTabSize(tabSize).WriteStackTrace().RecordWalkTrace()
+				.SetMaxStepsToDisplay(maxWalkStepsDisplay).DetailedErrors();
 		}
 	}
 }

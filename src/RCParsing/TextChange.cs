@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System;
+using System.Text;
 
 namespace RCParsing
 {
@@ -63,6 +64,47 @@ namespace RCParsing
 			sb.Append(newDelta);
 			sb.Append(oldText, startIndex + oldLength, oldText.Length - (startIndex + oldLength));
 			this.resultingText = sb.ToString();
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="TextChange"/> struct.
+		/// </summary>
+		/// <param name="oldText">The old text before the change.</param>
+		/// <param name="newText">The new text to insert at the change index.</param>
+		public TextChange(string oldText, string newText)
+		{
+			int minLen = Math.Min(oldText.Length, newText.Length);
+			int prefixLength = minLen;
+
+			for (int i = 0; i < minLen; i++)
+			{
+				if (oldText[i] != newText[i])
+				{
+					prefixLength = i;
+					break;
+				}
+			}
+
+			if (prefixLength == minLen)
+			{
+				this.startIndex = prefixLength;
+				this.oldLength = oldText.Length - prefixLength;
+				this.newLength = newText.Length - prefixLength;
+				this.resultingText = newText;
+				return;
+			}
+
+			int suffixLength = 0;
+			while (suffixLength < minLen - prefixLength &&
+				   oldText[oldText.Length - 1 - suffixLength] == newText[newText.Length - 1 - suffixLength])
+			{
+				suffixLength++;
+			}
+
+			this.startIndex = prefixLength;
+			this.oldLength = oldText.Length - prefixLength - suffixLength;
+			this.newLength = newText.Length - prefixLength - suffixLength;
+			this.resultingText = newText;
 		}
 	}
 }

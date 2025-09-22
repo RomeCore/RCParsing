@@ -14,11 +14,12 @@ This library focuses on **Developer-experience (DX)** first, providing best tool
 ## Why RCParsing?
 
 - 🐍 **Hybrid Power**: Unique support for **barrier tokens** to parse indent-sensitive languages like Python and YAML.
+- ☄️ **Incremental Parsing**: Edit large documents with instant feedback. Our persistent AST enables efficient re-parsing of only changed sections, perfect for LSP servers and real-time editing scenarios.
 - 💪 **Regex on Steroids**: You can find all matches for target structure in the input text with detailed AST information and transformed value.
 - 🌀 **Lexerless Freedom**: No token priority headaches. Parse directly from raw text, even with keywords embedded in strings. Tokens are used just as lightweight matching primitives.
-- 🎨 **Fluent API**: Write parsers in C# that read like clean BNF grammars, boosting readability and maintainability compared to imperative or functional approaches.
+- 🎨 **Fluent API**: Write parsers in C# that read like clean BNF grammars, boosting readability and maintainability compared to imperative, functional or code-generation approaches.
 - 🧩 **Combinator Style**: Unlock maximum performance by defining complex tokens with immediate value transformation, bypassing the AST construction entirely for a direct, allocation-free result. Perfect for high-speed parsing of well-defined formats. Also can be used with AST mode.
-- 🐛 **Debug-Friendly**: Get detailed, actionable error messages with stack traces and precise source locations. Richest API for manual error information included.
+- 🐛 **Superior Debugging**: Get detailed, actionable error messages with stack traces, walk traces and precise source locations. Richest API for manual error information included.
 - 🚑 **Error Recovery**: Define custom recovery strategies per rule to handle syntax errors and go further.
 - ⚡ **Blazing Fast**: Performance is now on par with the fastest .NET parsing libraries (see benchmarks below).
 - 🌳 **Rich AST**: Parser makes an AST (Abstract Syntax Tree) from raw text, with ability to optimize, fully analyze and calculate the result value entirely lazy, reducing unnecessary allocations.
@@ -30,12 +31,14 @@ This library focuses on **Developer-experience (DX)** first, providing best tool
 
 - [Installation](#installation)
 - [Tutorials, docs and examples](#tutorials-docs-and-examples)
-- [Simple examples](#simple-examples) - The examples that you can copy, paste and run!
+- [Simple examples](#simple-examples) - The examples that you can copy, paste, run or look!
 	- [A + B](#a--b) - Basic arithmetic expression parser with result calculation.
 	- [JSON](#json) - A complete JSON parser with comments and skipping.
 	- [Python-like](#python-like) - Demonstrating barrier tokens for indentation.
 	- [JSON token combination](#json-token-combination) - A maximum speed approach for getting values without AST.
 	- [Finding patterns](#finding-patterns) - How to find all occurrences of a rule in a string.
+	- [JSON incremental parsing](#json-incremental-parsing) - How to re-parse just the part of content.
+	- [Errors example](#errors-example) - Just a simple example of how errors look in default and debug modes.
 - [Comparison with other parsing libraries](#comparison-with-other-parsing-libraries)
 - [Benchmarks](#benchmarks)
 	- [JSON](#json-1)
@@ -60,7 +63,7 @@ Or do it manually by cloning this repository.
 
 # Tutorials, docs and examples
 
-- [Tutorials](https://github.com/RomeCore/RCParsing/blob/main/docs/tutorials.md) - detailed tutorials, explaining features and mechanics of this library, highly recommended to read!]
+- [Tutorials](https://github.com/RomeCore/RCParsing/blob/main/docs/tutorials.md) - detailed tutorials, explaining features and mechanics of this library, highly recommended to read!
 
 # Simple examples
 
@@ -85,7 +88,7 @@ builder.CreateMainRule("expression")
     .Number<double>()
     .Transform(v => {
         var value1 = v.GetValue<double>(0);
-        var op = v.Children[1].Text;
+        var op = v.GetValue<string>(1);
         var value2 = v.GetValue<double>(2);
         return op == "+" ? value1 + value2 : value1 - value2;
     });
@@ -430,6 +433,220 @@ foreach (var price in prices)
 }
 ```
 
+## JSON incremental parsing
+
+RCParsing supports incremental parsing, it allows to re-parse only changed part of text.
+
+```csharp
+var builder = new ParserBuilder();
+
+builder.Settings
+	.Skip(r => r.Rule("skip"), ParserSkippingStrategy.SkipBeforeParsingGreedy)
+	.UseLazyAST(); // Use lazy AST type to store cached resuls
+
+builder.CreateRule("skip")
+	.Choice(
+		b => b.Whitespaces(),
+		b => b.Literal("//").TextUntil('\n', '\r'))
+	.ConfigureForSkip();
+
+builder.CreateToken("string")
+	.Literal('"')
+	.EscapedTextPrefix(prefix: '\\', '\\', '\"')
+	.Literal('"')
+	.Pass(index: 1);
+
+builder.CreateToken("number")
+	.Number<double>();
+
+builder.CreateToken("boolean")
+	.LiteralChoice("true", "false").Transform(v => v.Text == "true");
+
+builder.CreateToken("null")
+	.Literal("null").Transform(v => null);
+
+builder.CreateRule("value")
+	.Choice(
+		c => c.Token("string"),
+		c => c.Token("number"),
+		c => c.Token("boolean"),
+		c => c.Token("null"),
+		c => c.Rule("array"),
+		c => c.Rule("object")
+	);
+
+builder.CreateRule("array")
+	.Literal("[")
+	.ZeroOrMoreSeparated(v => v.Rule("value"), s => s.Literal(","),
+		allowTrailingSeparator: true, includeSeparatorsInResult: false)
+		.TransformLast(v => v.SelectArray())
+	.Literal("]")
+	.TransformSelect(1);
+
+builder.CreateRule("object")
+	.Literal("{")
+	.ZeroOrMoreSeparated(v => v.Rule("pair"), s => s.Literal(","),
+		allowTrailingSeparator: true, includeSeparatorsInResult: false)
+		.TransformLast(v => v.SelectValues<KeyValuePair<string, object>>().ToDictionary(k => k.Key, v => v.Value))
+	.Literal("}")
+	.TransformSelect(1);
+
+builder.CreateRule("pair")
+	.Token("string")
+	.Literal(":")
+	.Rule("value")
+	.Transform(v => KeyValuePair.Create(v.GetValue<string>(0), v.GetValue(2)));
+
+builder.CreateMainRule("content")
+	.Rule("value")
+	.EOF()
+	.TransformSelect(0);
+
+var jsonParser = builder.Build();
+
+var json =
+"""
+{
+	"id": 1,
+	"name": "Sample Data",
+	"created": "2023-01-01T00:00:00", // This is a comment
+	"tags": ["tag1", "tag2", "tag3"],
+	"isActive": true,
+	"nested": {
+		"value": 123.456,
+		"description": "Nested description"
+	}
+}
+""";
+
+// The same JSON, but with 'tags' value changed
+var changedJson =
+"""
+{
+	"id": 1,
+	"name": "Sample Data",
+	"created": "2023-01-01T00:00:00", // This is a comment
+	"tags": { "nested": ["tag1", "tag2", "tag3"] },
+	"isActive": true,
+	"nested": {
+		"value": 123.456,
+		"description": "Nested description"
+	}
+}
+""";
+
+// Parse the input text and calculate values (them will be recorded into the cache because we're using lazy AST)
+var ast = jsonParser.Parse(json);
+var value = ast.Value as Dictionary<string, object>;
+var tags = value!["tags"] as object[];
+var nested = value!["nested"] as Dictionary<string, object>;
+
+// Re-parse the sligtly changed input string and get the values
+var changedAst = ast.Reparsed(changedJson);
+var changedValue = changedAst.Value as Dictionary<string, object>;
+var changedTags = changedValue!["tags"] as Dictionary<string, object>;
+var changedNested = changedValue!["nested"] as Dictionary<string, object>;
+
+// And untouched values remains the same!
+// Prints: True
+Console.WriteLine(ReferenceEquals(nested, changedNested));
+```
+
+## Errors example
+
+There is how errors are displayed in the default mode:
+
+```
+RCParsing.ParsingException : An error occurred during parsing:
+
+The line where the error occurred:
+	"created": "2023-01-01T00:00:00",,
+                   line 4, column 35 ^
+
+',' is unexpected character, expected 'string'
+
+... and more errors omitted
+```
+
+And there is errors when using the `builder.Settings.UseDebug()` setting:
+
+```
+RCParsing.ParsingException : An error occurred during parsing:
+
+'string': Failed to parse token.
+'pair': Failed to parse sequence rule.
+(SeparatedRepeat[0..]...): Expected element after separator, but found none.
+
+The line where the error occurred:
+	"created": "2023-01-01T00:00:00",,
+                   line 4, column 35 ^
+
+',' is unexpected character, expected one of:
+  'string'
+  'pair'
+  SeparatedRepeat[0..]: 'pair' sep literal ','
+
+['string'] Stack trace (top call recently):
+- Sequence 'pair':
+    'string' <-- here
+    literal ':'
+    'value'
+- SeparatedRepeat[0..]: 'pair' <-- here
+  sep literal ','
+- Sequence 'object':
+    literal '{'
+    SeparatedRepeat[0..]... <-- here
+    literal '}'
+- Choice 'value':
+    'string'
+    'number'
+    'boolean'
+    'null'
+    'array'
+    'object' <-- here
+- Sequence:
+    'value' <-- here
+    end of file
+
+... and more errors omitted
+
+Walk Trace:
+
+... 170 hidden parsing steps. Total: 200 ...
+[ENTER]   pos:51    'string'
+[SUCCESS] pos:51    'string' matched: '"2023-01-01T00:...' [21 chars]
+[SUCCESS] pos:51    'value' matched: '"2023-01-01T00:...' [21 chars]
+[SUCCESS] pos:40    'pair' matched: '"created": "202...' [32 chars]
+[ENTER]   pos:72    'skip'
+[ENTER]   pos:72    whitespaces
+[FAIL]    pos:72    whitespaces
+[ENTER]   pos:72    Sequence...
+[ENTER]   pos:72    literal '//'
+[FAIL]    pos:72    literal '//'
+[FAIL]    pos:72    Sequence...
+[FAIL]    pos:72    'skip'
+[ENTER]   pos:72    literal ','
+[SUCCESS] pos:72    literal ',' matched: ',' [1 chars]
+[ENTER]   pos:73    'skip'
+[ENTER]   pos:73    whitespaces
+[FAIL]    pos:73    whitespaces
+[ENTER]   pos:73    Sequence...
+[ENTER]   pos:73    literal '//'
+[FAIL]    pos:73    literal '//'
+[FAIL]    pos:73    Sequence...
+[FAIL]    pos:73    'skip'
+[ENTER]   pos:73    'pair'
+[ENTER]   pos:73    'string'
+[FAIL]    pos:73    'string'
+[FAIL]    pos:73    'pair'
+[FAIL]    pos:4     SeparatedRepeat[0..]...
+[FAIL]    pos:0     'object'
+[FAIL]    pos:0     'value'
+[FAIL]    pos:0     Sequence...
+
+... End of walk trace ...
+```
+
 # Comparison with Other Parsing Libraries
 
 `RCParsing` is designed to outstand with unique features, and **easy** developer experience, but it is good enough to compete with other fastest parser tools.
@@ -478,7 +695,7 @@ The legacy parser combinators for .NET, came out more than 10 years ago, but som
 
 ## Why RCParsing outstands
 
-It designed to be a more convenient than other libraries, and later it been optimized and now it has a better performance than other libraries. It also supports both modes: AST and immediate calculations, or them together. RCParsing can produce stack traces for errors, recover from them, and soon will support walk traces and incremental parsing (in the next update).
+It designed to be a more convenient than other libraries, and later it been optimized and now it has a better performance than other libraries. It also supports both modes: AST and immediate calculations, or them together. RCParsing can produce stack and walk traces for errors, recover from them, and supports incremental parsing.
 
 # Benchmarks
 
@@ -497,29 +714,29 @@ AMD Ryzen 5 5600 3.60GHz, 1 CPU, 12 logical and 6 physical cores
 
 The JSON value calculation with the typeset `Dictionary<string, object>`, `object[]`, `string`, `int` and `null`.
 
-| Method                               | Mean           | Error        | StdDev      | Ratio | RatioSD | Gen0     | Gen1    | Allocated | Alloc Ratio |
-|------------------------------------- |---------------:|-------------:|------------:|------:|--------:|---------:|--------:|----------:|------------:|
-| JsonBig_RCParsing                    |   164,590.7 ns |    996.83 ns |   355.48 ns |  1.00 |    0.00 |  13.1836 |  4.1504 |  222264 B |        1.00 |
-| JsonBig_RCParsing_Optimized          |    99,452.6 ns |    730.99 ns |   324.57 ns |  0.60 |    0.00 |   9.2773 |  2.0752 |  156640 B |        0.70 |
-| JsonBig_RCParsing_TokenCombination   |    29,387.6 ns |    330.30 ns |   117.79 ns |  0.18 |    0.00 |   2.5635 |  0.1831 |   43096 B |        0.19 |
-| JsonBig_SystemTextJson               |    12,100.5 ns |     38.82 ns |    13.84 ns |  0.07 |    0.00 |   0.5035 |  0.0153 |    8648 B |        0.04 |
-| JsonBig_NewtonsoftJson               |    52,827.6 ns |    494.00 ns |   219.34 ns |  0.32 |    0.00 |   4.7607 |  0.9766 |   80176 B |        0.36 |
-| JsonBig_ANTLR                        |   189,947.9 ns |  1,218.53 ns |   541.04 ns |  1.15 |    0.00 |  19.5313 |  7.5684 |  330584 B |        1.49 |
-| JsonBig_Parlot                       |    41,206.8 ns |    105.96 ns |    47.05 ns |  0.25 |    0.00 |   1.9531 |  0.1221 |   32848 B |        0.15 |
-| JsonBig_Pidgin                       |   208,721.8 ns |    418.89 ns |   185.99 ns |  1.27 |    0.00 |   3.9063 |  0.2441 |   66816 B |        0.30 |
-| JsonBig_Superpower                   | 1,184,573.2 ns |  3,998.11 ns | 1,425.76 ns |  7.20 |    0.02 |  39.0625 |  5.8594 |  653627 B |        2.94 |
-| JsonBig_Sprache                      | 1,213,870.0 ns | 17,241.27 ns | 7,655.23 ns |  7.38 |    0.05 | 232.4219 | 27.3438 | 3899736 B |       17.55 |
-|                                      |                |              |             |       |         |          |         |           |             |
-| JsonShort_RCParsing                  |     9,207.7 ns |    104.64 ns |    46.46 ns |  1.00 |    0.01 |   0.6409 |       - |   10920 B |        1.00 |
-| JsonShort_RCParsing_Optimized        |     5,397.9 ns |     32.37 ns |    14.37 ns |  0.59 |    0.00 |   0.5264 |  0.0076 |    8904 B |        0.82 |
-| JsonShort_RCParsing_TokenCombination |     1,515.0 ns |     14.39 ns |     6.39 ns |  0.16 |    0.00 |   0.1354 |       - |    2280 B |        0.21 |
-| JsonShort_SystemTextJson             |       814.8 ns |     12.44 ns |     5.52 ns |  0.09 |    0.00 |   0.0401 |       - |     672 B |        0.06 |
-| JsonShort_NewtonsoftJson             |     3,126.4 ns |     31.03 ns |    13.78 ns |  0.34 |    0.00 |   0.3891 |       - |    6552 B |        0.60 |
-| JsonShort_ANTLR                      |    10,106.1 ns |     51.06 ns |    18.21 ns |  1.10 |    0.01 |   1.1444 |  0.0305 |   19360 B |        1.77 |
-| JsonShort_Parlot                     |     2,271.2 ns |     10.79 ns |     4.79 ns |  0.25 |    0.00 |   0.1144 |       - |    1960 B |        0.18 |
-| JsonShort_Pidgin                     |    11,160.6 ns |     22.50 ns |     9.99 ns |  1.21 |    0.01 |   0.2136 |       - |    3664 B |        0.34 |
-| JsonShort_Superpower                 |    66,312.3 ns |    240.99 ns |    85.94 ns |  7.20 |    0.04 |   1.9531 |       - |   34117 B |        3.12 |
-| JsonShort_Sprache                    |    63,855.1 ns |    858.85 ns |   306.27 ns |  6.94 |    0.04 |  12.6953 |  0.2441 |  213168 B |       19.52 |
+| Method                               | Mean           | Error        | StdDev       | Ratio | RatioSD | Gen0     | Gen1    | Allocated | Alloc Ratio |
+|------------------------------------- |---------------:|-------------:|-------------:|------:|--------:|---------:|--------:|----------:|------------:|
+| JsonBig_RCParsing                    |   166,563.6 ns |  1,550.19 ns |    688.30 ns |  1.00 |    0.01 |  13.1836 |  3.6621 |  222336 B |        1.00 |
+| JsonBig_RCParsing_Optimized          |    99,578.1 ns |  1,203.19 ns |    429.07 ns |  0.60 |    0.00 |   9.2773 |  2.1973 |  156712 B |        0.70 |
+| JsonBig_RCParsing_TokenCombination   |    30,124.3 ns |    279.09 ns |     99.53 ns |  0.18 |    0.00 |   2.5635 |  0.1831 |   43096 B |        0.19 |
+| JsonBig_SystemTextJson               |    12,501.0 ns |     51.21 ns |     22.74 ns |  0.08 |    0.00 |   0.5035 |  0.0153 |    8648 B |        0.04 |
+| JsonBig_NewtonsoftJson               |    48,258.1 ns |    314.92 ns |    139.83 ns |  0.29 |    0.00 |   4.7607 |  0.9766 |   80176 B |        0.36 |
+| JsonBig_ANTLR                        |   184,954.4 ns |    498.21 ns |    177.67 ns |  1.11 |    0.00 |  19.5313 |  7.5684 |  330584 B |        1.49 |
+| JsonBig_Parlot                       |    41,351.8 ns |    516.85 ns |    229.48 ns |  0.25 |    0.00 |   1.9531 |  0.1221 |   32848 B |        0.15 |
+| JsonBig_Pidgin                       |   213,947.0 ns |  1,219.96 ns |    541.67 ns |  1.28 |    0.01 |   3.9063 |  0.2441 |   66816 B |        0.30 |
+| JsonBig_Superpower                   | 1,191,550.3 ns |  3,853.95 ns |  1,374.36 ns |  7.15 |    0.03 |  39.0625 |  5.8594 |  653627 B |        2.94 |
+| JsonBig_Sprache                      | 1,232,307.4 ns | 28,065.79 ns | 12,461.38 ns |  7.40 |    0.08 | 232.4219 | 27.3438 | 3899736 B |       17.54 |
+|                                      |                |              |              |       |         |          |         |           |             |
+| JsonShort_RCParsing                  |     8,965.7 ns |     64.95 ns |     28.84 ns |  1.00 |    0.00 |   0.6561 |       - |   10992 B |        1.00 |
+| JsonShort_RCParsing_Optimized        |     5,620.1 ns |    135.28 ns |     60.06 ns |  0.63 |    0.01 |   0.5341 |  0.0076 |    8976 B |        0.82 |
+| JsonShort_RCParsing_TokenCombination |     1,530.2 ns |      5.98 ns |      2.13 ns |  0.17 |    0.00 |   0.1354 |       - |    2280 B |        0.21 |
+| JsonShort_SystemTextJson             |       790.0 ns |     11.70 ns |      5.19 ns |  0.09 |    0.00 |   0.0401 |       - |     672 B |        0.06 |
+| JsonShort_NewtonsoftJson             |     2,824.3 ns |    287.70 ns |    127.74 ns |  0.32 |    0.01 |   0.3891 |       - |    6552 B |        0.60 |
+| JsonShort_ANTLR                      |    10,575.1 ns |     43.55 ns |     15.53 ns |  1.18 |    0.00 |   1.1444 |  0.0305 |   19360 B |        1.76 |
+| JsonShort_Parlot                     |     2,199.4 ns |     16.57 ns |      5.91 ns |  0.25 |    0.00 |   0.1144 |       - |    1960 B |        0.18 |
+| JsonShort_Pidgin                     |    10,794.7 ns |    109.21 ns |     48.49 ns |  1.20 |    0.01 |   0.2136 |       - |    3664 B |        0.33 |
+| JsonShort_Superpower                 |    66,359.1 ns |    220.78 ns |     98.03 ns |  7.40 |    0.02 |   1.9531 |       - |   34117 B |        3.10 |
+| JsonShort_Sprache                    |    64,819.0 ns |    617.46 ns |    220.19 ns |  7.23 |    0.03 |  12.6953 |  0.2441 |  213168 B |       19.39 |
 
 Notes:
 
@@ -603,8 +820,6 @@ The future development of `RCParsing` is focused on:
 - **API Ergonomics:** Introducing even more expressive and fluent methods (such as expression builder).
 - **New Built-in Rules:** Adding common patterns (e.g., number with wide range of notations).
 - **Visualization Tooling:** Exploring tools for debugging and visualizing resulting AST.
-- ***Incremental parsing:*** Parsing only changed parts in the middle of text that will be good for IDE and LSP (Language Server Protocol).
-- ***Cosmic levels of debug:*** Very detailed parse walk traces, showing the order of what was parsed with success/fail status.
 
 # Contributing
 

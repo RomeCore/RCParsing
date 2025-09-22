@@ -46,16 +46,26 @@ namespace RCParsing
 		/// </summary>
 		public bool CanRecover { get; private set; }
 
+		/// <summary>
+		/// Gets a value indicating whether this rule writes stack traces to the current context for debugging purposes.
+		/// </summary>
+		public bool WritesStackTrace { get; private set; }
+
+		/// <summary>
+		/// Gets a value indicating whether this rule records the walk trace to the context.
+		/// </summary>
+		public bool RecordsWalkTrace { get; private set; }
 
 
-		private bool _writeStackTrace = false;
 
 		protected override void PreInitialize(ParserInitFlags initFlags)
 		{
 			base.PreInitialize(initFlags);
 
 			if (initFlags.HasFlag(ParserInitFlags.StackTraceWriting))
-				_writeStackTrace = true;
+				WritesStackTrace = true;
+			if (initFlags.HasFlag(ParserInitFlags.WalkTraceRecording))
+				RecordsWalkTrace = true;
 		}
 
 		protected override void Initialize(ParserInitFlags initFlags)
@@ -80,16 +90,59 @@ namespace RCParsing
 				{
 					if (ctx.cache.TryGetRule(Id, ctx.position, out var cachedResult))
 						return cachedResult;
-/*
+					/*
 					if (!ctx.cache.TryBeginRule(Id, ctx.position))
 						return ParsedRule.Fail;
-*/
+					*/
 					int position = ctx.position;
 					cachedResult = prev(ref ctx, ref stng, ref chStng);
 					ctx.cache.AddRule(Id, position, cachedResult);
 					return cachedResult;
 				}
 				toWrap = ParseMemoized;
+			}
+			
+			if (flags.HasFlag(ParserInitFlags.WalkTraceRecording))
+			{
+				var prev = toWrap;
+				ParsedRule ParseWithWalkTrace(ref ParserContext ctx, ref ParserSettings stng, ref ParserSettings chStng)
+				{
+					var position = ctx.position;
+
+					ctx.walkTrace.Record(new ParsingStep
+					{
+						type = ParsingStepType.Enter,
+						startIndex = position,
+						length = 0,
+						ruleId = Id
+					});
+
+					var parsedRule = prev(ref ctx, ref stng, ref chStng);
+
+					if (parsedRule.success)
+					{
+						ctx.walkTrace.Record(new ParsingStep
+						{
+							type = ParsingStepType.Success,
+							startIndex = parsedRule.startIndex,
+							length = parsedRule.length,
+							ruleId = Id
+						});
+					}
+					else
+					{
+						ctx.walkTrace.Record(new ParsingStep
+						{
+							type = ParsingStepType.Fail,
+							startIndex = position,
+							length = 0,
+							ruleId = Id
+						});
+					}
+
+					return parsedRule;
+				}
+				toWrap = ParseWithWalkTrace;
 			}
 
 			return toWrap;
@@ -100,7 +153,7 @@ namespace RCParsing
 		/// </summary>
 		public void AdvanceContext(ref ParserContext context, ref ParserSettings settings, out ParserSettings childSettings)
 		{
-			if (_writeStackTrace)
+			if (WritesStackTrace)
 				context.AppendStackFrame(Id);
 
 			if (Settings.isDefault)

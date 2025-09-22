@@ -90,14 +90,16 @@ namespace RCParsing
 		public override ParserContext Context => _ctx.context;
 		public override ParsedRule Result { get; }
 
+		private bool _tokenCalculated;
 		private ParsedTokenResult? _token;
 		public override ParsedTokenResult? Token
 		{
 			get
 			{
-				if (_token != null)
+				if (_tokenCalculated)
 					return _token;
 
+				_tokenCalculated = true;
 				if (IsToken)
 				{
 					var element = Result.element;
@@ -127,10 +129,13 @@ namespace RCParsing
 		}
 
 		private LazyArray<ParsedRuleResultBase>? _childrenLazy;
-		public override IReadOnlyList<ParsedRuleResultBase> Children => _childrenLazy ??= new LazyArray<ParsedRuleResultBase>(Result.children?.Count ?? 0, i =>
+		public override IReadOnlyList<ParsedRuleResultBase> Children => _childrenLazy ??=
+			new LazyArray<ParsedRuleResultBase>(Result.children?.Count ?? 0, ChildrenFactory);
+
+		private ParsedRuleResultBase ChildrenFactory(int index)
 		{
-			return new ParsedRuleResultLazy(Optimization, this, _ctx, Result.children[i]);
-		});
+			return new ParsedRuleResultLazy(Optimization, this, _ctx, Result.children[index]);
+		}
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="ParsedRuleResultLazy"/> class.
@@ -215,6 +220,46 @@ namespace RCParsing
 
 			rule.children = rawChildren.ToList();
 			return rule;
+		}
+
+		public override ParsedRuleResultBase Updated(ParserContext newContext, ParsedRule newParsedRule)
+		{
+			var link = new ParserContextLink { context = newContext };
+			return Updated(link, Parent, newParsedRule);
+		}
+
+		private ParsedRuleResultLazy Updated(ParserContextLink link,
+			ParsedRuleResultBase parent, ParsedRule newParsedRule)
+		{
+			var result = new ParsedRuleResultLazy(Optimization, parent, link, newParsedRule);
+
+			int version = Version;
+			int newVersion = newParsedRule.version;
+
+			if (version != newVersion)
+			{
+				// Invalidate cache if version changed.
+				result._valueConstructed = false;
+				result._value = null;
+				result._tokenCalculated = false;
+				result._token = null;
+
+				if ((Result.children?.Count ?? 0) == (newParsedRule.children?.Count ?? 0))
+					result._childrenLazy = _childrenLazy?.Converted(result.ChildrenFactory,
+						(i, v) => ((ParsedRuleResultLazy)v).Updated(link, result, newParsedRule.children[i]));
+				else
+					result._childrenLazy = null;
+			}
+			else
+			{
+				result._valueConstructed = _valueConstructed;
+				result._value = _value;
+				result._tokenCalculated = _tokenCalculated;
+				result._token = _token;
+				result._childrenLazy = _childrenLazy?.WithFactory(result.ChildrenFactory);
+			}
+
+			return result;
 		}
 	}
 }

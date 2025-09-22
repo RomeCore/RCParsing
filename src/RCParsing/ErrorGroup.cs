@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Xml.Linq;
+using RCParsing.ParserRules;
 using RCParsing.TokenPatterns;
 using RCParsing.Utils;
 
@@ -218,7 +219,33 @@ namespace RCParsing
 			{
 				if (_errorMessages != null)
 					return _errorMessages;
-				return _errorMessages = Errors.Select(e => e.message).Where(p => p != null).Distinct().ToArray().AsReadOnlyList();
+
+				return _errorMessages = Errors.Select(e =>
+				{
+					var message = e.message;
+					ParserElement? element = null;
+
+					if (e.elementId != -1)
+					{
+						if (e.isToken)
+							element = Parser.TokenPatterns[e.elementId];
+						else
+							element = Parser.Rules[e.elementId];
+					}
+
+					if (element != null)
+					{
+						if (element is TokenParserRule tokenRule)
+							element = tokenRule.TokenPattern;
+						if (element.Alias is string alias)
+							message = $"'{alias}': {message}";
+						else
+							message = $"({element.ToStringOverride(0)}): {message}";
+					}
+
+					return message;
+				}).Where(p => p != null)
+					.Distinct().ToArray().AsReadOnlyList();
 			}
 		}
 
@@ -271,7 +298,7 @@ namespace RCParsing
 				flags.HasFlag(ErrorFormattingFlags.DisplayMessages))
 			{
 				if (ErrorMessages.Count > 0)
-					sb.AppendLine(string.Join(" / ", ErrorMessages)).AppendLine();
+					sb.AppendLine(string.Join(Environment.NewLine, ErrorMessages)).AppendLine();
 			}
 
 			sb.AppendLine("The line where the error occurred:");
