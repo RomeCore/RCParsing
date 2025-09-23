@@ -301,7 +301,7 @@ namespace RCParsing
 					sb.AppendLine(string.Join(Environment.NewLine, ErrorMessages)).AppendLine();
 			}
 
-			sb.AppendLine("The line where the error occurred:");
+			sb.AppendLine($"The line where the error occurred (position {Position}):");
 			sb.AppendLine(FormattedLineText);
 
 			if (Expected.Count > 0)

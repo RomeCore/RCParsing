@@ -13,7 +13,7 @@ namespace RCParsing.Tests
 		public void AdvancedSelectQuery()
 		{
 			var parser = SQLParser.CreateParser(b => b.Settings
-				.DetailedErrors().RecordWalkTrace().SetMaxStepsToDisplay(50));
+				.RecordWalkTrace().SetMaxStepsToDisplay(50));
 
 			string sql =
 			"""
