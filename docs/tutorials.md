@@ -30,6 +30,7 @@
     - [Matching primitives](#matching-primitives)
         - [EOF](#eof)
         - [Literal, LiteralChar and LiteralChoice](#literal-literalchar-and-literalchoice)
+        - [Keyword and KeywordChoice](#keyword-and-keywordchoice)
         - [Number](#number)
         - [Regex](#regex)
         - [EscapedText](#escapedtext)
@@ -195,6 +196,8 @@ builder.CreateRule("variable_declaration")
     .Literal("=")
     .Rule("value");
 ```
+
+P.S.: Use the `Keyword` instead of `Literal` + `Whitespaces` in real parsers.
 
 When using `TryParseThenSkip` strategy, parser will try to parse first, then skip, then parse (`parse -> skip -> parse`, instead of `skip -> parse`). This allows to require rules that conflicts with skip-rules, but may be a bit slow and emit some unnecessary parsing errors into context, slightly impacting on allocation and performance.
 
@@ -567,7 +570,8 @@ builder.Settings.UseInlining(); // Inlines some rules instead of calling the Par
 builder.Settings.UseFirstCharacterMatch(); // Will choose rules based on lookahead, not effective on simple grammars
 builder.Settings.UseCaching(); // All elements will use memoization, impacts on performance but crucial for complex grammars
 
-builder.Settings.WriteStackTrace(); // All elements will record stack trace for best debugging
+builder.Settings.WriteStackTrace(); // All elements will record stack trace, providing a brief look at the structure of the current rule context
+builder.Settings.RecordWalkTrace(); // All elements will record walk trace, the list of logs displaying what rules was trying to parse with useful information
 builder.Settings.DetailedErrors(); // When parser throws errors, they will display more information
 builder.Settings.ErrorFormatting(
 	ErrorFormattingFlags.DisplayRules |
@@ -590,7 +594,7 @@ builder.Settings.UseInitFlagsOn(ParserInitFlags.StackTraceWriting,
 Here is default error example on JSON grammar (ooops, i put extra comma in object definition):
 
 ```
-RCParsing.ParsingException : One or more errors occurred during parsing:
+RCParsing.ParsingException : An error occurred during parsing:
 
 The line where the error occurred:
 	"tags": ["tag1", "tag2", "tag3"],,
@@ -603,29 +607,35 @@ The line where the error occurred:
 ...and more errors omitted.
 ```
 
-And here is errors with `UseDebug()` mode:
+And here is errors with `UseDebug()` setting applied:
 
 ```
-RCParsing.ParsingException : One or more errors occurred during parsing:
+RCParsing.ParsingException : An error occurred during parsing:
 
-Failed to parse token / Failed to parse sequence rule.
+'string': Failed to parse token.
+'pair': Failed to parse sequence rule.
+(SeparatedRepeat[0..]...): Expected element after separator, but found none.
 
-The line where the error occurred:
+The line where the error occurred (position 109):
 	"tags": ["tag1", "tag2", "tag3"],,
                    line 5, column 35 ^
 
 ',' is unexpected character, expected one of:
-  'pair'
   'string'
-  literal: '}'
+  'pair'
+  SeparatedRepeat[0..]: 'pair' sep literal ','
 
-['pair'] Stack trace (top call recently):
-- SeparatedRepeat{0..} (allow trailing): 'pair' <-- here
-  sep literal: ','
+['string'] Stack trace (top call recently):
+- Sequence 'pair':
+    'string' <-- here
+    literal ':'
+    'value'
+- SeparatedRepeat[0..]: 'pair' <-- here
+  sep literal ','
 - Sequence 'object':
-    literal: '{'
-    SeparatedRepeat{0..} (allow trailing)... <-- here
-    literal: '}'
+    literal '{'
+    SeparatedRepeat[0..]... <-- here
+    literal '}'
 - Choice 'value':
     'string'
     'number'
@@ -633,54 +643,67 @@ The line where the error occurred:
     'null'
     'array'
     'object' <-- here
-- Sequence 'content':
+- Sequence:
     'value' <-- here
-    [EOF]
+    end of file
 
-['object'] Stack trace (top call recently):
-- Choice 'value':
-    'string'
-    'number'
-    'boolean'
-    'null'
-    'array'
-    'object' <-- here
-- Sequence 'content':
-    'value' <-- here
-    [EOF]
+... and more errors omitted
 
-===== NEXT ERROR =====
+Walk Trace:
 
-Failed to parse token
+... 310 hidden parsing steps. Total: 340 ...
+[SUCCESS] pos:107   literal ']' matched: ']' [1 chars]
+[SUCCESS] pos:84    'array' matched: '["tag1", "tag2", "tag3"]' [24 chars]
+[SUCCESS] pos:84    'value' matched: '["tag1", "tag2", "tag3"]' [24 chars]
+[SUCCESS] pos:76    'pair' matched: '"tags": ["tag1" ..... ", "tag3"]' [32 chars]
+[ENTER]   pos:108   'skip'
+[ENTER]   pos:108   whitespaces
+[FAIL]    pos:108   whitespaces failed to match: ',,\r\n\t"isActive"...'
+[ENTER]   pos:108   Sequence...
+[ENTER]   pos:108   literal '//'
+[FAIL]    pos:108   literal '//' failed to match: ',,\r\n\t"isActive"...'
+[FAIL]    pos:108   Sequence... failed to match: ',,\r\n\t"isActive"...'
+[FAIL]    pos:108   'skip' failed to match: ',,\r\n\t"isActive"...'
+[ENTER]   pos:108   literal ','
+[SUCCESS] pos:108   literal ',' matched: ',' [1 chars]
+[ENTER]   pos:109   'skip'
+[ENTER]   pos:109   whitespaces
+[FAIL]    pos:109   whitespaces failed to match: ',\r\n\t"isActive":...'
+[ENTER]   pos:109   Sequence...
+[ENTER]   pos:109   literal '//'
+[FAIL]    pos:109   literal '//' failed to match: ',\r\n\t"isActive":...'
+[FAIL]    pos:109   Sequence... failed to match: ',\r\n\t"isActive":...'
+[FAIL]    pos:109   'skip' failed to match: ',\r\n\t"isActive":...'
+[ENTER]   pos:109   'pair'
+[ENTER]   pos:109   'string'
+[FAIL]    pos:109   'string' failed to match: ',\r\n\t"isActive":...'
+[FAIL]    pos:109   'pair' failed to match: ',\r\n\t"isActive":...'
+[FAIL]    pos:4     SeparatedRepeat[0..]... failed to match: '"id": 1,\r\n\t"nam...'
+[FAIL]    pos:0     'object' failed to match: '{\r\n\t"id": 1,\r\n\t...'
+[FAIL]    pos:0     'value' failed to match: '{\r\n\t"id": 1,\r\n\t...'
+[FAIL]    pos:0     Sequence... failed to match: '{\r\n\t"id": 1,\r\n\t...'
 
-The line where the error occurred:
-	"tags": ["tag1", "tag2", "tag3"],,
-                 line 5, column 33 ^
-
-']' is unexpected character, expected literal: ','
-
-===== NEXT ERROR =====
-
-...
+... End of walk trace ...
 ```
 
 There is JSON benchmark demonstrating how different settings impacts on performance:
 
-| Method               | Mean      | Error     | StdDev   | Ratio | RatioSD | Gen0    | Gen1    | Gen2    | Allocated | Alloc Ratio |
-|--------------------- |----------:|----------:|---------:|------:|--------:|--------:|--------:|--------:|----------:|------------:|
-| Default              | 147.45 us |  8.113 us | 0.445 us |  1.00 |    0.00 | 13.6719 |  4.3945 |       - | 224.08 KB |        1.00 |
-| NoValue              | 116.99 us |  5.890 us | 0.323 us |  0.79 |    0.00 |  8.6670 |  2.8076 |       - | 142.18 KB |        0.63 |
-| OptimizedWhitespaces | 134.41 us | 23.855 us | 1.308 us |  0.91 |    0.01 | 13.6719 |  4.3945 |       - | 224.08 KB |        1.00 |
-| Inlined              | 131.95 us | 24.369 us | 1.336 us |  0.89 |    0.01 | 13.6719 |  4.3945 |       - | 224.08 KB |        1.00 |
-| FirstCharacterMatch  | 121.90 us |  1.659 us | 0.091 us |  0.83 |    0.00 | 10.2539 |  2.4414 |       - | 168.01 KB |        0.75 |
-| IgnoreErrors         | 142.54 us | 10.350 us | 0.567 us |  0.97 |    0.00 |  9.7656 |  2.1973 |       - | 159.99 KB |        0.71 |
-| StackTrace           | 164.33 us | 26.665 us | 1.462 us |  1.11 |    0.01 | 18.3105 |  6.5918 |       - | 302.08 KB |        1.35 |
-| LazyAST              | 173.83 us | 56.014 us | 3.070 us |  1.18 |    0.02 | 21.2402 | 10.4980 |       - |  348.6 KB |        1.56 |
-| RecordSkipped        | 155.82 us | 71.579 us | 3.924 us |  1.06 |    0.02 | 16.1133 |  6.1035 |       - | 264.11 KB |        1.18 |
-| Memoized             | 449.35 us |  4.213 us | 0.231 us |  3.05 |    0.01 | 99.6094 | 99.6094 | 99.6094 | 674.62 KB |        3.01 |
-| FastestNoValue       |  64.34 us |  1.697 us | 0.093 us |  0.44 |    0.00 |  4.7607 |  0.9766 |       - |  78.09 KB |        0.35 |
-| Fastest              |  94.09 us |  3.758 us | 0.206 us |  0.64 |    0.00 |  9.7656 |  2.4414 |       - | 159.99 KB |        0.71 |
-| Slowest              | 516.68 us | 26.877 us | 1.473 us |  3.50 |    0.01 | 99.6094 | 99.6094 | 99.6094 | 917.17 KB |        4.09 |
+| Method               | Mean      | Error     | StdDev   | Ratio | Gen0     | Gen1     | Gen2     | Allocated  | Alloc Ratio |
+|--------------------- |----------:|----------:|---------:|------:|---------:|---------:|---------:|-----------:|------------:|
+| Default              | 163.94 us |  5.396 us | 0.296 us |  1.00 |  13.1836 |   3.6621 |        - |  217.13 KB |        1.00 |
+| NoValue              | 131.06 us | 10.305 us | 0.565 us |  0.80 |   8.0566 |   2.4414 |        - |  135.23 KB |        0.62 |
+| OptimizedWhitespaces | 128.56 us | 14.028 us | 0.769 us |  0.78 |  13.1836 |   3.6621 |        - |  217.13 KB |        1.00 |
+| Inlined              | 147.78 us |  6.512 us | 0.357 us |  0.90 |  13.1836 |   3.6621 |        - |  217.13 KB |        1.00 |
+| FirstCharacterMatch  | 136.95 us |  8.838 us | 0.484 us |  0.84 |   9.7656 |   2.1973 |        - |  161.05 KB |        0.74 |
+| IgnoreErrors         | 150.78 us |  4.201 us | 0.230 us |  0.92 |   9.2773 |   2.1973 |        - |  153.04 KB |        0.70 |
+| StackTrace           | 177.62 us | 12.680 us | 0.695 us |  1.08 |  17.8223 |   6.5918 |        - |  295.13 KB |        1.36 |
+| WalkTrace            | 335.25 us | 30.500 us | 1.672 us |  2.04 |  90.8203 |  90.8203 |  90.8203 |  601.34 KB |        2.77 |
+| LazyAST              | 188.04 us | 12.742 us | 0.698 us |  1.15 |  20.7520 |   7.0801 |        - |  341.65 KB |        1.57 |
+| RecordSkipped        | 165.97 us |  3.026 us | 0.166 us |  1.01 |  15.6250 |   6.5918 |        - |  257.16 KB |        1.18 |
+| Memoized             | 485.41 us |  4.865 us | 0.267 us |  2.96 |  99.6094 |  99.6094 |  99.6094 |  667.67 KB |        3.08 |
+| FastestNoValue       |  65.22 us |  2.583 us | 0.142 us |  0.40 |   4.2725 |   0.8545 |        - |   71.14 KB |        0.33 |
+| Fastest              |  95.69 us |  7.965 us | 0.437 us |  0.58 |   9.2773 |   2.1973 |        - |  153.04 KB |        0.70 |
+| Slowest              | 696.84 us | 31.728 us | 1.739 us |  4.25 | 199.2188 | 199.2188 | 199.2188 | 1294.44 KB |        5.96 |
 
 Note: `*NoValue` method doesn't calculate value via transformation functions, just parsing text and returns AST.
 
@@ -922,7 +945,8 @@ builder.CreateToken("number")
 
 ### EOF
 
-Matches the end of input or the barrier token (when there is no characters to match)
+Matches the end of input or the current barrier position (when there is no characters to match).
+
 ```csharp
 builder.CreateToken("eof").EOF();
 ```
@@ -936,6 +960,7 @@ builder.CreateMainRule("main")
 ### Literal, LiteralChar and LiteralChoice
 
 Matches a literal string, character or choice of strings using Trie (matches longest possible choice).  
+
 ```csharp
 builder.CreateToken("literal")
     .Literal('a')
@@ -956,6 +981,61 @@ They puts the exact literal into intermediate value:
 var ch = parser.ParseRule("literal_char", input).GetIntermediateValue<char>();
 var str = parser.ParseRule("literal_str", input).GetIntermediateValue<string>();
 var choice = parser.ParseRule("literal_choice", input).GetIntermediateValue<string>();
+```
+
+### Keyword and KeywordChoice
+
+Matches a string, the same as `Literal`, but it fails when it is followed by a specific character, such as digit or letter.
+
+```csharp
+builder.CreateToken("var_assign")
+    .Keyword("var")
+    .Identifier()
+    .Literal("=")
+    .Rule("expression");
+
+// Ok!
+var result = parser.Parse("var a = 123");
+
+// Error!
+var result = parser.Parse("vara = 123");
+```
+
+The `KeywordChoice` works the similar way:
+
+```csharp
+builder.CreateToken("var_assign")
+    .KeywordChoice("var", "int", "double")
+    .Identifier()
+    .Literal("=")
+    .Rule("expression");
+
+// Ok!
+var result = parser.Parse("int a = 123");
+
+// Error!
+var result = parser.Parse("doublea = 123");
+```
+
+Also, custom check predicates and comparers can be applied to them:
+
+```csharp
+builder.CreateToken("keyword")
+    .Keyword("var", c => c >= '0' && c <= '9', StringComparison.OrdinalIgnoreCase) // Not allows numbers after the 'var' string
+    .KeywordChoice(["int", "double"], char.IsLetter, StringComparer.InvariantCulture); // Not allows letters after keywords
+```
+
+They are using ASCII and Unicode identifier continue predicates by default:
+
+```csharp
+builder.CreateToken("keyword").Keyword("var");
+// Is equivalent to:
+builder.CreateToken("keyword").Keyword("var", c => (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_');
+
+// And
+builder.CreateToken("keyword").UnicodeKeyword("var");
+// Is equivalent to:
+builder.CreateToken("keyword").Keyword("var", c => char.IsLetterOrDigit(c) || c == '_');
 ```
 
 ### Number

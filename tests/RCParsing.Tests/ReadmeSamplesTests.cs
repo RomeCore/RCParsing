@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using RCParsing.Building;
+using Xunit.Abstractions;
 
 namespace RCParsing.Tests
 {
@@ -12,6 +13,12 @@ namespace RCParsing.Tests
 	/// </summary>
 	public class ReadmeSamplesTests
 	{
+		private readonly ITestOutputHelper output;
+		public ReadmeSamplesTests(ITestOutputHelper output)
+		{
+			this.output = output;
+		}
+
 		[Fact]
 		public void AplusB()
 		{
@@ -55,10 +62,12 @@ namespace RCParsing.Tests
 		{
 			var builder = new ParserBuilder();
 
-			// Configure whitespace and comment skip-rule
+			// Configure AST type and skip-rule for whitespace and comments 
 			builder.Settings
-				.Skip(r => r.Rule("skip"), ParserSkippingStrategy.SkipBeforeParsingGreedy);
+				.Skip(r => r.Rule("skip"), ParserSkippingStrategy.SkipBeforeParsingGreedy)
+				.UseLazyAST().UseDebug(); // Use lazy AST type to store cached resuls
 
+			// The rule that will be skipped before every parsing attempt
 			builder.CreateRule("skip")
 				.Choice(
 					b => b.Whitespaces(),
@@ -88,7 +97,7 @@ namespace RCParsing.Tests
 					c => c.Token("null"),
 					c => c.Rule("array"),
 					c => c.Rule("object")
-				); // Choice rule propogates child's value by default
+				); // Choice rule propagates child's value by default
 
 			builder.CreateRule("array")
 				.Literal("[")
@@ -96,7 +105,7 @@ namespace RCParsing.Tests
 					allowTrailingSeparator: true, includeSeparatorsInResult: false)
 					.TransformLast(v => v.SelectArray())
 				.Literal("]")
-				.TransformSelect(1); // Selects the Children[1]'s value
+				.TransformSelect(index: 1); // Selects the Children[1]'s value
 
 			builder.CreateRule("object")
 				.Literal("{")
@@ -104,7 +113,7 @@ namespace RCParsing.Tests
 					allowTrailingSeparator: true, includeSeparatorsInResult: false)
 					.TransformLast(v => v.SelectValues<KeyValuePair<string, object>>().ToDictionary(k => k.Key, v => v.Value))
 				.Literal("}")
-				.TransformSelect(1);
+				.TransformSelect(index: 1);
 
 			builder.CreateRule("pair")
 				.Token("string")
@@ -134,10 +143,48 @@ namespace RCParsing.Tests
 			}
 			""";
 
-			// Get the result!
-			var result = jsonParser.Parse<Dictionary<string, object>>(json);
+			// The same JSON, but with 'tags' value changed
+			var changedJson =
+			"""
+			{
+				"id": 1,
+				"name": "Sample Data",
+				"created": "2023-01-01T00:00:00", // This is a comment
+				"tags": { "nested": ["tag1", "tag2", "tag3"] },
+				"isActive": true,
+				"nested": {
+					"value": 123.456,
+					"description": "Nested description"
+				}
+			}
+			""";
 
-			Assert.Equal("Sample Data", result["name"]);
+			// Parse the input text and calculate values (them will be recorded into the cache because we're using lazy AST)
+			var ast = jsonParser.Parse(json);
+			var value = ast.Value as Dictionary<string, object>;
+			var tags = value!["tags"] as object[];
+			var nested = value!["nested"] as Dictionary<string, object>;
+
+			// Prints: Sample Data
+			output.WriteLine("{0}", value["name"]);
+			// Prints: tag1
+			output.WriteLine("{0}", tags![0]);
+
+			// Re-parse the sligtly changed input string and get the values
+			var changedAst = ast.Reparsed(changedJson);
+			var changedValue = changedAst.Value as Dictionary<string, object>;
+			var changedTags = changedValue!["tags"] as Dictionary<string, object>;
+			var nestedTags = changedTags!["nested"] as object[];
+			var changedNested = changedValue!["nested"] as Dictionary<string, object>;
+
+			// Prints type: System.Object[]
+			output.WriteLine("{0}", changedTags["nested"]);
+			// Prints: tag1
+			output.WriteLine("{0}", nestedTags![0]);
+
+			// And untouched values remains the same!
+			// Prints: True
+			output.WriteLine("{0}", ReferenceEquals(nested, changedNested));
 		}
 
 		[Fact]

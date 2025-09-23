@@ -237,10 +237,7 @@ namespace RCParsing
 					{
 						if (element is TokenParserRule tokenRule)
 							element = tokenRule.TokenPattern;
-						if (element.Alias is string alias)
-							message = $"'{alias}': {message}";
-						else
-							message = $"({element.ToStringOverride(0)}): {message}";
+						message = $"[{element.ToString(0)}]: {message}";
 					}
 
 					return message;
@@ -301,7 +298,7 @@ namespace RCParsing
 					sb.AppendLine(string.Join(Environment.NewLine, ErrorMessages)).AppendLine();
 			}
 
-			sb.AppendLine("The line where the error occurred:");
+			sb.AppendLine($"The line where the error occurred (position {Position}):");
 			sb.AppendLine(FormattedLineText);
 
 			if (Expected.Count > 0)

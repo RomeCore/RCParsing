@@ -82,8 +82,10 @@ namespace RCParsing
 			string textPreview = string.Empty;
 			if (step.length > 0)
 				textPreview = $" matched: '{GetTextPreview(step.startIndex, step.length)}' [{step.length} chars]";
+			else if (step.type == ParsingStepType.Fail)
+				textPreview = $" failed to match: '{GetTextPreview(step.startIndex, 15)}...'";
 
-			string message = string.Empty;
+				string message = string.Empty;
 			if (!string.IsNullOrEmpty(step.message))
 				message = " " + step.message;
 
@@ -95,19 +97,20 @@ namespace RCParsing
 			if (length == 0)
 				return string.Empty;
 
-			var maxPreview = 15;
+			int maxPrefix = 15, maxSuffix = 10, maxPreview = maxPrefix + maxSuffix + 5;
 			var input = _sharedContext.input;
+
 			var text = start + length <= input.Length
-				? input.Substring(start, Math.Min(length, maxPreview))
-				: input.Substring(start, Math.Min(input.Length - start, maxPreview));
+				? input.Substring(start, Math.Min(length, input.Length - start))
+				: input.Substring(start, input.Length - start);
+
+			if (text.Length > maxPreview)
+				text = text.Substring(0, maxPrefix) + " ..... " + text.Substring(text.Length - maxSuffix);
 
 			// Escape control characters for better display
 			text = text.Replace("\r", "\\r")
-					   .Replace("\n", "\\n")
-					   .Replace("\t", "\\t");
-
-			if (length > maxPreview)
-				text += "...";
+						.Replace("\n", "\\n")
+						.Replace("\t", "\\t");
 
 			return text;
 		}
