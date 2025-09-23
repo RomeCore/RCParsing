@@ -549,6 +549,15 @@ namespace RCParsing
 			return Updated(context, reparsed);
 		}
 
+		/// <summary>
+		/// Throws a <see cref="ParsingException"/> if the parsing operation was not successful (<see cref="Success"/> is <see langword="false"/>).
+		/// </summary>
+		/// <exception cref="ParsingException">Thrown if the parsing operation was not successful.</exception>
+		public void ThrowIfFailed()
+		{
+			if (!Success)
+				throw new ParsingException(Context);
+		}
 
 
 		public string Dump(int maxDepth)

@@ -33,11 +33,10 @@ This library focuses on **Developer-experience (DX)** first, providing best tool
 - [Tutorials, docs and examples](#tutorials-docs-and-examples)
 - [Simple examples](#simple-examples) - The examples that you can copy, paste, run or look!
 	- [A + B](#a--b) - Basic arithmetic expression parser with result calculation.
-	- [JSON](#json) - A complete JSON parser with comments and skipping.
+	- [JSON (with incremental parsing)](#json-with-incremental-parsing) - A complete JSON parser with comments and skipping (with incremental parsing example included).
 	- [Python-like](#python-like) - Demonstrating barrier tokens for indentation.
 	- [JSON token combination](#json-token-combination) - A maximum speed approach for getting values without AST.
 	- [Finding patterns](#finding-patterns) - How to find all occurrences of a rule in a string.
-	- [JSON incremental parsing](#json-incremental-parsing) - How to re-parse just the part of content.
 	- [Errors example](#errors-example) - Just a simple example of how errors look in default and debug modes.
 - [Comparison with other parsing libraries](#comparison-with-other-parsing-libraries)
 - [Benchmarks](#benchmarks)
@@ -104,20 +103,19 @@ var transformedValue = parsedRule.GetValue<double>();
 Console.WriteLine(transformedValue); // 25
 ```
 
-## JSON
+## JSON (with incremental parsing)
 
-And here is JSON example:
+And here is JSON example that also shows the partial re-parsing of parse tree:
 
 ```csharp
-using RCParsing;
-using RCParsing.Building;
-
 var builder = new ParserBuilder();
 
-// Configure whitespace and comment skip-rule
+// Configure AST type and skip-rule for whitespace and comments 
 builder.Settings
-	.Skip(r => r.Rule("skip"), ParserSkippingStrategy.SkipBeforeParsingGreedy);
+	.Skip(r => r.Rule("skip"), ParserSkippingStrategy.SkipBeforeParsingGreedy)
+	.UseLazyAST(); // Use lazy AST type to store cached resuls
 
+// The rule that will be skipped before every parsing attempt
 builder.CreateRule("skip")
 	.Choice(
 		b => b.Whitespaces(),
@@ -147,7 +145,7 @@ builder.CreateRule("value")
 		c => c.Token("null"),
 		c => c.Rule("array"),
 		c => c.Rule("object")
-	); // Choice rule propogates child's value by default
+	); // Choice rule propagates child's value by default
 
 builder.CreateRule("array")
 	.Literal("[")
@@ -155,7 +153,7 @@ builder.CreateRule("array")
 		allowTrailingSeparator: true, includeSeparatorsInResult: false)
 		.TransformLast(v => v.SelectArray())
 	.Literal("]")
-	.TransformSelect(1); // Selects the Children[1]'s value
+	.TransformSelect(index: 1); // Selects the Children[1]'s value
 
 builder.CreateRule("object")
 	.Literal("{")
@@ -163,7 +161,7 @@ builder.CreateRule("object")
 		allowTrailingSeparator: true, includeSeparatorsInResult: false)
 		.TransformLast(v => v.SelectValues<KeyValuePair<string, object>>().ToDictionary(k => k.Key, v => v.Value))
 	.Literal("}")
-	.TransformSelect(1);
+	.TransformSelect(index: 1);
 
 builder.CreateRule("pair")
 	.Token("string")
@@ -193,9 +191,48 @@ var json =
 }
 """;
 
-// Get the result!
-var result = jsonParser.Parse<Dictionary<string, object>>(json);
-Console.WriteLine(result["name"]); // Output: Sample Data
+// The same JSON, but with 'tags' value changed
+var changedJson =
+"""
+{
+	"id": 1,
+	"name": "Sample Data",
+	"created": "2023-01-01T00:00:00", // This is a comment
+	"tags": { "nested": ["tag1", "tag2", "tag3"] },
+	"isActive": true,
+	"nested": {
+		"value": 123.456,
+		"description": "Nested description"
+	}
+}
+""";
+
+// Parse the input text and calculate values (them will be recorded into the cache because we're using lazy AST)
+var ast = jsonParser.Parse(json);
+var value = ast.Value as Dictionary<string, object>;
+var tags = value!["tags"] as object[];
+var nested = value!["nested"] as Dictionary<string, object>;
+
+// Prints: Sample Data
+Console.WriteLine(value["name"]);
+// Prints: tag1
+Console.WriteLine(tags![0]);
+
+// Re-parse the sligtly changed input string and get the values
+var changedAst = ast.Reparsed(changedJson);
+var changedValue = changedAst.Value as Dictionary<string, object>;
+var changedTags = changedValue!["tags"] as Dictionary<string, object>;
+var nestedTags = changedTags!["nested"] as object[];
+var changedNested = changedValue!["nested"] as Dictionary<string, object>;
+
+// Prints type: System.Object[]
+Console.WriteLine(changedTags["nested"]);
+// Prints: tag1
+Console.WriteLine(nestedTags![0]);
+
+// And untouched values remains the same!
+// Prints: True
+Console.WriteLine(ReferenceEquals(nested, changedNested));
 ```
 
 ## Python-like
@@ -433,125 +470,6 @@ foreach (var price in prices)
 }
 ```
 
-## JSON incremental parsing
-
-RCParsing supports incremental parsing, it allows to re-parse only changed part of text.
-
-```csharp
-var builder = new ParserBuilder();
-
-builder.Settings
-	.Skip(r => r.Rule("skip"), ParserSkippingStrategy.SkipBeforeParsingGreedy)
-	.UseLazyAST(); // Use lazy AST type to store cached resuls
-
-builder.CreateRule("skip")
-	.Choice(
-		b => b.Whitespaces(),
-		b => b.Literal("//").TextUntil('\n', '\r'))
-	.ConfigureForSkip();
-
-builder.CreateToken("string")
-	.Literal('"')
-	.EscapedTextPrefix(prefix: '\\', '\\', '\"')
-	.Literal('"')
-	.Pass(index: 1);
-
-builder.CreateToken("number")
-	.Number<double>();
-
-builder.CreateToken("boolean")
-	.LiteralChoice("true", "false").Transform(v => v.Text == "true");
-
-builder.CreateToken("null")
-	.Literal("null").Transform(v => null);
-
-builder.CreateRule("value")
-	.Choice(
-		c => c.Token("string"),
-		c => c.Token("number"),
-		c => c.Token("boolean"),
-		c => c.Token("null"),
-		c => c.Rule("array"),
-		c => c.Rule("object")
-	);
-
-builder.CreateRule("array")
-	.Literal("[")
-	.ZeroOrMoreSeparated(v => v.Rule("value"), s => s.Literal(","),
-		allowTrailingSeparator: true, includeSeparatorsInResult: false)
-		.TransformLast(v => v.SelectArray())
-	.Literal("]")
-	.TransformSelect(1);
-
-builder.CreateRule("object")
-	.Literal("{")
-	.ZeroOrMoreSeparated(v => v.Rule("pair"), s => s.Literal(","),
-		allowTrailingSeparator: true, includeSeparatorsInResult: false)
-		.TransformLast(v => v.SelectValues<KeyValuePair<string, object>>().ToDictionary(k => k.Key, v => v.Value))
-	.Literal("}")
-	.TransformSelect(1);
-
-builder.CreateRule("pair")
-	.Token("string")
-	.Literal(":")
-	.Rule("value")
-	.Transform(v => KeyValuePair.Create(v.GetValue<string>(0), v.GetValue(2)));
-
-builder.CreateMainRule("content")
-	.Rule("value")
-	.EOF()
-	.TransformSelect(0);
-
-var jsonParser = builder.Build();
-
-var json =
-"""
-{
-	"id": 1,
-	"name": "Sample Data",
-	"created": "2023-01-01T00:00:00", // This is a comment
-	"tags": ["tag1", "tag2", "tag3"],
-	"isActive": true,
-	"nested": {
-		"value": 123.456,
-		"description": "Nested description"
-	}
-}
-""";
-
-// The same JSON, but with 'tags' value changed
-var changedJson =
-"""
-{
-	"id": 1,
-	"name": "Sample Data",
-	"created": "2023-01-01T00:00:00", // This is a comment
-	"tags": { "nested": ["tag1", "tag2", "tag3"] },
-	"isActive": true,
-	"nested": {
-		"value": 123.456,
-		"description": "Nested description"
-	}
-}
-""";
-
-// Parse the input text and calculate values (them will be recorded into the cache because we're using lazy AST)
-var ast = jsonParser.Parse(json);
-var value = ast.Value as Dictionary<string, object>;
-var tags = value!["tags"] as object[];
-var nested = value!["nested"] as Dictionary<string, object>;
-
-// Re-parse the sligtly changed input string and get the values
-var changedAst = ast.Reparsed(changedJson);
-var changedValue = changedAst.Value as Dictionary<string, object>;
-var changedTags = changedValue!["tags"] as Dictionary<string, object>;
-var changedNested = changedValue!["nested"] as Dictionary<string, object>;
-
-// And untouched values remains the same!
-// Prints: True
-Console.WriteLine(ReferenceEquals(nested, changedNested));
-```
-
 ## Errors example
 
 There is how errors are displayed in the default mode:
@@ -559,11 +477,13 @@ There is how errors are displayed in the default mode:
 ```
 RCParsing.ParsingException : An error occurred during parsing:
 
-The line where the error occurred:
-	"created": "2023-01-01T00:00:00",,
-                   line 4, column 35 ^
+The line where the error occurred (position 130):
+	"tags": ["tag1", "tag2", "tag3"],,
+                   line 5, column 35 ^
 
-',' is unexpected character, expected 'string'
+',' is unexpected character, expected one of:
+  'string'
+  literal '}'
 
 ... and more errors omitted
 ```
@@ -573,29 +493,31 @@ And there is errors when using the `builder.Settings.UseDebug()` setting:
 ```
 RCParsing.ParsingException : An error occurred during parsing:
 
-'string': Failed to parse token.
-'pair': Failed to parse sequence rule.
-(SeparatedRepeat[0..]...): Expected element after separator, but found none.
+['string']: Failed to parse token.
+['pair']: Failed to parse sequence rule.
+[literal '}']: Failed to parse token.
+['object']: Failed to parse sequence rule.
 
-The line where the error occurred:
-	"created": "2023-01-01T00:00:00",,
-                   line 4, column 35 ^
+The line where the error occurred (position 130):
+	"tags": ["tag1", "tag2", "tag3"],,
+                   line 5, column 35 ^
 
 ',' is unexpected character, expected one of:
   'string'
   'pair'
-  SeparatedRepeat[0..]: 'pair' sep literal ','
+  literal '}'
+  'object'
 
 ['string'] Stack trace (top call recently):
 - Sequence 'pair':
     'string' <-- here
     literal ':'
     'value'
-- SeparatedRepeat[0..]: 'pair' <-- here
+- SeparatedRepeat[0..] (allow trailing): 'pair' <-- here
   sep literal ','
 - Sequence 'object':
     literal '{'
-    SeparatedRepeat[0..]... <-- here
+    SeparatedRepeat[0..] (allow trailing)... <-- here
     literal '}'
 - Choice 'value':
     'string'
@@ -604,7 +526,23 @@ The line where the error occurred:
     'null'
     'array'
     'object' <-- here
-- Sequence:
+- Sequence 'content':
+    'value' <-- here
+    end of file
+
+[literal '}'] Stack trace (top call recently):
+- Sequence 'object':
+    literal '{'
+    SeparatedRepeat[0..] (allow trailing)...
+    literal '}' <-- here
+- Choice 'value':
+    'string'
+    'number'
+    'boolean'
+    'null'
+    'array'
+    'object' <-- here
+- Sequence 'content':
     'value' <-- here
     end of file
 
@@ -612,37 +550,47 @@ The line where the error occurred:
 
 Walk Trace:
 
-... 170 hidden parsing steps. Total: 200 ...
-[ENTER]   pos:51    'string'
-[SUCCESS] pos:51    'string' matched: '"2023-01-01T00:...' [21 chars]
-[SUCCESS] pos:51    'value' matched: '"2023-01-01T00:...' [21 chars]
-[SUCCESS] pos:40    'pair' matched: '"created": "202...' [32 chars]
-[ENTER]   pos:72    'skip'
-[ENTER]   pos:72    whitespaces
-[FAIL]    pos:72    whitespaces
-[ENTER]   pos:72    Sequence...
-[ENTER]   pos:72    literal '//'
-[FAIL]    pos:72    literal '//'
-[FAIL]    pos:72    Sequence...
-[FAIL]    pos:72    'skip'
-[ENTER]   pos:72    literal ','
-[SUCCESS] pos:72    literal ',' matched: ',' [1 chars]
-[ENTER]   pos:73    'skip'
-[ENTER]   pos:73    whitespaces
-[FAIL]    pos:73    whitespaces
-[ENTER]   pos:73    Sequence...
-[ENTER]   pos:73    literal '//'
-[FAIL]    pos:73    literal '//'
-[FAIL]    pos:73    Sequence...
-[FAIL]    pos:73    'skip'
-[ENTER]   pos:73    'pair'
-[ENTER]   pos:73    'string'
-[FAIL]    pos:73    'string'
-[FAIL]    pos:73    'pair'
-[FAIL]    pos:4     SeparatedRepeat[0..]...
-[FAIL]    pos:0     'object'
-[FAIL]    pos:0     'value'
-[FAIL]    pos:0     Sequence...
+... 316 hidden parsing steps. Total: 356 ...
+[ENTER]   pos:128   literal '//'
+[FAIL]    pos:128   literal '//' failed to match: '],,\r\n\t"isActive...'
+[FAIL]    pos:128   Sequence... failed to match: '],,\r\n\t"isActive...'
+[FAIL]    pos:128   'skip' failed to match: '],,\r\n\t"isActive...'
+[ENTER]   pos:128   literal ','
+[FAIL]    pos:128   literal ',' failed to match: '],,\r\n\t"isActive...'
+[SUCCESS] pos:106   SeparatedRepeat[0..] (allow trailing)... matched: '"tag1", "tag2", "tag3"' [22 chars]
+[ENTER]   pos:128   literal ']'
+[SUCCESS] pos:128   literal ']' matched: ']' [1 chars]
+[SUCCESS] pos:105   'array' matched: '["tag1", "tag2", "tag3"]' [24 chars]
+[SUCCESS] pos:105   'value' matched: '["tag1", "tag2", "tag3"]' [24 chars]
+[SUCCESS] pos:97    'pair' matched: '"tags": ["tag1" ..... ", "tag3"]' [32 chars]
+[ENTER]   pos:129   'skip'
+[ENTER]   pos:129   whitespaces
+[FAIL]    pos:129   whitespaces failed to match: ',,\r\n\t"isActive"...'
+[ENTER]   pos:129   Sequence...
+[ENTER]   pos:129   literal '//'
+[FAIL]    pos:129   literal '//' failed to match: ',,\r\n\t"isActive"...'
+[FAIL]    pos:129   Sequence... failed to match: ',,\r\n\t"isActive"...'
+[FAIL]    pos:129   'skip' failed to match: ',,\r\n\t"isActive"...'
+[ENTER]   pos:129   literal ','
+[SUCCESS] pos:129   literal ',' matched: ',' [1 chars]
+[ENTER]   pos:130   'skip'
+[ENTER]   pos:130   whitespaces
+[FAIL]    pos:130   whitespaces failed to match: ',\r\n\t"isActive":...'
+[ENTER]   pos:130   Sequence...
+[ENTER]   pos:130   literal '//'
+[FAIL]    pos:130   literal '//' failed to match: ',\r\n\t"isActive":...'
+[FAIL]    pos:130   Sequence... failed to match: ',\r\n\t"isActive":...'
+[FAIL]    pos:130   'skip' failed to match: ',\r\n\t"isActive":...'
+[ENTER]   pos:130   'pair'
+[ENTER]   pos:130   'string'
+[FAIL]    pos:130   'string' failed to match: ',\r\n\t"isActive":...'
+[FAIL]    pos:130   'pair' failed to match: ',\r\n\t"isActive":...'
+[SUCCESS] pos:4     SeparatedRepeat[0..] (allow trailing)... matched: '"id": 1,\r\n\t"nam ..... , "tag3"],' [126 chars]
+[ENTER]   pos:130   literal '}'
+[FAIL]    pos:130   literal '}' failed to match: ',\r\n\t"isActive":...'
+[FAIL]    pos:0     'object' failed to match: '{\r\n\t"id": 1,\r\n\t...'
+[FAIL]    pos:0     'value' failed to match: '{\r\n\t"id": 1,\r\n\t...'
+[FAIL]    pos:0     'content' failed to match: '{\r\n\t"id": 1,\r\n\t...'
 
 ... End of walk trace ...
 ```
