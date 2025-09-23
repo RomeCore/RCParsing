@@ -53,12 +53,12 @@ namespace RCParsing
 		public bool Success => Result.success;
 
 		/// <summary>
-		/// Gets value indicating whether the parsed result represents a token.
+		/// Gets value indicating whether the AST node represents a token.
 		/// </summary>
 		public bool IsToken => Context.parser.Rules[RuleId] is TokenParserRule;
 
 		/// <summary>
-		/// Gets the token pattern ID if this parsed rule represents a token.
+		/// Gets the token pattern ID if this AST node represents a token.
 		/// </summary>
 		public int TokenId => Context.parser.Rules[RuleId] is TokenParserRule trule ? trule.TokenPatternId : -1;
 
@@ -83,12 +83,12 @@ namespace RCParsing
 		public IReadOnlyList<string> RuleAliases => Rule.Aliases;
 
 		/// <summary>
-		/// Gets the starting index of the rule in the input text.
+		/// Gets the starting index of the AST node in the input text.
 		/// </summary>
 		public int StartIndex => Result.startIndex;
 
 		/// <summary>
-		/// Gets the length of the rule in the input text.
+		/// Gets the characters length of the AST node in the input text.
 		/// </summary>
 		public int Length => Result.length;
 
@@ -108,7 +108,8 @@ namespace RCParsing
 		public object? IntermediateValue => Result.intermediateValue;
 
 		/// <summary>
-		/// Gets the parsing parameter object that was passed to the parser during parsing. May be null if no parameter is passed.
+		/// Gets the parsing parameter object that was passed to the parser during parsing.
+		/// May be <see langword="null"/> if no parameter is passed.
 		/// </summary>
 		public object? ParsingParameter => Context.parserParameter;
 
@@ -128,16 +129,29 @@ namespace RCParsing
 		public ReadOnlyMemory<char> Memory => Context.input.AsMemory(Result.startIndex, Result.length);
 
 		/// <summary>
-		/// Gets the parsed value associated with this rule.
+		/// Gets the parsed value associated with this AST node, if any. Otherwise, returns <see langword="null"/>.
 		/// </summary>
+		/// <remarks>
+		/// The value is determined by the parsed rule's ParsedValueFactory method, if any.
+		/// Calculates lazily, then this property is called or when parsing was successful.
+		/// </remarks>
 		public virtual object? Value => Rule.ParsedValueFactory?.Invoke(this) ?? null;
 
 		/// <summary>
-		/// Gets the children results of this rule. Valid for parallel and sequence rules.
+		/// Gets the children results of this AST node, if any. Otherwise, returns an empty list.
 		/// </summary>
 		public abstract IReadOnlyList<ParsedRuleResultBase> Children { get; }
 
+		/// <summary>
+		/// Gets the number of children results of this AST node.
+		/// </summary>
 		public virtual int Count => Result.children?.Count ?? 0;
+
+		/// <summary>
+		/// Gets the child AST node at the specified index. Throws an exception if the index is out of range.
+		/// </summary>
+		/// <param name="index">The zero-based index of the child AST node to get.</param>
+		/// <returns>The child AST node at the specified index.</returns>
 		public virtual ParsedRuleResultBase this[int index] => Children[index];
 
 		public virtual IEnumerator<ParsedRuleResultBase> GetEnumerator()
@@ -158,125 +172,131 @@ namespace RCParsing
 		public abstract ParsedRuleResultBase Updated(ParserContext newContext, ParsedRule newParsedRule);
 
 		/// <summary>
-		/// Gets the text captured by child rule at the specific index.
+		/// Gets the text captured by child AST node at the specific index.
 		/// </summary>
-		/// <returns>The text captured by child rule.</returns>
+		/// <returns>The text captured by child AST node.</returns>
 		public string GetText(int index) => this[index].Text;
 
 		/// <summary>
-		/// Gets the intermediate value associated with this rule as an instance of type <typeparamref name="T"/>.
+		/// Gets the intermediate value associated with this AST node as an instance of type <typeparamref name="T"/>.
 		/// </summary>
 		/// <typeparam name="T">The type of value to retrieve.</typeparam>
-		/// <returns>The intermediate value associated with this rule.</returns>
+		/// <returns>The intermediate value associated with this AST node.</returns>
 		public T GetIntermediateValue<T>() => (T)IntermediateValue;
 
 		/// <summary>
-		/// Gets the intermediate value associated with child rule at the specific index as an instance of type <typeparamref name="T"/>.
+		/// Gets the intermediate value associated with child AST node at the specific index as an instance of type <typeparamref name="T"/>.
 		/// </summary>
 		/// <typeparam name="T">The type of value to retrieve.</typeparam>
-		/// <returns>The intermediate value associated with child rule.</returns>
+		/// <returns>The intermediate value associated with child AST node.</returns>
 		public T GetIntermediateValue<T>(int index) => (T)this[index].IntermediateValue;
 
 		/// <summary>
-		/// Tries to get the intermediate value associated with this rule as an instance of type <typeparamref name="T"/>.
+		/// Tries to get the intermediate value associated with this AST node as an instance of type <typeparamref name="T"/>.
 		/// </summary>
 		/// <typeparam name="T">The type of value to retrieve.</typeparam>
-		/// <returns>The intermediate value associated with this rule.</returns>
+		/// <returns>The intermediate value associated with this AST node.</returns>
 		public T? TryGetIntermediateValue<T>() => IntermediateValue is T result ? result : default;
 
 		/// <summary>
-		/// Tries to get the intermediate value associated with child rule at the specific index as an instance of type <typeparamref name="T"/>.
+		/// Tries to get the intermediate value associated with child AST node at the specific index as an instance of type <typeparamref name="T"/>.
 		/// </summary>
 		/// <typeparam name="T">The type of value to retrieve.</typeparam>
-		/// <returns>The intermediate value associated with child rule.</returns>
+		/// <returns>The intermediate value associated with child AST node.</returns>
 		public T? TryGetIntermediateValue<T>(int index)
 			=> Count > index ? this[index].IntermediateValue is T result ? result : default : default;
 
 		/// <summary>
-		/// Gets the intermediate value associated with this rule converted to type <typeparamref name="T"/>.
+		/// Gets the intermediate value associated with this AST node converted to type <typeparamref name="T"/>.
 		/// </summary>
 		/// <typeparam name="T">The type of value to retrieve.</typeparam>
-		/// <returns>The intermediate value associated with this rule.</returns>
+		/// <returns>The intermediate value associated with this AST node.</returns>
 		public T ConvertIntermediateValue<T>() => (T)Convert.ChangeType(IntermediateValue, typeof(T));
 
 		/// <summary>
-		/// Gets the intermediate value associated with child rule at the specific index converted to type <typeparamref name="T"/>.
+		/// Gets the intermediate value associated with child AST node at the specific index converted to type <typeparamref name="T"/>.
 		/// </summary>
 		/// <typeparam name="T">The type of value to retrieve.</typeparam>
-		/// <returns>The intermediate value associated with child rule.</returns>
+		/// <returns>The intermediate value associated with child AST node.</returns>
 		public T ConvertIntermediateValue<T>(int index) => (T)Convert.ChangeType(this[index].IntermediateValue, typeof(T));
 
 		/// <summary>
-		/// Gets the value associated with this rule as not-null object. If the value is null, throws an exception.
+		/// Gets the value associated with this AST node as not-null object. If the value is null, throws an exception.
 		/// </summary>
-		/// <returns>The value associated with this rule.</returns>
+		/// <returns>The value associated with this AST node.</returns>
 		public object GetValue() => Value ?? throw new InvalidOperationException("ParsedRuleResult.Value is null");
 
 		/// <summary>
-		/// Gets the value associated with child rule at the specific index as not-null object. If the value is null, throws an exception.
+		/// Gets the value associated with child AST node at the specific index as not-null object. If the value is null, throws an exception.
 		/// </summary>
-		/// <returns>The value associated with child rule.</returns>
+		/// <returns>The value associated with child AST node.</returns>
 		public object GetValue(int index) => this[index].Value ?? throw new InvalidOperationException("ParsedRuleResult.Value is null");
 
 		/// <summary>
-		/// Gets the value associated with this rule as an instance of type <typeparamref name="T"/>.
+		/// Gets the value associated with this AST node as an instance of type <typeparamref name="T"/>.
 		/// </summary>
 		/// <typeparam name="T">The type of value to retrieve.</typeparam>
-		/// <returns>The value associated with this rule.</returns>
+		/// <returns>The value associated with this AST node.</returns>
 		public T GetValue<T>() => (T)Value;
 
 		/// <summary>
-		/// Gets the value associated with child rule at the specific index as an instance of type <typeparamref name="T"/>.
+		/// Gets the value associated with child AST node at the specific index as an instance of type <typeparamref name="T"/>.
 		/// </summary>
 		/// <typeparam name="T">The type of value to retrieve.</typeparam>
-		/// <returns>The value associated with child rule.</returns>
+		/// <returns>The value associated with child AST node.</returns>
 		public T GetValue<T>(int index) => (T)this[index].Value;
 
 		/// <summary>
-		/// Tries to get the value associated with this rule as an instance of type <typeparamref name="T"/> or <see langword="default"/> value.
+		/// Tries to get the value associated with this AST node as an instance of type <typeparamref name="T"/> or <see langword="default"/> value.
 		/// </summary>
 		/// <typeparam name="T">The type of value to retrieve.</typeparam>
-		/// <returns>The value associated with this rule.</returns>
+		/// <returns>The value associated with this AST node.</returns>
 		public T? TryGetValue<T>() => Value is T result ? result : default;
 
 		/// <summary>
-		/// Tries to get the value associated with child rule at the specific index as an instance of type <typeparamref name="T"/> or <see langword="default"/> value.
+		/// Tries to get the value associated with child AST node at the specific index as an instance of type <typeparamref name="T"/> or <see langword="default"/> value.
 		/// </summary>
 		/// <typeparam name="T">The type of value to retrieve.</typeparam>
-		/// <returns>The value associated with child rule.</returns>
+		/// <returns>The value associated with child AST node.</returns>
 		public T? TryGetValue<T>(int index)
 			=> Count > index ? this[index].Value is T result ? result : default : default;
 
 		/// <summary>
-		/// Gets the value associated with this rule converted to type <typeparamref name="T"/>.
+		/// Gets the value associated with this AST node converted to type <typeparamref name="T"/>.
 		/// </summary>
+		/// <remarks>
+		/// Value is converted via <see cref="Convert"/>.
+		/// </remarks>
 		/// <typeparam name="T">The type of value to retrieve.</typeparam>
-		/// <returns>The value associated with this rule.</returns>
+		/// <returns>The value associated with this AST node.</returns>
 		public T ConvertValue<T>() => (T)Convert.ChangeType(Value, typeof(T));
 
 		/// <summary>
-		/// Gets the value associated with child rule at the specific index converted to type <typeparamref name="T"/>.
+		/// Gets the value associated with child AST node at the specific index converted to type <typeparamref name="T"/>.
 		/// </summary>
+		/// <remarks>
+		/// Value is converted via <see cref="Convert"/>.
+		/// </remarks>
 		/// <typeparam name="T">The type of value to retrieve.</typeparam>
-		/// <returns>The value associated with child rule.</returns>
+		/// <returns>The value associated with child AST node.</returns>
 		public T ConvertValue<T>(int index) => (T)Convert.ChangeType(this[index].Value, typeof(T));
 
 		/// <summary>
-		/// Gets the parsing parameter associated with this rule as an instance of type <typeparamref name="T"/>.
+		/// Gets the parsing parameter associated with parser context as an instance of type <typeparamref name="T"/>.
 		/// </summary>
 		/// <typeparam name="T">The type of parsing parameter to retrieve.</typeparam>
-		/// <returns>The parsing parameter associated with this rule.</returns>
+		/// <returns>The parsing parameter associated with the parser context.</returns>
 		public T GetParsingParameter<T>() => (T)ParsingParameter;
 
 		/// <summary>
-		/// Tries to get the parsing parameter associated with this rule as an instance of type <typeparamref name="T"/> or <see langword="default"/> value.
+		/// Tries to get the parsing parameter associated with parser context as an instance of type <typeparamref name="T"/> or <see langword="default"/> value.
 		/// </summary>
 		/// <typeparam name="T">The type of parsing parameter to retrieve.</typeparam>
-		/// <returns>The parsing parameter associated with this rule.</returns>
+		/// <returns>The parsing parameter associated with the parser context.</returns>
 		public T? TryGetParsingParameter<T>() => ParsingParameter is T result ? result : default;
 
 		/// <summary>
-		/// Selects the children values array of this rule.
+		/// Selects the children values array of this AST node.
 		/// </summary>
 		/// <returns>The values from the children.</returns>
 		public object?[] SelectArray()
@@ -292,7 +312,7 @@ namespace RCParsing
 		}
 
 		/// <summary>
-		/// Selects the children values array of child rule at the specified index.
+		/// Selects the children values array of child AST node at the specified index.
 		/// </summary>
 		/// <returns>The values from the children.</returns>
 		public object?[] SelectArray(int index)
@@ -301,7 +321,7 @@ namespace RCParsing
 		}
 
 		/// <summary>
-		/// Selects the children values of this rule.
+		/// Selects the children values of this AST node.
 		/// </summary>
 		/// <returns>The values from the children.</returns>
 		public IEnumerable<object> SelectValues()
@@ -310,7 +330,7 @@ namespace RCParsing
 		}
 
 		/// <summary>
-		/// Selects the children values of child rule at the specified index.
+		/// Selects the children values of child AST node at the specified index.
 		/// </summary>
 		/// <returns>The values from the children.</returns>
 		public IEnumerable<object> SelectValues(int index)
@@ -319,7 +339,7 @@ namespace RCParsing
 		}
 
 		/// <summary>
-		/// Selects the casted children values of this rule.
+		/// Selects the casted children values of this AST node.
 		/// </summary>
 		/// <typeparam name="T">The type of value to retrieve from the children.</typeparam>
 		/// <returns>The casted values from the children.</returns>
@@ -336,7 +356,7 @@ namespace RCParsing
 		}
 
 		/// <summary>
-		/// Selects the casted children values array of child rule at the specified index.
+		/// Selects the casted children values array of child AST node at the specified index.
 		/// </summary>
 		/// <typeparam name="T">The type of value to retrieve from the children.</typeparam>
 		/// <returns>The casted values from the children.</returns>
@@ -346,7 +366,7 @@ namespace RCParsing
 		}
 
 		/// <summary>
-		/// Selects the casted children values of this rule.
+		/// Selects the casted children values of this AST node.
 		/// </summary>
 		/// <typeparam name="T">The type of value to retrieve from the children.</typeparam>
 		/// <returns>The casted values from the children.</returns>
@@ -356,7 +376,7 @@ namespace RCParsing
 		}
 
 		/// <summary>
-		/// Selects the casted children values of child rule at the specified index.
+		/// Selects the casted children values of child AST node at the specified index.
 		/// </summary>
 		/// <typeparam name="T">The type of value to retrieve from the children.</typeparam>
 		/// <returns>The casted values from the children.</returns>
@@ -366,7 +386,7 @@ namespace RCParsing
 		}
 
 		/// <summary>
-		/// Selects the children of this rule using a selector function.
+		/// Selects the children of this AST node using a selector function.
 		/// </summary>
 		/// <typeparam name="T">The type of value to retrieve from the children.</typeparam>
 		/// <param name="selector">The selector function to apply to each child.</param>
@@ -384,7 +404,7 @@ namespace RCParsing
 		}
 
 		/// <summary>
-		/// Selects the children of child rule at the specified index using a selector function.
+		/// Selects the children of child AST node at the specified index using a selector function.
 		/// </summary>
 		/// <typeparam name="T">The type of value to retrieve from the children.</typeparam>
 		/// <returns>The selected values from the children.</returns>
@@ -410,14 +430,14 @@ namespace RCParsing
 		}
 
 		/// <summary>
-		/// Returns a optimized version of this parsed rule result.
+		/// Returns a optimized version of this AST node.
 		/// </summary>
 		/// <remarks>
 		/// Optimizes the parse tree by applying the specified optimization flags.
-		/// Note that this may affect the parsed value calculation.
+		/// Note that this may affect the parsed value calculation. Mostly used for analysis purposes.
 		/// </remarks>
 		/// <param name="optimization">The optimization flags to apply.</param>
-		/// <returns>An optimized version of this parsed rule result.</returns>
+		/// <returns>An optimized version of this AST node.</returns>
 		public ParsedRuleResultBase Optimized(ParseTreeOptimization optimization = ParseTreeOptimization.Default)
 		{
 			return new ParsedRuleResultLazy(optimization, Parent, Context, Result);
@@ -432,11 +452,11 @@ namespace RCParsing
 		}
 
 		/// <summary>
-		/// Incrementally re-parses this parsed rule result with new input.
+		/// Incrementally re-parses this AST node with new input.
 		/// </summary>
 		/// <param name="input">The new input to re-parse.</param>
 		/// <param name="parameter">Optional parameter to pass to the parser.</param>
-		/// <returns>A new parsed rule result with the updated input.</returns>
+		/// <returns>A new AST node with the updated input.</returns>
 		public ParsedRuleResultBase Reparsed(string input, object? parameter = null)
 		{
 			var context = Context;
@@ -451,12 +471,12 @@ namespace RCParsing
 		}
 
 		/// <summary>
-		/// Incrementally re-parses this parsed rule result with new input.
+		/// Incrementally re-parses this AST node with new input.
 		/// </summary>
 		/// <param name="input">The new input to re-parse.</param>
 		/// <param name="startIndex">The starting index of the new input.</param>
 		/// <param name="parameter">Optional parameter to pass to the parser.</param>
-		/// <returns>A new parsed rule result with the updated input.</returns>
+		/// <returns>A new AST node with the updated input.</returns>
 		public ParsedRuleResultBase Reparsed(string input, int startIndex, object? parameter = null)
 		{
 			var context = Context;
@@ -471,13 +491,13 @@ namespace RCParsing
 		}
 
 		/// <summary>
-		/// Incrementally re-parses this parsed rule result with new input.
+		/// Incrementally re-parses this AST node with new input.
 		/// </summary>
 		/// <param name="input">The new input to re-parse.</param>
 		/// <param name="startIndex">The starting index of the new input.</param>
 		/// <param name="length">The number of characters to parse from the new input.</param>
 		/// <param name="parameter">Optional parameter to pass to the parser.</param>
-		/// <returns>A new parsed rule result with the updated input.</returns>
+		/// <returns>A new AST node with the updated input.</returns>
 		public ParsedRuleResultBase Reparsed(string input, int startIndex, int length, object? parameter = null)
 		{
 			var context = Context;
@@ -492,10 +512,10 @@ namespace RCParsing
 		}
 
 		/// <summary>
-		/// Incrementally re-parses this parsed rule result with new input.
+		/// Incrementally re-parses this AST node with new input.
 		/// </summary>
 		/// <param name="context">The new parser context to re-parse.</param>
-		/// <returns>A new parsed rule result with the updated input.</returns>
+		/// <returns>A new AST node with the updated input.</returns>
 		public ParsedRuleResultBase Reparsed(ParserContext context)
 		{
 			var _context = Context;
@@ -511,11 +531,11 @@ namespace RCParsing
 		}
 
 		/// <summary>
-		/// Incrementally re-parses this parsed rule result with new input.
+		/// Incrementally re-parses this AST node with new input.
 		/// </summary>
 		/// <param name="context">The new parser context to re-parse.</param>
 		/// <param name="change">Optional text change to apply during re-parsing.</param>
-		/// <returns>A new parsed rule result with the updated input.</returns>
+		/// <returns>A new AST node with the updated input.</returns>
 		public ParsedRuleResultBase Reparsed(ParserContext context, TextChange change)
 		{
 			var _context = Context;
