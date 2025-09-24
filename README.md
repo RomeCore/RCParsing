@@ -11,7 +11,7 @@
 
 This library focuses on **Developer-experience (DX)** first, providing best toolkit for creating your **programming languages**, **file formats** or even **data extraction tools** with declarative API, debugging tools, and more. This allows you to design your parser directly in code and easily fix it using stack and walk traces with detailed error messages.
 
-[https://romecore.github.io/RCParsing/](Home page of the project)
+[Home page of the project](https://romecore.github.io/RCParsing/)
 
 ## Why RCParsing?
 
