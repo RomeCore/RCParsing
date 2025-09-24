@@ -62,7 +62,7 @@ Or do it manually by cloning this repository.
 
 # Tutorials, docs and examples
 
-- [Tutorials](https://github.com/RomeCore/RCParsing/blob/main/docs/tutorials.md) - detailed tutorials, explaining features and mechanics of this library, highly recommended to read!
+- [Tutorials](https://github.com/RomeCore/RCParsing/blob/main/docs_md/tutorials.md) - detailed tutorials, explaining features and mechanics of this library, highly recommended to read!
 
 # Simple examples
 

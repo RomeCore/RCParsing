@@ -54,4 +54,12 @@ TestResult.xml
 nunit-*.xml
 /.vs
 *.vsidx
+
+# VuePress
+node_modules/
+docs/.vuepress/.cache/
+docs/.vuepress/.temp/
+docs/.vuepress/dist/
+
+# IntegrAI code summary databases
 /.integrai
