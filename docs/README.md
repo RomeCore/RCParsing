@@ -19,7 +19,6 @@ actions:
 highlights:
   - header: Fluent BNF-like API
     description: Define complex grammars with elegant C# syntax that reads like clean BNF notation.
-    color: White
     bgImage: https://theme-hope-assets.vuejs.press/bg/2-light.svg
     bgImageDark: https://theme-hope-assets.vuejs.press/bg/2-dark.svg
     features:
@@ -37,7 +36,6 @@ highlights:
 
   - header: Barrier Tokens for Indentation
     description: Parse Python, YAML, and other indent-sensitive languages with built-in INDENT/DEDENT support.
-    color: White
     bgImage: https://theme-hope-assets.vuejs.press/bg/4-light.svg
     bgImageDark: https://theme-hope-assets.vuejs.press/bg/4-dark.svg
     highlights:
@@ -55,7 +53,6 @@ highlights:
 
   - header: Incremental Parsing
     description: Edit large documents with instant feedback using persistent AST and efficient re-parsing.
-    color: White
     bgImage: https://theme-hope-assets.vuejs.press/bg/3-light.svg
     bgImageDark: https://theme-hope-assets.vuejs.press/bg/3-dark.svg
     features:
@@ -73,7 +70,6 @@ highlights:
 
   - header: Superior Debugging Experience
     description: Get detailed error messages with stack traces, walk traces, and precise source locations.
-    color: White
     bgImage: https://theme-hope-assets.vuejs.press/bg/6-light.svg
     bgImageDark: https://theme-hope-assets.vuejs.press/bg/6-dark.svg
     highlights:
@@ -91,7 +87,6 @@ highlights:
 
   - header: Blazing Fast Performance
     description: Outperforms popular .NET parsing libraries with optimized modes and efficient memory usage.
-    color: White
     bgImage: https://theme-hope-assets.vuejs.press/bg/8-light.svg
     bgImageDark: https://theme-hope-assets.vuejs.press/bg/8-dark.svg
     features:
@@ -109,7 +104,6 @@ highlights:
 
   - header: Lexerless Architecture
     description: Parse directly from raw text without token priority headaches or separate lexer phase.
-    color: White
     bgImage: https://theme-hope-assets.vuejs.press/bg/5-light.svg
     bgImageDark: https://theme-hope-assets.vuejs.press/bg/5-dark.svg
     highlights:
@@ -127,7 +121,6 @@ highlights:
 
   - header: Advanced Pattern Matching
     description: Find all occurrences of complex patterns in text with detailed AST information.
-    color: White
     bgImage: https://theme-hope-assets.vuejs.press/bg/7-light.svg
     bgImageDark: https://theme-hope-assets.vuejs.press/bg/7-dark.svg
     features:
@@ -145,7 +138,6 @@ highlights:
 
   - header: Error Recovery Strategies
     description: Define custom recovery strategies per rule to handle syntax errors gracefully.
-    color: White
     bgImage: https://theme-hope-assets.vuejs.press/bg/9-light.svg
     bgImageDark: https://theme-hope-assets.vuejs.press/bg/9-dark.svg
     highlights:
@@ -163,7 +155,6 @@ highlights:
 
   - header: Batteries Included
     description: Comprehensive built-in tokens and rules for common parsing scenarios.
-    color: White
     bgImage: https://theme-hope-assets.vuejs.press/bg/10-light.svg
     bgImageDark: https://theme-hope-assets.vuejs.press/bg/10-dark.svg
     features:
@@ -181,7 +172,6 @@ highlights:
 
   - header: Broad Compatibility
     description: Runs on .NET Standard 2.0+, .NET Framework 4.6.1+, .NET 6.0, and .NET 8.0.
-    color: White
     bgImage: https://theme-hope-assets.vuejs.press/bg/1-light.svg
     bgImageDark: https://theme-hope-assets.vuejs.press/bg/1-dark.svg
     highlights:
