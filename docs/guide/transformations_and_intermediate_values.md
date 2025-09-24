@@ -14,7 +14,6 @@ During the parsing phase, some built-in token patterns generates an **intermedia
 - `Number`: Returns the `double`, `float`, `int` or any other supported C# numeric type, based on `NumberType` flag or generic argument when you created it.
 - `Literal`, `LiteralChar`, `LiteralChoice`: Return the exact literal string that was matched (useful for case-insensitive matching to get the original text).
 - `Optional` and `Choice`: Return the intermediate value of their matched child.
-- **For others:** You can look down to the token patterns library and see what they returns.
 
 For repeat or sequential tokens (tokens built by chaining patterns like `.Literal("\"").EscapedTextPrefix(...).Literal("\"")`), you use the `.Pass()` method to control which child's intermediate value is propagated upwards to become the token's own intermediate value. `.Pass(v => v[1])` tells the token to use the intermediate value from the second child (index 1) in the sequence:
 
@@ -45,7 +44,6 @@ There is the useful combinators:
 - `Map`: Matches a single element and applies the function to transform child's value.
 - `Return`: Matches a single element and returns the specified fixed value.
 - `CaptureText`: Matches a single element and captures the text of the child match.
-- **For more combinators you can look down in the library**.
 
 Since token's AST nodes is leaf and cannot have their own children, they have intermediate values system instead. Tokens that can have child tokens propogates intermediate values based on their type:
 

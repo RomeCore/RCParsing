@@ -8,9 +8,9 @@ bgImageStyle:
 heroText: RCParsing
 tagline: The ultimate .NET parsing framework for language development and data scraping
 actions:
-  - text: How to Use
-    icon: lightbulb
-    link: ./demo/
+  - text: Getting Started
+    icon: mdi:run-fast
+    link: ./getting_started.md
     type: primary
 
   - text: Docs

@@ -32,7 +32,7 @@ builder.CreateRule("string")
     .Literal('"')
     .TextUntil('"')
     .Literal('"')
-	.Configure(c => c.NoSkipping(), ParserSettingMode.LocalForChildrenOnly); // Apply the setting for the child rules, not the target rule (this rule is sequence currently)
+	.Configure(c => c.NoSkipping(ParserSettingMode.LocalForChildrenOnly)); // Apply the setting for the child rules, not the target rule (this rule is sequence currently)
 ```
 
 Now parser will try to skip whitespaces before parsing the `string` rule, but it won't try to skip it when, for example, parsing the `Literal` or `TextUntil` tokens itself.

@@ -72,7 +72,6 @@ Here is simple example how to make simple parser that parses "a + b" string with
 
 ```csharp
 using RCParsing;
-using RCParsing.Building;
 
 // First, you need to create a builder
 var builder = new ParserBuilder();
