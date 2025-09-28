@@ -82,7 +82,7 @@ namespace RCParsing
 				while (topFrame != null && maxFrames-- >= 0)
 				{
 					elementsToRecord?.Add(topFrame.RuleId);
-					sb.AppendLine("- " + topFrame.Rule.ToStackTraceString(1, prevStackRule)
+					sb.AppendLine($"- (pos: {topFrame.Position}) " + topFrame.Rule.ToStackTraceString(1, prevStackRule)
 						.Indent("  ", addIndentToFirstLine: false));
 					prevStackRule = topFrame.RuleId;
 					topFrame = topFrame.Previous;

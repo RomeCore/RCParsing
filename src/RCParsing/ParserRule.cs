@@ -154,7 +154,7 @@ namespace RCParsing
 		public void AdvanceContext(ref ParserContext context, ref ParserSettings settings, out ParserSettings childSettings)
 		{
 			if (WritesStackTrace)
-				context.AppendStackFrame(Id);
+				context.AppendStackFrame(Id, context.position);
 
 			if (Settings.isDefault)
 			{

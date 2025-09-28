@@ -98,6 +98,11 @@ namespace RCParsing
 		public readonly int ruleId;
 
 		/// <summary>
+		/// Gets the position where parsing of this element was started.
+		/// </summary>
+		public readonly int position;
+
+		/// <summary>
 		/// Gets the recursion depth at which the current parsing operation is taking place.
 		/// </summary>
 		public readonly int recursionDepth;
@@ -107,10 +112,12 @@ namespace RCParsing
 		/// </summary>
 		/// <param name="previous">The parser stack frame that is the previous one in the stack.</param>
 		/// <param name="ruleId">The ID of the parser rule that is currently being parsed.</param>
-		public IntermediateParserStackFrame(IntermediateParserStackFrame? previous, int ruleId)
+		/// <param name="position">The position where parsing of this element was started.</param>
+		public IntermediateParserStackFrame(IntermediateParserStackFrame? previous, int ruleId, int position)
 		{
 			this.previous = previous;
 			this.ruleId = ruleId;
+			this.position = position;
 			this.recursionDepth = previous == null ? 0 : previous.recursionDepth + 1;
 		}
 	}
@@ -240,9 +247,10 @@ namespace RCParsing
 		/// Appends a new stack frame to the parser's stack. Used for tracking recursion depth and parsing rules.
 		/// </summary>
 		/// <param name="ruleId">The ID of the parser rule that is currently being parsed.</param>
-		public void AppendStackFrame(int ruleId)
+		/// <param name="position">The position where parsing of rule was started.</param>
+		public void AppendStackFrame(int ruleId, int position)
 		{
-			topStackFrame = new IntermediateParserStackFrame(topStackFrame, ruleId);
+			topStackFrame = new IntermediateParserStackFrame(topStackFrame, ruleId, position);
 		}
 
 		/// <summary>
