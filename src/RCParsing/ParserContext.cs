@@ -47,6 +47,15 @@ namespace RCParsing
 		public readonly List<ParsingError> errors;
 
 		/// <summary>
+		/// A list of indices pointing to <see cref="errors"/> when error recovery was triggered.
+		/// </summary>
+		/// <remarks>
+		/// When error recovery triggers, the <c>errors.Count</c> is added to this list.
+		/// Used for retrieving the relevant error groups.
+		/// </remarks>
+		public readonly List<int> errorRecoveryIndices;
+
+		/// <summary>
 		/// A list to store any rules that were skipped during the parsing process.
 		/// </summary>
 		public readonly List<ParsedRule> skippedRules;
@@ -76,6 +85,7 @@ namespace RCParsing
 			this.cache = new ParserCache();
 			this.positionsToAvoidSkipping = new BitArray(str.Length + 1);
 			this.errors = new List<ParsingError>();
+			this.errorRecoveryIndices = new List<int>();
 			this.skippedRules = new List<ParsedRule>();
 			this.barrierTokens = new BarrierTokenCollection();
 			this.walkTrace = new ParserWalkTrace(this);
@@ -148,7 +158,7 @@ namespace RCParsing
 		public int passedBarriers;
 
 		/// <summary>
-		/// Gets the top stack frame in the stack, if any.
+		/// Gets the top stack frame in the rule parsing stack, if any.
 		/// </summary>
 		public IntermediateParserStackFrame? topStackFrame;
 
@@ -187,6 +197,15 @@ namespace RCParsing
 		/// A list to store any parsing errors encountered during the process.
 		/// </summary>
 		public readonly List<ParsingError> errors => shared.errors;
+
+		/// <summary>
+		/// A list of indices pointing to <see cref="errors"/> when error recovery was triggered.
+		/// </summary>
+		/// <remarks>
+		/// When error recovery triggers, the <c>errors.Count</c> is added to this list.
+		/// Used for retrieving the relevant error groups.
+		/// </remarks>
+		public readonly List<int> errorRecoveryIndices => shared.errorRecoveryIndices;
 
 		/// <summary>
 		/// A list to store any rules that were skipped during the parsing process.
@@ -355,7 +374,7 @@ namespace RCParsing
 		/// <returns>A collection of error groups.</returns>
 		public readonly ErrorGroupCollection CreateErrorGroups()
 		{
-			return new ErrorGroupCollection(this, errors);
+			return new ErrorGroupCollection(this, errors, errorRecoveryIndices);
 		}
 	}
 }

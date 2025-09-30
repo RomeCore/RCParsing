@@ -34,6 +34,15 @@ namespace RCParsing
 		public IReadOnlyList<ParsingError> Errors { get; }
 
 		/// <summary>
+		/// Gets the relevant error groups.
+		/// </summary>
+		/// <remarks>
+		/// Error group is considered relevant when it has the furthest position 
+		/// before the end or any error recovery point.
+		/// </remarks>
+		public IReadOnlyList<ErrorGroup> RelevantGroups { get; }
+
+		/// <summary>
 		/// Gets the list of error groups that were created during parsing.
 		/// Each group contains a set of errors that occurred at the same position.
 		/// </summary>
@@ -45,6 +54,18 @@ namespace RCParsing
 		/// </summary>
 		public ErrorGroup? Last => Groups.Count > 0 ? Groups[Groups.Count - 1] : null;
 
+		private IReadOnlyList<ErrorGroup> _reversedRelevant;
+		/// <summary>
+		/// Gets the list of relevant error groups in reverse order, meaning the first group is the one with the
+		/// latest position in the input text where an error occurred, and so on.
+		/// Each group contains a set of errors that occurred at the same position, but in reverse order from the original list.
+		/// </summary>
+		/// <remarks>
+		/// Error group is considered relevant when it has the furthest position 
+		/// before the end or any error recovery point.
+		/// </remarks>
+		public IReadOnlyList<ErrorGroup> ReversedRelevant => _reversedRelevant ??= new ReversedList<ErrorGroup>(RelevantGroups);
+
 		private IReadOnlyList<ErrorGroup> _reversed;
 		/// <summary>
 		/// Gets the list of error groups in reverse order, meaning the first group is the one with the
@@ -52,27 +73,68 @@ namespace RCParsing
 		/// Each group contains a set of errors that occurred at the same position, but in reverse order from the original list.
 		/// </summary>
 		public IReadOnlyList<ErrorGroup> Reversed => _reversed ??= new ReversedList<ErrorGroup>(Groups);
-
+		
 		/// <summary>
 		/// Initializes a new instance of the <see cref="ErrorGroupCollection"/> class.
 		/// </summary>
 		/// <param name="context">The parser context that was used during parsing.</param>
 		/// <param name="errors">The list of parsing errors that occurred during parsing.</param>
-		public ErrorGroupCollection(ParserContext context, IEnumerable<ParsingError> errors)
+		/// <param name="errorRecoveryIndices">A list of indices pointing to <paramref name="errors"/> when error recovery was triggered.</param>
+		public ErrorGroupCollection(ParserContext context, IEnumerable<ParsingError> errors, IEnumerable<int>? errorRecoveryIndices = null)
 		{
 			Context = context;
 			Errors = errors?.ToArray().AsReadOnlyList() ?? throw new ArgumentNullException(nameof(errors));
 
-			Groups = errors.GroupBy(v => v.position).OrderBy(v => v.Key).Select(v =>
-			{
-				return new ErrorGroup(context, v.Key, v.ToArray().AsReadOnlyList());
-			}).ToArray().AsReadOnlyList();
+			var (groups, relGroups) = MakeGroups(context, errors, errorRecoveryIndices ?? Array.Empty<int>());
+			Groups = groups;
+			RelevantGroups = relGroups;
 		}
 
 		public int Count => Groups.Count;
 		public ErrorGroup this[int index] => Groups[index];
 		public IEnumerator<ErrorGroup> GetEnumerator() => Groups.GetEnumerator();
 		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+		private static (IReadOnlyList<ErrorGroup>, IReadOnlyList<ErrorGroup>) MakeGroups(ParserContext context,
+			IEnumerable<ParsingError> errors, IEnumerable<int> errorIndices)
+		{
+			Dictionary<int, List<ParsingError>> groups = new();
+			HashSet<int> relevantGroups = new();
+			var sortedRecovery = errorIndices.OrderBy(i => i)
+				.Append(context.errors.Count).Distinct().ToList();
+			int maxPosBeforeRecovery = -1;
+			int index = 0;
+			int recoveryPointer = 0;
+
+			foreach (var error in errors)
+			{
+				if (recoveryPointer < sortedRecovery.Count && index == sortedRecovery[recoveryPointer])
+				{
+					if (maxPosBeforeRecovery >= 0)
+						relevantGroups.Add(maxPosBeforeRecovery);
+
+					maxPosBeforeRecovery = -1;
+					recoveryPointer++;
+				}
+
+				if (!groups.TryGetValue(error.position, out var groupErrors))
+					groups[error.position] = groupErrors = new List<ParsingError>();
+
+				if (error.position > maxPosBeforeRecovery)
+					maxPosBeforeRecovery = error.position;
+
+				groups[error.position].Add(error);
+
+				index++;
+			}
+
+			var retGroups = groups
+				.OrderBy(g => g.Key)
+				.Select(g => new ErrorGroup(context, g.Key, g.Value, relevantGroups.Contains(g.Key)))
+				.AsReadOnlyCollection();
+
+			return (retGroups, retGroups.Where(g => g.IsRelevant).AsReadOnlyCollection());
+		}
 
 		/// <summary>
 		/// Returns a string representation of the error group collection using the default formatting flags.

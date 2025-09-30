@@ -79,7 +79,7 @@ namespace RCParsing
 		/// </summary>
 		/// <param name="context">The parser context that was used during parsing.</param>
 		public ParsingException(ParserContext context) :
-			this(context, context.errors)
+			this(context, context.errors, context.errorRecoveryIndices)
 		{
 		}
 
@@ -98,8 +98,9 @@ namespace RCParsing
 		/// </summary>
 		/// <param name="context">The parser context that was used during parsing.</param>
 		/// <param name="errors">The list of parsing errors that occurred.</param>
-		public ParsingException(ParserContext context, IReadOnlyList<ParsingError> errors) :
-			base(FormatMessage(context, out var groups, errors))
+		/// <param name="errorRecoveryIndices">A list of indices pointing to <paramref name="errors"/> when error recovery was triggered.</param>
+		public ParsingException(ParserContext context, IReadOnlyList<ParsingError> errors, IReadOnlyList<int>? errorRecoveryIndices = null) :
+			base(FormatMessage(context, out var groups, errors, errorRecoveryIndices))
 		{
 			if (errors == null)
 				throw new ArgumentNullException(nameof(errors));
@@ -118,9 +119,11 @@ namespace RCParsing
 			return error = new ParsingError(position, 0, message);
 		}
 
-		private static string FormatMessage(ParserContext context, out ErrorGroupCollection groups, IReadOnlyList<ParsingError> errors)
+		private static string FormatMessage(ParserContext context,
+			out ErrorGroupCollection groups, IReadOnlyList<ParsingError> errors,
+			IReadOnlyList<int>? errorRecoveryIndices = null)
 		{
-			groups = new ErrorGroupCollection(context, errors);
+			groups = new ErrorGroupCollection(context, errors, errorRecoveryIndices);
 
 			var flags = context.parser.MainSettings.errorFormattingFlags;
 			int maxGroups = Math.Min(flags == ErrorFormattingFlags.MoreGroups ? 5 : 1, groups.Count);

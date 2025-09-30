@@ -176,7 +176,7 @@ namespace RCParsing.TokenPatterns.Combinators
 			elements.Add(firstElement.intermediateValue);
 			position = firstElement.startIndex + firstElement.length;
 
-			while (MaxCount == -1 || elements.Count < MaxCount)
+			while (MaxCount == -1 || count < MaxCount)
 			{
 				var parsedSep = _separator.Match(input, position, barrierPosition, parserParameter, true, ref furthestError);
 				if (!parsedSep.success || parsedSep.length == 0)

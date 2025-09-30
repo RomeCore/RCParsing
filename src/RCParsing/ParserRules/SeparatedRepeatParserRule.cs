@@ -122,7 +122,7 @@ namespace RCParsing.ParserRules
 				context.passedBarriers = firstElement.passedBarriers;
 
 				// Parse "separator + element" until limit reached
-				while (MaxCount == -1 || elements.Count < MaxCount)
+				while (MaxCount == -1 || count < MaxCount)
 				{
 					var beforeSepPos = context.position;
 

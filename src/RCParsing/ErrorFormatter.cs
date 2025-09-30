@@ -31,7 +31,7 @@ namespace RCParsing
 		/// <returns>A formatted string representing the parsing error.</returns>
 		public static string FormatErrors(ParserContext context, params ParsingError[] errors)
 		{
-			return FormatErrors(context, (IEnumerable<ParsingError>)errors);
+			return FormatErrors(context, (IEnumerable<ParsingError>)errors, null);
 		}
 
 		/// <summary>
@@ -39,10 +39,12 @@ namespace RCParsing
 		/// </summary>
 		/// <param name="context">The parser context that used to configure the display and contains the input text.</param>
 		/// <param name="errors">The parsing errors to format.</param>
+		/// <param name="errorRecoveryIndices">A list of indices pointing to <paramref name="errors"/> when error recovery was triggered.</param>
 		/// <returns>A formatted string representing the parsing error.</returns>
-		public static string FormatErrors(ParserContext context, IEnumerable<ParsingError> errors)
+		public static string FormatErrors(ParserContext context, IEnumerable<ParsingError> errors,
+			IEnumerable<int>? errorRecoveryIndices = null)
 		{
-			var groups = new ErrorGroupCollection(context, errors);
+			var groups = new ErrorGroupCollection(context, errors, errorRecoveryIndices);
 			return groups.ToString(context.parser.MainSettings.errorFormattingFlags);
 		}
 	}
