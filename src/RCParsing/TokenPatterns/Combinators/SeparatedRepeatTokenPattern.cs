@@ -106,11 +106,6 @@ namespace RCParsing.TokenPatterns.Combinators
 			{
 				if (MinCount == 0)
 				{
-					var sepAtStart = _separator.Match(input, position, barrierPosition,
-						parserParameter, true, ref furthestError);
-					if (sepAtStart.success)
-						return ParsedElement.Fail;
-
 					return new ParsedElement(initialPosition, position - initialPosition);
 				}
 				else
@@ -128,33 +123,18 @@ namespace RCParsing.TokenPatterns.Combinators
 			while (MaxCount == -1 || count < MaxCount)
 			{
 				var parsedSep = _separator.Match(input, position, barrierPosition, parserParameter, false, ref furthestError);
-				if (!parsedSep.success)
+				if (!parsedSep.success || parsedSep.length == 0)
 					break;
 
-				if (parsedSep.length == 0)
-					return ParsedElement.Fail;
-
-				if (IncludeSeparatorsInResult)
-					count++;
-
+				int postionBeforeSep = position;
 				position = parsedSep.startIndex + parsedSep.length;
 
 				var nextElement = _token.Match(input, position, barrierPosition, parserParameter, false, ref furthestError);
-				if (!nextElement.success)
+				if (!nextElement.success || nextElement.length == 0)
 				{
-					if (AllowTrailingSeparator)
-					{
-						break;
-					}
-					else
-					{
-						return ParsedElement.Fail;
-					}
-				}
-
-				if (nextElement.length == 0)
-				{
-					return ParsedElement.Fail;
+					if (!AllowTrailingSeparator)
+						position = postionBeforeSep;
+					break;
 				}
 
 				count++;
@@ -172,7 +152,6 @@ namespace RCParsing.TokenPatterns.Combinators
 		private ParsedElement MatchWithCalculation(string input, int position, int barrierPosition,
 			object? parserParameter, ref ParsingError furthestError)
 		{
-			List<object>? elements = null;
 			var initialPosition = position;
 
 			var firstElement = _token.Match(input, position, barrierPosition, parserParameter, true, ref furthestError);
@@ -180,13 +159,8 @@ namespace RCParsing.TokenPatterns.Combinators
 			{
 				if (MinCount == 0)
 				{
-					var sepAtStart = _separator.Match(input, position, barrierPosition,
-						parserParameter, true, ref furthestError);
-					if (sepAtStart.success)
-						return ParsedElement.Fail;
-
 					return new ParsedElement(initialPosition, position - initialPosition,
-						PassageFunction(elements as IReadOnlyList<object> ?? Array.Empty<object>()));
+						PassageFunction(Array.Empty<object>()));
 				}
 				else
 				{
@@ -197,52 +171,41 @@ namespace RCParsing.TokenPatterns.Combinators
 			if (firstElement.length == 0)
 				return ParsedElement.Fail;
 
-			elements ??= new List<object>();
+			int count = 1;
+			var elements = new List<object>();
 			elements.Add(firstElement.intermediateValue);
 			position = firstElement.startIndex + firstElement.length;
 
-			while (MaxCount == -1 || elements.Count < MaxCount)
+			while (MaxCount == -1 || count < MaxCount)
 			{
 				var parsedSep = _separator.Match(input, position, barrierPosition, parserParameter, true, ref furthestError);
-				if (!parsedSep.success)
+				if (!parsedSep.success || parsedSep.length == 0)
 					break;
-
-				if (parsedSep.length == 0)
-				{
-					return ParsedElement.Fail;
-				}
 
 				if (IncludeSeparatorsInResult)
 					elements.Add(parsedSep.intermediateValue);
 
+				int postionBeforeSep = position;
 				position = parsedSep.startIndex + parsedSep.length;
 
 				var nextElement = _token.Match(input, position, barrierPosition, parserParameter, true, ref furthestError);
-				if (!nextElement.success)
+				if (!nextElement.success || nextElement.length == 0)
 				{
-					if (AllowTrailingSeparator)
+					if (!AllowTrailingSeparator)
 					{
-						break;
+						elements.RemoveAt(elements.Count - 1);
+						position = postionBeforeSep;
 					}
-					else
-					{
-						return ParsedElement.Fail;
-					}
+					break;
 				}
 
-				if (nextElement.length == 0)
-				{
-					return ParsedElement.Fail;
-				}
-
+				count++;
 				elements.Add(nextElement.intermediateValue);
 				position = nextElement.startIndex + nextElement.length;
 			}
 
-			if (elements.Count < MinCount)
-			{
+			if (count < MinCount)
 				return ParsedElement.Fail;
-			}
 
 			return new ParsedElement(initialPosition, position - initialPosition, PassageFunction(elements));
 		}

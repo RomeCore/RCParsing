@@ -35,6 +35,15 @@ namespace RCParsing
 		public int Position { get; }
 
 		/// <summary>
+		/// Gets the value indicating that this error group is relevant.
+		/// </summary>
+		/// <remarks>
+		/// Error group is considered relevant when it has the furthest position
+		/// before the end or before any recovery trigger point.
+		/// </remarks>
+		public bool IsRelevant { get; }
+
+		/// <summary>
 		/// Gets the list of parsing errors that occurred during parsing.
 		/// </summary>
 		public IReadOnlyList<ParsingError> Errors { get; }
@@ -246,11 +255,12 @@ namespace RCParsing
 			}
 		}
 
-		internal ErrorGroup(ParserContext context, int position, IReadOnlyList<ParsingError> errors)
+		internal ErrorGroup(ParserContext context, int position, IReadOnlyList<ParsingError> errors, bool isRelevant)
 		{
 			Context = context;
 			Position = position;
 			Errors = errors;
+			IsRelevant = isRelevant;
 		}
 
 		/// <summary>
@@ -259,12 +269,18 @@ namespace RCParsing
 		/// <param name="context">The parser context used for parsing.</param>
 		/// <param name="position">The position in the input text where the error occurred.</param>
 		/// <param name="errors">The list of parsing errors that occurred during parsing.</param>
+		/// <param name="isRelevant">
+		/// The value indicating that the group is relevant.
+		/// Error group is considered relevant when it has the furthest position 
+		/// before the end or any error recovery point.
+		/// </param>
 		/// <exception cref="ArgumentException">Thrown if no errors are provided or if they do not match the specified position.</exception>
-		public ErrorGroup(ParserContext context, int position, IEnumerable<ParsingError> errors)
+		public ErrorGroup(ParserContext context, int position, IEnumerable<ParsingError> errors, bool isRelevant)
 		{
 			Context = context;
 			Position = position;
 			Errors = errors.ToArray().AsReadOnlyList();
+			IsRelevant = isRelevant;
 
 			if (Errors.Count == 0)
 				throw new ArgumentException("No errors provided.", nameof(errors));

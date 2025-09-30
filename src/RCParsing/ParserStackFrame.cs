@@ -42,6 +42,11 @@
 		/// </summary>
 		public int RuleId => Frame.ruleId;
 
+		/// <summary>
+		/// Gets the position where parsing of rule has started.
+		/// </summary>
+		public int Position => Frame.position;
+
 		private ParserRule? _rule;
 		/// <summary>
 		/// Gets the rule that associated with this stack frame.

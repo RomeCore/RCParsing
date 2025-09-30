@@ -87,7 +87,6 @@ namespace RCParsing.ParserRules
 
 			ParsedRule Parse(ref ParserContext context, ref ParserSettings settings, ref ParserSettings childSettings)
 			{
-				var elements = new List<ParsedRule>();
 				var initialPosition = context.position;
 
 				// Try to parse the first element (if required - error if not found; if optional - may return empty result)
@@ -95,19 +94,10 @@ namespace RCParsing.ParserRules
 				if (!firstElement.success)
 				{
 					// No first element found
-					// If minCount == 0 — OK: empty sequence (but first check if there's a separator at the start)
+					// If minCount == 0 — OK: empty sequence
 					if (MinCount == 0)
 					{
-						// If there is a separator at the start — this is an error (unexpected leading separator)
-						var sepAtStart = TryParseRule(Separator, context, childSettings);
-						if (sepAtStart.success)
-						{
-							RecordError(ref context, ref settings, "Unexpected separator before any element.");
-							return ParsedRule.Fail;
-						}
-
-						// No elements and no separator — return successful empty result
-						return ParsedRule.Rule(Id, initialPosition, 0, context.passedBarriers, elements);
+						return ParsedRule.Rule(Id, initialPosition, 0, context.passedBarriers, Array.Empty<ParsedRule>());
 					}
 					else
 					{
@@ -124,60 +114,60 @@ namespace RCParsing.ParserRules
 					return ParsedRule.Fail;
 				}
 
+				var elements = new List<ParsedRule>();
+				int count = 1;
 				firstElement.occurency = elements.Count;
 				elements.Add(firstElement);
 				context.position = firstElement.startIndex + firstElement.length;
 				context.passedBarriers = firstElement.passedBarriers;
 
 				// Parse "separator + element" until limit reached
-				while (MaxCount == -1 || elements.Count < MaxCount)
+				while (MaxCount == -1 || count < MaxCount)
 				{
 					var beforeSepPos = context.position;
 
 					// Try to parse the separator
 					var parsedSep = TryParseRule(Separator, context, childSettings);
-					if (!parsedSep.success)
+					if (!parsedSep.success || parsedSep.length == 0)
 						break; // no separator — end of sequence
 
-					if (parsedSep.length == 0)
+					/*if (parsedSep.length == 0)
 					{
 						RecordError(ref context, ref settings, "Parsed separator has zero length, which is not allowed.");
 						return ParsedRule.Fail;
-					}
+					}*/
+
+					// Separator successfully parsed — position already updated inside TryParseRule, but update again for safety:
+					parsedSep.occurency = count;
+					int postionBeforeSep = context.position;
+					context.position = parsedSep.startIndex + parsedSep.length;
+					context.passedBarriers = parsedSep.passedBarriers;
 
 					// Include separator in result if requested
 					if (IncludeSeparatorsInResult)
 						elements.Add(parsedSep);
 
-					// Separator successfully parsed — position already updated inside TryParseRule, but update again for safety:
-					context.position = parsedSep.startIndex + parsedSep.length;
-					context.passedBarriers = parsedSep.passedBarriers;
-
 					// Try to parse the next element
 					var nextElement = TryParseRule(Rule, context, childSettings);
-					if (!nextElement.success)
+					if (!nextElement.success || nextElement.length == 0)
 					{
-						// Separator was found, but next element is missing
-						if (AllowTrailingSeparator)
+						// If element parse was not success, finish the parsing and (optionally) remove separator
+						if (!AllowTrailingSeparator)
 						{
-							// Trailing separator allowed — consider separator consumed and stop.
-							// Keep childContext.position after separator as is and exit loop.
-							break;
+							context.position = postionBeforeSep;
+							elements.RemoveAt(elements.Count - 1);
 						}
-						else
-						{
-							RecordError(ref context, ref settings, "Expected element after separator, but found none.");
-							return ParsedRule.Fail;
-						}
+						break;
 					}
 
-					if (nextElement.length == 0)
+					/*if (nextElement.length == 0)
 					{
 						RecordError(ref context, ref settings, "Parsed child element has zero length, which is not allowed.");
 						return ParsedRule.Fail;
-					}
+					}*/
 
-					nextElement.occurency = elements.Count;
+					nextElement.occurency = count;
+					count++;
 					elements.Add(nextElement);
 					context.position = nextElement.startIndex + nextElement.length;
 					context.passedBarriers = nextElement.passedBarriers;
@@ -186,7 +176,7 @@ namespace RCParsing.ParserRules
 				}
 
 				// Check minimum count
-				if (elements.Count < MinCount)
+				if (count < MinCount)
 				{
 					RecordError(ref context, ref settings, $"Expected at least {MinCount} repetitions of child rule, but found {elements.Count}.");
 					return ParsedRule.Fail;

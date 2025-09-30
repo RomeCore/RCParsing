@@ -47,6 +47,15 @@ namespace RCParsing
 		public readonly List<ParsingError> errors;
 
 		/// <summary>
+		/// A list of indices pointing to <see cref="errors"/> when error recovery was triggered.
+		/// </summary>
+		/// <remarks>
+		/// When error recovery triggers, the <c>errors.Count</c> is added to this list.
+		/// Used for retrieving the relevant error groups.
+		/// </remarks>
+		public readonly List<int> errorRecoveryIndices;
+
+		/// <summary>
 		/// A list to store any rules that were skipped during the parsing process.
 		/// </summary>
 		public readonly List<ParsedRule> skippedRules;
@@ -76,6 +85,7 @@ namespace RCParsing
 			this.cache = new ParserCache();
 			this.positionsToAvoidSkipping = new BitArray(str.Length + 1);
 			this.errors = new List<ParsingError>();
+			this.errorRecoveryIndices = new List<int>();
 			this.skippedRules = new List<ParsedRule>();
 			this.barrierTokens = new BarrierTokenCollection();
 			this.walkTrace = new ParserWalkTrace(this);
@@ -98,6 +108,11 @@ namespace RCParsing
 		public readonly int ruleId;
 
 		/// <summary>
+		/// Gets the position where parsing of this element was started.
+		/// </summary>
+		public readonly int position;
+
+		/// <summary>
 		/// Gets the recursion depth at which the current parsing operation is taking place.
 		/// </summary>
 		public readonly int recursionDepth;
@@ -107,10 +122,12 @@ namespace RCParsing
 		/// </summary>
 		/// <param name="previous">The parser stack frame that is the previous one in the stack.</param>
 		/// <param name="ruleId">The ID of the parser rule that is currently being parsed.</param>
-		public IntermediateParserStackFrame(IntermediateParserStackFrame? previous, int ruleId)
+		/// <param name="position">The position where parsing of this element was started.</param>
+		public IntermediateParserStackFrame(IntermediateParserStackFrame? previous, int ruleId, int position)
 		{
 			this.previous = previous;
 			this.ruleId = ruleId;
+			this.position = position;
 			this.recursionDepth = previous == null ? 0 : previous.recursionDepth + 1;
 		}
 	}
@@ -141,7 +158,7 @@ namespace RCParsing
 		public int passedBarriers;
 
 		/// <summary>
-		/// Gets the top stack frame in the stack, if any.
+		/// Gets the top stack frame in the rule parsing stack, if any.
 		/// </summary>
 		public IntermediateParserStackFrame? topStackFrame;
 
@@ -180,6 +197,15 @@ namespace RCParsing
 		/// A list to store any parsing errors encountered during the process.
 		/// </summary>
 		public readonly List<ParsingError> errors => shared.errors;
+
+		/// <summary>
+		/// A list of indices pointing to <see cref="errors"/> when error recovery was triggered.
+		/// </summary>
+		/// <remarks>
+		/// When error recovery triggers, the <c>errors.Count</c> is added to this list.
+		/// Used for retrieving the relevant error groups.
+		/// </remarks>
+		public readonly List<int> errorRecoveryIndices => shared.errorRecoveryIndices;
 
 		/// <summary>
 		/// A list to store any rules that were skipped during the parsing process.
@@ -240,9 +266,10 @@ namespace RCParsing
 		/// Appends a new stack frame to the parser's stack. Used for tracking recursion depth and parsing rules.
 		/// </summary>
 		/// <param name="ruleId">The ID of the parser rule that is currently being parsed.</param>
-		public void AppendStackFrame(int ruleId)
+		/// <param name="position">The position where parsing of rule was started.</param>
+		public void AppendStackFrame(int ruleId, int position)
 		{
-			topStackFrame = new IntermediateParserStackFrame(topStackFrame, ruleId);
+			topStackFrame = new IntermediateParserStackFrame(topStackFrame, ruleId, position);
 		}
 
 		/// <summary>
@@ -347,7 +374,7 @@ namespace RCParsing
 		/// <returns>A collection of error groups.</returns>
 		public readonly ErrorGroupCollection CreateErrorGroups()
 		{
-			return new ErrorGroupCollection(this, errors);
+			return new ErrorGroupCollection(this, errors, errorRecoveryIndices);
 		}
 	}
 }

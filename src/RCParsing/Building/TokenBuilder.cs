@@ -124,6 +124,16 @@ namespace RCParsing.Building
 		}
 
 		/// <summary>
+		/// Configures the local settings for the current pattern to skip parsing and ignore errors.
+		/// </summary>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if the token pattern is not set or it is a direct reference to a named pattern.</exception>
+		public TokenBuilder ConfigureForSkip()
+		{
+			return Configure(c => c.NoSkipping().IgnoreErrors());
+		}
+
+		/// <summary>
 		/// Sets the default transformation function (parsed value factory) to the current pattern that will be applied to parent rule.
 		/// </summary>
 		/// <param name="factory">The transformation function (parsed value factory) to set.</param>

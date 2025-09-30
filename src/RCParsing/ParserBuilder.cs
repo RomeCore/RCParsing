@@ -87,6 +87,32 @@ namespace RCParsing
 				return token;
 			throw new ArgumentException($"Token with name '{name}' not found.");
 		}
+		
+		/// <summary>
+		/// Tries to get the token pattern builder by its name.
+		/// </summary>
+		/// <param name="name">The name of the token pattern.</param>
+		/// <returns>A <see cref="TokenBuilder"/> instance for building the token pattern or <see langword="null"/> if not found.</returns>
+		public TokenBuilder? TryGetToken(string name)
+		{
+			if (_tokenPatterns.TryGetValue(name, out var token))
+				return token;
+			return null;
+		}
+
+		/// <summary>
+		/// Creates or gets the existing token pattern builder by its name.
+		/// </summary>
+		/// <param name="name">The name of the token pattern.</param>
+		/// <returns>A <see cref="TokenBuilder"/> instance for building the token pattern.</returns>
+		public TokenBuilder GetOrCreateToken(string name)
+		{
+			if (_tokenPatterns.TryGetValue(name, out var token))
+				return token;
+			token = new TokenBuilder();
+			_tokenPatterns[name] = token;
+			return token;
+		}
 
 		/// <summary>
 		/// Creates a rule builder and registers it under the given name.
@@ -115,6 +141,32 @@ namespace RCParsing
 			if (_rules.TryGetValue(name, out var rule))
 				return rule;
 			throw new ArgumentException($"Rule with name '{name}' not found.");
+		}
+
+		/// <summary>
+		/// Tries to get the rule builder by its name.
+		/// </summary>
+		/// <param name="name">The name of the rule.</param>
+		/// <returns>A <see cref="RuleBuilder"/> instance for building the rule or <see langword="null"/> if not found.</returns>
+		public RuleBuilder? TryGetRule(string name)
+		{
+			if (_rules.TryGetValue(name, out var rule))
+				return rule;
+			return null;
+		}
+
+		/// <summary>
+		/// Creates or gets the existing rule builder by its name.
+		/// </summary>
+		/// <param name="name">The name of the rule.</param>
+		/// <returns>A <see cref="RuleBuilder"/> instance for building the rule.</returns>
+		public RuleBuilder GetOrCreateRule(string name)
+		{
+			if (_rules.TryGetValue(name, out var rule))
+				return rule;
+			rule = new RuleBuilder();
+			_rules[name] = rule;
+			return rule;
 		}
 
 		/// <summary>
@@ -165,6 +217,17 @@ namespace RCParsing
 			if (_mainRuleBuilder != null)
 				return _mainRuleBuilder;
 			throw new ArgumentException("Main rule has not been set.");
+		}
+
+		/// <summary>
+		/// Tries to get the main rule builder.
+		/// </summary>
+		/// <returns>A <see cref="RuleBuilder"/> instance for building the main rule or the <see langword="null"/> if not exists.</returns>
+		public RuleBuilder? TryGetMainRule()
+		{
+			if (_mainRuleBuilder != null)
+				return _mainRuleBuilder;
+			return null;
 		}
 
 

@@ -18,12 +18,18 @@ namespace RCParsing
 					return ParsedRule.Fail;
 
 				case ErrorRecoveryStrategy.FindNext:
+					if (context.errors.Count > 0)
+						context.errorRecoveryIndices.Add(context.errors.Count);
 					return RecoverFindNext(ref recovery, rule, ref context, ref settings, ref childSettings);
 
 				case ErrorRecoveryStrategy.SkipUntilAnchor:
+					if (context.errors.Count > 0)
+						context.errorRecoveryIndices.Add(context.errors.Count);
 					return RecoverSkipUntilAnchor(ref recovery, rule, ref context, ref settings, ref childSettings);
 
 				case ErrorRecoveryStrategy.SkipAfterAnchor:
+					if (context.errors.Count > 0)
+						context.errorRecoveryIndices.Add(context.errors.Count);
 					return RecoverSkipAfterAnchor(ref recovery, rule, ref context, ref settings, ref childSettings);
 			}
 		}
@@ -33,6 +39,9 @@ namespace RCParsing
 		private static ParsedRule RecoverFindNext(ref ErrorRecovery recovery, ParserRule rule,
 			ref ParserContext context, ref ParserSettings settings, ref ParserSettings childSettings)
 		{
+			settings.errorHandling = ParserErrorHandlingMode.NoRecord;
+			childSettings.errorHandling = ParserErrorHandlingMode.NoRecord;
+
 			int barrierPosition = context.barrierTokens.GetNextBarrierPosition(context.position, context.passedBarriers);
 			if (barrierPosition == -1)
 				barrierPosition = context.maxPosition;
@@ -72,6 +81,9 @@ namespace RCParsing
 		private static ParsedRule RecoverSkipUntilAnchor(ref ErrorRecovery recovery, ParserRule rule,
 			ref ParserContext context, ref ParserSettings settings, ref ParserSettings childSettings)
 		{
+			settings.errorHandling = ParserErrorHandlingMode.NoRecord;
+			childSettings.errorHandling = ParserErrorHandlingMode.NoRecord;
+
 			var parser = rule.Parser;
 			var anchorRule = parser.Rules[recovery.anchorRule];
 			var anchorCtx = context;
@@ -138,6 +150,9 @@ namespace RCParsing
 		private static ParsedRule RecoverSkipAfterAnchor(ref ErrorRecovery recovery, ParserRule rule,
 			ref ParserContext context, ref ParserSettings settings, ref ParserSettings childSettings)
 		{
+			settings.errorHandling = ParserErrorHandlingMode.NoRecord;
+			childSettings.errorHandling = ParserErrorHandlingMode.NoRecord;
+
 			var parser = rule.Parser;
 			var anchorRule = parser.Rules[recovery.anchorRule];
 			var anchorCtx = context;
