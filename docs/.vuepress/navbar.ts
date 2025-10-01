@@ -4,4 +4,5 @@ export default navbar([
   "/",
   "/getting_started.md",
   "/guide/",
+  { link: "https://romecore.github.io/RCParsing.WebDemo/", text: "Playground", icon: "mdi:magic" }
 ]);
