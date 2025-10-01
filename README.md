@@ -11,7 +11,10 @@
 
 This library focuses on **Developer-experience (DX)** first, providing best toolkit for creating your **programming languages**, **file formats** or even **data extraction tools** with declarative API, debugging tools, and more. This allows you to design your parser directly in code and easily fix it using stack and walk traces with detailed error messages.
 
-[Home page of the project](https://romecore.github.io/RCParsing/)
+**Here is some useful links:** 
+
+- [Home page of the project](https://romecore.github.io/RCParsing/)
+- [Web demo/playground](https://romecore.github.io/RCParsing.WebDemo/)
 
 ## Why RCParsing?
 
@@ -64,7 +67,8 @@ Or do it manually by cloning this repository.
 
 # Tutorials, docs and examples
 
-- [Tutorials](https://github.com/RomeCore/RCParsing/blob/main/docs_md/tutorials.md) - detailed tutorials, explaining features and mechanics of this library, highly recommended to read!
+- [Tutorials (old)](https://github.com/RomeCore/RCParsing/blob/main/docs_md/tutorials.md) - detailed tutorials in the Markdown file, explaining features and mechanics of this library, highly recommended to read!
+- [Tutorials](https://romecore.github.io/RCParsing/guide/) - the tutorial website, not completely migrated from the markdown version yet.
 
 # Simple examples
 
