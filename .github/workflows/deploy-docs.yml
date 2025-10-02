@@ -40,6 +40,10 @@ jobs:
           npm run docs:build
           > docs/.vuepress/dist/.nojekyll
 
+      - name: Create google.html file
+        run: |
+          echo "google-site-verification: google56e4014dfb048515.html" > docs/.vuepress/dist/google56e4014dfb048515.html
+
       - name: Deploy Docs
         uses: JamesIves/github-pages-deploy-action@v4
         with:
