@@ -1,17 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
-using RCParsing;
 using RCParsing.Building;
 using RCParsing.Building.ParserRules;
-using RCParsing.ParserRules;
 
-namespace MathCalculator
+namespace RCParsing.Tests.MathExpr
 {
-	public static class MathParser
+	public class MathParser
 	{
 		private static readonly Parser parser = CreateParser();
 
@@ -46,7 +43,7 @@ namespace MathCalculator
 				;
 
 			// Basic terms
-			
+
 			builder.CreateRule("number")
 				.Number<double>();
 
@@ -131,17 +128,23 @@ namespace MathCalculator
 			builder.CreateRule("op_pow")
 				.OneOrMoreSeparated(b => b.Rule("op_pre"), b => b.Literal("^"))
 
-				.TransformFoldLeft<double, double>((l, r) =>
+				.TransformFoldRight<double, double>((l, r) =>
 				{
 					return Math.Pow(l, r);
 				});
 
 			builder.CreateRule("op_mul")
-				.OneOrMoreSeparated(b => b.Rule("op_pow"), b => b.LiteralChoice("*", "/"), includeSeparatorsInResult: true)
+				.OneOrMoreSeparated(b => b.Rule("op_pow"), b => b.LiteralChoice("*", "/", "%"), includeSeparatorsInResult: true)
 
 				.TransformFoldLeft<double, string, double>((l, op, r) =>
 				{
-					return op == "*" ? l * r : l / r;
+					return op switch
+					{
+						"*" => l * r,
+						"%" => l % r,
+						"/" => l / r,
+						_ => l
+					};
 				});
 
 			builder.CreateRule("op_add")
