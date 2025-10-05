@@ -421,7 +421,7 @@ namespace RCParsing.Building
 		/// <typeparam name="T1">Type of previous values</typeparam>
 		/// <param name="foldFunction">Fold function: (accumulator, previousValue) -> newAccumulator</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public RuleBuilder TransformFoldRight<TAcc, T1>(Func<TAcc, T1, TAcc> foldFunction)
+		public RuleBuilder TransformFoldRight<TAcc, T1>(Func<T1, TAcc, TAcc> foldFunction)
 		{
 			return Transform(v =>
 			{
@@ -430,7 +430,7 @@ namespace RCParsing.Building
 				for (int i = last - 1; i >= 0; i--)
 				{
 					var value1 = v.GetValue<T1>(i);
-					accumulator = foldFunction(accumulator, value1);
+					accumulator = foldFunction(value1, accumulator);
 				}
 				return accumulator;
 			});
@@ -441,11 +441,11 @@ namespace RCParsing.Building
 		/// For sequences: [a, op1, b, op2, c] -> fold(a, op1, fold(c, op2, b))
 		/// </summary>
 		/// <typeparam name="TAcc">Accumulator and return type</typeparam>
-		/// <typeparam name="T1">Operator type</typeparam>
-		/// <typeparam name="T2">Operand type</typeparam>
+		/// <typeparam name="T1">Operand type</typeparam>
+		/// <typeparam name="T2">Operator type</typeparam>
 		/// <param name="foldFunction">Fold function: (accumulator, operator, operand) -> newAccumulator</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public RuleBuilder TransformFoldRight<TAcc, T1, T2>(Func<TAcc, T1, T2, TAcc> foldFunction)
+		public RuleBuilder TransformFoldRight<TAcc, T1, T2>(Func<T1, T2, TAcc, TAcc> foldFunction)
 		{
 			return Transform(v =>
 			{
@@ -455,7 +455,7 @@ namespace RCParsing.Building
 				{
 					var value1 = v.GetValue<T1>(i);
 					var value2 = v.GetValue<T2>(i - 1);
-					accumulator = foldFunction(accumulator, value1, value2);
+					accumulator = foldFunction(value1, value2, accumulator);
 				}
 				return accumulator;
 			});
