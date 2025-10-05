@@ -448,7 +448,8 @@ namespace RCParsing
 			var context = new ParserContext(this, input, parameter);
 			EmitBarriers(ref context);
 			var parsedRule = ParseRule(_mainRuleId, context, GlobalSettings);
-			return CreateResult(ref context, ref parsedRule);
+			var result = CreateResult(ref context, ref parsedRule);
+			return result;
 		}
 
 		/// <summary>
