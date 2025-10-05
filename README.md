@@ -67,8 +67,10 @@ Or do it manually by cloning this repository.
 
 # Tutorials, docs and examples
 
-- [Tutorials (old)](https://github.com/RomeCore/RCParsing/blob/main/docs_md/tutorials.md) - detailed tutorials in the Markdown file, explaining features and mechanics of this library, highly recommended to read!
-- [Tutorials](https://romecore.github.io/RCParsing/guide/) - the tutorial website, not completely migrated from the markdown version yet.
+- [Tutorials (old)](https://github.com/RomeCore/RCParsing/blob/main/docs_md/tutorials.md) - Detailed tutorials in the Markdown file, explaining features and mechanics of this library, highly recommended to read!
+- [Tutorials](https://romecore.github.io/RCParsing/guide/) - The tutorial website, not completely migrated from the markdown version yet.
+- [Syntax colorizer](https://github.com/RomeCore/RCParsing/tree/main/samples/SyntaxColorizer) - The syntax colorizer sample that automatically colorizes text based on provided parser.
+- [Math calculator](https://github.com/RomeCore/RCParsing/tree/main/samples/MathCalculator) - Math expression evaluator with support of power, math functions and constants.
 
 # Simple examples
 
