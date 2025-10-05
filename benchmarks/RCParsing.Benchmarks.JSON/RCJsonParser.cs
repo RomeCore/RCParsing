@@ -114,9 +114,19 @@ namespace RCParsing.Benchmarks.JSON
 			return parser.Parse<object>(text);
 		}
 
+		public static void ParseNoValue(string text)
+		{
+			parser.Parse(text);
+		}
+
 		public static object ParseOptimized(string text)
 		{
 			return optimizedParser.Parse<object>(text);
+		}
+
+		public static void ParseOptimizedNoValue(string text)
+		{
+			optimizedParser.Parse(text);
 		}
 	}
 }

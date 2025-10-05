@@ -112,6 +112,12 @@ namespace RCParsing.Benchmarks.JSON
 			valueTokenPattern = parser.GetTokenPattern("value");
 		}
 
+		public static void CheckParse(string text)
+		{
+			ParsingError error = new ParsingError(-1, 0);
+			valueTokenPattern.Match(text, 0, text.Length, null, calculateIntermediateValue: false, ref error);
+		}
+
 		public static object Parse(string text)
 		{
 			ParsingError error = new ParsingError(-1, 0);
