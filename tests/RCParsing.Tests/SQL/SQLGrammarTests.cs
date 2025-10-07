@@ -3,9 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using RCParsing.Tests.SQL;
 
-namespace RCParsing.Tests
+namespace RCParsing.Tests.SQL
 {
 	public class SQLGrammarTests
 	{

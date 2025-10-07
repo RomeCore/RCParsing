@@ -35,7 +35,7 @@ namespace RCParsing
 		}
 
 		/// <summary>
-		/// Formats the parsing error sfor display.
+		/// Formats the parsing errors for display.
 		/// </summary>
 		/// <param name="context">The parser context that used to configure the display and contains the input text.</param>
 		/// <param name="errors">The parsing errors to format.</param>

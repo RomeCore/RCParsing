@@ -5,10 +5,9 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using RCParsing;
 using RCParsing.Building;
 
-namespace RCParsing.Tests
+namespace RCParsing.Tests.Rules
 {
 	/// <summary>
 	/// The first set of tests here, may contain lots of 'Regex' tokens.

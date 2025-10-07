@@ -192,8 +192,6 @@ namespace RCParsing.TokenPatterns
 			Flags = flags;
 		}
 
-
-
 		protected override HashSet<char>? FirstCharsCore
 		{
 			get
@@ -206,11 +204,15 @@ namespace RCParsing.TokenPatterns
 					set.Add('+');
 					set.Add('-');
 				}
-				if ((Flags & NumberFlags.DecimalPoint) != 0)
+				if ((Flags & NumberFlags.DecimalPoint) != 0 && (Flags & NumberFlags.ImplicitIntegerPart) != 0)
 					set.Add('.');
 				return set;
 			}
 		}
+		protected override bool IsFirstCharDeterministicCore => true;
+		protected override bool IsOptionalCore => false;
+
+
 
 		public override ParsedElement Match(string input, int position, int barrierPosition,
 			object? parserParameter, bool calculateIntermediateValue, ref ParsingError furthestError)

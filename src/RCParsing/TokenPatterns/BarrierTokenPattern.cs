@@ -24,6 +24,10 @@ namespace RCParsing.TokenPatterns
 			MainAlias = mainAlias;
 		}
 
+		protected override HashSet<char> FirstCharsCore => new();
+		protected override bool IsFirstCharDeterministicCore => false;
+		protected override bool IsOptionalCore => true;
+
 
 
 		public override ParsedElement Match(string input, int position, int barrierPosition,

@@ -48,12 +48,20 @@ namespace RCParsing.TokenPatterns
 			CharComparer = new CharComparer(Comparer);
 			Literals = literals.ToList().AsReadOnlyList();
 
+			if (Literals.Count == 0)
+				throw new ArgumentException("Literals collection is empty.", nameof(literals));
+			if (Literals.Any(l => string.IsNullOrEmpty(l)))
+				throw new ArgumentException("One of literals is null or empty.", nameof(literals));
+
 			_comparerWasSet = comparer != null;
 			_root = new Trie(Literals.Select(l => new KeyValuePair<string, object?>(l, l)), _comparerWasSet ? CharComparer : null);
 		}
 
-		protected override HashSet<char>? FirstCharsCore => _comparerWasSet ? null :
-			new (Literals.Select(l => l[0]).Distinct());
+		protected override HashSet<char> FirstCharsCore => Comparer.IsDefaultCaseSensitive() ?
+			new(Literals.Select(l => l[0])) :
+			new(Literals.SelectMany(l => new char[] { char.ToLower(l[0]), char.ToUpper(l[0]) }));
+		protected override bool IsFirstCharDeterministicCore => Comparer.IsNullOrDefault();
+		protected override bool IsOptionalCore => false;
 
 
 

@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace RCParsing.Tests.C
 {
+	/// <summary>
+	/// 
+	/// </summary>
 	public class CParser
 	{
 		public static void FillWithRules(ParserBuilder builder)
@@ -262,7 +265,7 @@ namespace RCParsing.Tests.C
 			builder.CreateToken("enumerationConstant")
 				.Token("Identifier");
 
-			// 19. Atomic и Qualifiers
+			// 19. Atomic and Qualifiers
 			builder.CreateRule("atomicTypeSpecifier")
 				.Keyword("_Atomic").Literal("(").Rule("typeName").Literal(")");
 

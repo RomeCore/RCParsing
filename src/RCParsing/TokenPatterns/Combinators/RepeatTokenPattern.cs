@@ -53,8 +53,9 @@ namespace RCParsing.TokenPatterns.Combinators
 			PassageFunction = passageFunction;
 		}
 
-		protected override HashSet<char>? FirstCharsCore => MinCount == 0 ? null :
-			GetTokenPattern(TokenPattern).FirstChars;
+		protected override HashSet<char> FirstCharsCore => GetTokenPattern(TokenPattern).FirstChars;
+		protected override bool IsFirstCharDeterministicCore => GetTokenPattern(TokenPattern).IsFirstCharDeterministic;
+		protected override bool IsOptionalCore => MinCount == 0 || GetTokenPattern(TokenPattern).IsOptional;
 
 
 
@@ -64,8 +65,6 @@ namespace RCParsing.TokenPatterns.Combinators
 		{
 			_pattern = GetTokenPattern(TokenPattern);
 		}
-
-
 
 		public override ParsedElement Match(string input, int position, int barrierPosition,
 			object? parserParameter, bool calculateIntermediateValue, ref ParsingError furthestError)

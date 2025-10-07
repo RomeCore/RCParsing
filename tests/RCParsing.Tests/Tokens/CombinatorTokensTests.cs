@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using RCParsing.Building;
 using RCParsing.TokenPatterns;
 
-namespace RCParsing.Tests
+namespace RCParsing.Tests.Tokens
 {
 	public class CombinatorTokensTests
 	{

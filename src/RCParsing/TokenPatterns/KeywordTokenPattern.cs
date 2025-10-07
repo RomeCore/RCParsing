@@ -51,6 +51,13 @@ namespace RCParsing.TokenPatterns
 			Comparison = comparison;
 		}
 
+		protected override HashSet<char> FirstCharsCore => Comparison.IsIgnoreCase() ? 
+			new(new char[] { char.ToLower(Keyword[0]), char.ToUpper(Keyword[0]) }) : new(new char[] { Keyword[0] });
+		protected override bool IsFirstCharDeterministicCore => true;
+		protected override bool IsOptionalCore => false;
+
+
+
 		/// <summary>
 		/// Creates a new instance of the <see cref="KeywordTokenPattern"/> class with ASCII identifier character checking.
 		/// </summary>
@@ -75,8 +82,7 @@ namespace RCParsing.TokenPatterns
 				comparison);
 		}
 
-		protected override HashSet<char>? FirstCharsCore => Comparison != StringComparison.Ordinal ? null :
-			new(new[] { Keyword[0] });
+
 
 		public override ParsedElement Match(string input, int position, int barrierPosition,
 			object? parserParameter, bool calculateIntermediateValue, ref ParsingError furthestError)
@@ -103,6 +109,8 @@ namespace RCParsing.TokenPatterns
 
 			return new ParsedElement(position, Keyword.Length, Keyword);
 		}
+
+
 
 		public override string ToStringOverride(int remainingDepth)
 		{

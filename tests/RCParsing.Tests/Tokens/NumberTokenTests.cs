@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using RCParsing.Building;
 using RCParsing.TokenPatterns;
 
-namespace RCParsing.Tests
+namespace RCParsing.Tests.Tokens
 {
 	/// <summary>
 	/// Oh yeah, most complex token in the library must have their own tests. Let's see if we can make it work!

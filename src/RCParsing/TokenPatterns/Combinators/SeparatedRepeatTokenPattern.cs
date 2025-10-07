@@ -81,8 +81,11 @@ namespace RCParsing.TokenPatterns.Combinators
 			PassageFunction = passageFunction;
 		}
 
-		protected override HashSet<char>? FirstCharsCore => MinCount == 0 ? null :
-			GetTokenPattern(Token).FirstChars;
+		protected override HashSet<char> FirstCharsCore => GetTokenPattern(Token).FirstChars;
+		protected override bool IsFirstCharDeterministicCore => GetTokenPattern(Token).IsFirstCharDeterministic;
+		protected override bool IsOptionalCore => MinCount == 0 || GetTokenPattern(Token).IsOptional;
+
+
 
 		private TokenPattern _token, _separator;
 

@@ -23,7 +23,9 @@ namespace RCParsing.TokenPatterns
 			CharacterPredicate = characterPredicate ?? throw new ArgumentNullException(nameof(characterPredicate));
 		}
 
-		protected override HashSet<char>? FirstCharsCore => null;
+		protected override HashSet<char> FirstCharsCore => new();
+		protected override bool IsFirstCharDeterministicCore => false;
+		protected override bool IsOptionalCore => true;
 
 
 

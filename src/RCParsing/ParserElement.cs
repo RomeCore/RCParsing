@@ -35,26 +35,54 @@ namespace RCParsing
 
 
 		/// <summary>
-		/// Gets the core implementation of <see cref="FirstChars"/>, which
-		/// returns a set of characters that are allowed as the first character of this parser element.
+		/// The core implementation of <see cref="FirstChars"/>, which returns
+		/// a set of characters that are allowed as the first character of this parser element.
 		/// </summary>
-		protected virtual HashSet<char>? FirstCharsCore => null;
+		protected virtual HashSet<char> FirstCharsCore => new HashSet<char>();
 
+		/// <summary>
+		/// The core implementation of <see cref="IsFirstCharDeterministic"/>, which returns
+		/// a value indicating whether the first character of this parser element is deterministic.
+		/// </summary>
+		/// <remarks>
+		/// Deterministic means that the character at the current position can be used to strongly
+		/// determine which rule or token will be matched next. <br/>
+		/// For example, regex- and predicate/delegate-based elements cannot strongly determine the set of first characters;
+		/// and therefore, the literals can strongly determine set of first characters (it's just a first character of the literal).
+		/// </remarks>
+		protected virtual bool IsFirstCharDeterministicCore => false;
+
+		/// <summary>
+		/// The core implementation of <see cref="IsOptional"/>, which returns
+		/// a value indicating that this parser element is optional, e.g. can match a zero characters.
+		/// </summary>
+		protected virtual bool IsOptionalCore => false;
+
+		private readonly Lazy<HashSet<char>> _firstCharsLazy;
+		/// <summary>
+		/// Gets a set of characters that can appear at the beginning of this parser element.
+		/// </summary>
+		public HashSet<char> FirstChars => _firstCharsLazy.Value;
+
+		private readonly Lazy<bool> _isFirstCharDeterministicLazy;
 		/// <summary>
 		/// Gets a value indicating whether the first character of this parser element is deterministic.
 		/// </summary>
 		/// <remarks>
 		/// Deterministic means that the character at the current position can be used to strongly
 		/// determine which rule or token will be matched next. <br/>
+		/// For example, regex- and predicate/delegate-based elements cannot strongly determine the set of first characters;
+		/// and therefore, the literals can strongly determine set of first characters (it's just a first character of the literal).
 		/// </remarks>
-		public bool IsFirstCharDeterministic => FirstChars != null;
+		public bool IsFirstCharDeterministic => _isFirstCharDeterministicLazy.Value;
 
-		private readonly Lazy<HashSet<char>?> _firstCharsLazy;
+		private readonly Lazy<bool> _isOptionalLazy;
 		/// <summary>
-		/// Gets a set of characters that can appear at the beginning of this parser element. If null,
-		/// it means that the first character is not deterministic.
+		/// Gets a value indicating that this parser element is optional, e.g. can successfully match zero characters.
 		/// </summary>
-		public HashSet<char>? FirstChars => _firstCharsLazy.Value;
+		public bool IsOptional => _isOptionalLazy.Value;
+
+
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="ParserElement"/> class.
@@ -62,6 +90,8 @@ namespace RCParsing
 		public ParserElement()
 		{
 			_firstCharsLazy = new(() => FirstCharsCore);
+			_isFirstCharDeterministicLazy = new(() => IsFirstCharDeterministicCore);
+			_isOptionalLazy = new(() => IsOptionalCore);
 		}
 
 		/// <summary>
@@ -251,6 +281,8 @@ namespace RCParsing
 		{
 			return Parser.FindAllMatches(ruleId, context, settings);
 		}
+
+
 
 		/// <summary>
 		/// Returns a string representation of the parser element using a specified depth for expansion.

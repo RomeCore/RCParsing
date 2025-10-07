@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Xml.Linq;
 
 namespace RCParsing
 {
@@ -176,6 +177,34 @@ namespace RCParsing
 		/// <param name="childSettings">The settings to use for child elements.</param>
 		/// <returns>The parsed rule containing the result of parsing.</returns>
 		public abstract ParsedRule Parse(ParserContext context, ParserSettings settings, ParserSettings childSettings);
+
+		/// <inheritdoc cref="ParseIncrementally(ParserContext, ParserSettings, ParserSettings, ParsedRule, TextChange, int)"/>
+		internal ParsedRule ParseIncrementallyInternal(ParserContext context, ParserSettings settings,
+			ParserSettings childSettings, ParsedRule node, TextChange change, int newVersion)
+		{
+			return ParseIncrementally(context, settings, childSettings, node, change, newVersion);
+		}
+
+		/// <summary>
+		/// Parses the AST node incrementally (reparses only the changed parts of text).
+		/// </summary>
+		/// <remarks>
+		/// Called internally in the <see cref="Parser"/> inside an one of <see cref="ParsedRuleResultBase.Reparsed(ParserContext)"/> overloads. <br/>
+		/// Called when text change captures more than one child nodes or more than zero partial child nodes. <br/>
+		/// Default implementation just returns <see cref="ParsedRule.Fail"/>, meaning that no incremental algorithm is specified.
+		/// </remarks>
+		/// <param name="context">The new context used for reparse.</param>
+		/// <param name="settings">The settings used for this element.</param>
+		/// <param name="childSettings">The settings that should be used for child element.</param>
+		/// <param name="node">The AST node to reparse.</param>
+		/// <param name="change">The text change struture containing ranges of text changes.</param>
+		/// <param name="newVersion">The new version that new changed nodes should be assigned.</param>
+		/// <returns>The reparsed AST node or <see cref="ParsedRule.Fail"/> to mark node to be entirely reparsed.</returns>
+		protected virtual ParsedRule ParseIncrementally(ParserContext context, ParserSettings settings,
+			ParserSettings childSettings, ParsedRule node, TextChange change, int newVersion)
+		{
+			return ParsedRule.Fail;
+		}
 
 		/// <summary>
 		/// Converts this parser rule to a stack trace string for debugging purposes.

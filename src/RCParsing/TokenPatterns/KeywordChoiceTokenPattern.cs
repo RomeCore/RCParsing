@@ -17,7 +17,6 @@ namespace RCParsing.TokenPatterns
 	/// </remarks>
 	public class KeywordChoiceTokenPattern : TokenPattern
 	{
-		private readonly bool _comparerWasSet;
 		private readonly Trie _root;
 
 		/// <summary>
@@ -54,16 +53,25 @@ namespace RCParsing.TokenPatterns
 
 			Keywords = keywords.ToList().AsReadOnlyList();
 			if (Keywords.Count == 0)
-				throw new ArgumentException("At least one keyword must be provided.", nameof(keywords));
+				throw new ArgumentException("Keywords collection is empty.", nameof(keywords));
+			if (Keywords.Any(k => string.IsNullOrEmpty(k)))
+				throw new ArgumentException("One of keywords is null or empty.", nameof(keywords));
 
 			IdentifierCharacterPredicate = identifierCharacterPredicate ?? throw new ArgumentNullException(nameof(identifierCharacterPredicate));
 			Comparer = comparer ?? StringComparer.Ordinal;
 			CharComparer = new CharComparer(Comparer);
 
-			_comparerWasSet = comparer != null;
 			_root = new Trie(Keywords.Select(k => new KeyValuePair<string, object?>(k, k)),
-				_comparerWasSet ? CharComparer : null);
+				Comparer.IsDefaultCaseSensitive() ? CharComparer : null);
 		}
+
+		protected override HashSet<char> FirstCharsCore => Comparer.IsDefaultCaseSensitive() ?
+			new(Keywords.Select(k => k[0])) :
+			new(Keywords.SelectMany(k => new char[] { char.ToLower(k[0]), char.ToUpper(k[0]) }));
+		protected override bool IsFirstCharDeterministicCore => Comparer.IsNullOrDefault();
+		protected override bool IsOptionalCore => false;
+
+
 
 		/// <summary>
 		/// Creates a new instance of the <see cref="KeywordChoiceTokenPattern"/> class with ASCII identifier character checking.
@@ -88,9 +96,6 @@ namespace RCParsing.TokenPatterns
 				c => char.IsLetterOrDigit(c) || c == '_',
 				comparer);
 		}
-
-		protected override HashSet<char>? FirstCharsCore => _comparerWasSet ? null :
-			new(Keywords.Select(k => k[0]).Distinct());
 
 
 

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using RCParsing.Utils;
 
 namespace RCParsing.TokenPatterns
 {
@@ -35,8 +36,10 @@ namespace RCParsing.TokenPatterns
 			Comparison = comparison;
 		}
 
-		protected override HashSet<char>? FirstCharsCore => Comparison != StringComparison.Ordinal ? null :
-			new(new [] { Literal[0] });
+		protected override HashSet<char> FirstCharsCore => Comparison.IsIgnoreCase() ?
+			new(new char[] { char.ToLower(Literal[0]), char.ToUpper(Literal[0]) }) : new(new char[] { Literal[0] });
+		protected override bool IsFirstCharDeterministicCore => true;
+		protected override bool IsOptionalCore => false;
 
 
 

@@ -16,21 +16,37 @@ namespace RCParsing.TokenPatterns
 		{
 		}
 
+		protected override HashSet<char> FirstCharsCore => new() { '\n', '\r' };
+		protected override bool IsFirstCharDeterministicCore => true;
+		protected override bool IsOptionalCore => false;
+
+
+
 		public override ParsedElement Match(string input, int position, int barrierPosition,
 			object? parserParameter, bool calculateIntermediateValue, ref ParsingError furthestError)
 		{
-			if (position < barrierPosition && input[position] == '\r')
+			if (position < barrierPosition)
 			{
-				int nextPos = position + 1;
-				if (nextPos < barrierPosition && input[nextPos] == '\n')
-					return new ParsedElement(position, 2);
-				return new ParsedElement(position, 1);
+				if (input[position] == '\r')
+				{
+					int nextPos = position + 1;
+					if (nextPos < barrierPosition && input[nextPos] == '\n')
+						return new ParsedElement(position, 2);
+					return new ParsedElement(position, 1);
+				}
+
+				if (input[position] == '\n')
+				{
+					return new ParsedElement(position, 1);
+				}
 			}
 
 			if (position >= furthestError.position)
 				furthestError = new ParsingError(position, 0, "Cannot match newline.", Id, true);
 			return ParsedElement.Fail;
 		}
+
+
 
 		public override string ToStringOverride(int remainingDepth)
 		{

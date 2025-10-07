@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using RCParsing.Building;
 
-namespace RCParsing.Tests
+namespace RCParsing.Tests.LLT
 {
 	/// <summary>
 	/// The tests for parsing grammar for LLT (Large Language Template) language.

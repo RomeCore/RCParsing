@@ -31,7 +31,9 @@ namespace RCParsing.ParserRules
 			TokenPatternId = tokenPattern;
 		}
 
-		protected override HashSet<char>? FirstCharsCore => TokenPattern.FirstChars;
+		protected override HashSet<char> FirstCharsCore => TokenPattern.FirstChars;
+		protected override bool IsFirstCharDeterministicCore => TokenPattern.IsFirstCharDeterministic;
+		protected override bool IsOptionalCore => TokenPattern.IsOptional;
 
 
 

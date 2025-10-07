@@ -13,18 +13,20 @@ namespace RCParsing.TokenPatterns.Combinators
 		/// <summary>
 		/// The token pattern ID that this optional pattern wraps.
 		/// </summary>
-		public int TokenPattern { get; }
+		public int Child { get; }
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="OptionalTokenPattern"/> class.
 		/// </summary>
-		/// <param name="tokenPatternId">The token pattern ID that this optional pattern wraps.</param>
-		public OptionalTokenPattern(int tokenPatternId)
+		/// <param name="child">The token pattern ID that this optional pattern wraps.</param>
+		public OptionalTokenPattern(int child)
 		{
-			TokenPattern = tokenPatternId;
+			Child = child;
 		}
 
-		protected override HashSet<char>? FirstCharsCore => GetTokenPattern(TokenPattern).FirstChars;
+		protected override HashSet<char> FirstCharsCore => GetTokenPattern(Child).FirstChars;
+		protected override bool IsFirstCharDeterministicCore => GetTokenPattern(Child).IsFirstCharDeterministic;
+		protected override bool IsOptionalCore => true;
 
 
 
@@ -32,7 +34,7 @@ namespace RCParsing.TokenPatterns.Combinators
 
 		protected override void Initialize(ParserInitFlags initFlags)
 		{
-			_pattern = GetTokenPattern(TokenPattern);
+			_pattern = GetTokenPattern(Child);
 		}
 
 
@@ -54,20 +56,20 @@ namespace RCParsing.TokenPatterns.Combinators
 		{
 			if (remainingDepth <= 0)
 				return "optional...";
-			return $"optional: {GetTokenPattern(TokenPattern).ToString(remainingDepth - 1)}";
+			return $"optional: {GetTokenPattern(Child).ToString(remainingDepth - 1)}";
 		}
 
 		public override bool Equals(object? obj)
 		{
 			return base.Equals(obj) &&
 				   obj is OptionalTokenPattern pattern &&
-				   TokenPattern == pattern.TokenPattern;
+				   Child == pattern.Child;
 		}
 
 		public override int GetHashCode()
 		{
 			int hashCode = base.GetHashCode();
-			hashCode = hashCode * -1521134295 + TokenPattern.GetHashCode();
+			hashCode = hashCode * -1521134295 + Child.GetHashCode();
 			return hashCode;
 		}
 	}

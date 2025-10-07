@@ -28,7 +28,9 @@ namespace RCParsing.TokenPatterns.Combinators
 			Value = value;
 		}
 
-		protected override HashSet<char>? FirstCharsCore => GetTokenPattern(Child).FirstChars;
+		protected override HashSet<char> FirstCharsCore => GetTokenPattern(Child).FirstChars;
+		protected override bool IsFirstCharDeterministicCore => GetTokenPattern(Child).IsFirstCharDeterministic;
+		protected override bool IsOptionalCore => GetTokenPattern(Child).IsOptional;
 
 
 

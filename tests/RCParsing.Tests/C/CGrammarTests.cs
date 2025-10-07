@@ -3,9 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using RCParsing.Tests.C;
 
-namespace RCParsing.Tests
+namespace RCParsing.Tests.C
 {
 	public class CGrammarTests
 	{

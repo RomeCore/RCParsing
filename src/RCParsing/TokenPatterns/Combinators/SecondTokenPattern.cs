@@ -35,7 +35,29 @@ namespace RCParsing.TokenPatterns.Combinators
 			Second = second;
 		}
 
-		protected override HashSet<char>? FirstCharsCore => GetTokenPattern(First).FirstChars;
+		protected override HashSet<char> FirstCharsCore
+		{
+			get
+			{
+				if (GetTokenPattern(First).IsOptional)
+				{
+					return new(GetTokenPattern(First).FirstChars.Concat(GetTokenPattern(Second).FirstChars));
+				}
+				return GetTokenPattern(First).FirstChars;
+			}
+		}
+		protected override bool IsFirstCharDeterministicCore
+		{
+			get
+			{
+				if (GetTokenPattern(First).IsOptional)
+				{
+					return GetTokenPattern(First).IsFirstCharDeterministic && GetTokenPattern(Second).IsFirstCharDeterministic;
+				}
+				return GetTokenPattern(First).IsFirstCharDeterministic;
+			}
+		}
+		protected override bool IsOptionalCore => GetTokenPattern(First).IsOptional && GetTokenPattern(Second).IsOptional;
 
 
 

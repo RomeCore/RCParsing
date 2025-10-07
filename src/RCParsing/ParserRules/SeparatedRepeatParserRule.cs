@@ -74,8 +74,9 @@ namespace RCParsing.ParserRules
 			IncludeSeparatorsInResult = includeSeparatorsInResult;
 		}
 
-		protected override HashSet<char>? FirstCharsCore => MinCount == 0 ? null :
-			GetRule(Rule).FirstChars;
+		protected override HashSet<char> FirstCharsCore => GetRule(Rule).FirstChars;
+		protected override bool IsFirstCharDeterministicCore => GetRule(Rule).IsFirstCharDeterministic;
+		protected override bool IsOptionalCore => MinCount == 0 || GetRule(Rule).IsOptional;
 
 
 

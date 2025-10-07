@@ -75,7 +75,9 @@ namespace RCParsing.TokenPatterns
 			_escapeNonEmpty = _escape.Count > 0;
 		}
 
-		protected override HashSet<char>? FirstCharsCore => null;
+		protected override HashSet<char> FirstCharsCore => new();
+		protected override bool IsFirstCharDeterministicCore => false;
+		protected override bool IsOptionalCore => AllowsEmpty;
 
 
 

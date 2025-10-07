@@ -7,7 +7,7 @@
 [![License](https://img.shields.io/github/license/RomeCore/RCParsing.svg)](https://github.com/RomeCore/RCParsing/blob/main/LICENSE)
 [![Star me on GitHub](https://img.shields.io/github/stars/RomeCore/RCParsing.svg?style=social&label=Star%20Me)](https://github.com/RomeCore/RCParsing)
 
-**A Fluent, Lexerless Parser Builder for .NET — Define ANY grammars with the elegance of BNF and the power of C#.**
+**RCParsing - the fluent, lightweight and powerful .NET lexerless parsing library for language development (DSL) and data scraping.**
 
 This library focuses on **Developer-experience (DX)** first, providing best toolkit for creating your **programming languages**, **file formats** or even **data extraction tools** with declarative API, debugging tools, and more. This allows you to design your parser directly in code and easily fix it using stack and walk traces with detailed error messages.
 
@@ -21,7 +21,7 @@ This library focuses on **Developer-experience (DX)** first, providing best tool
 - 🐍 **Hybrid Power**: Unique support for **barrier tokens** to parse indent-sensitive languages like Python and YAML.
 - ☄️ **Incremental Parsing**: Edit large documents with instant feedback. Our persistent AST enables efficient re-parsing of only changed sections, perfect for LSP servers and real-time editing scenarios.
 - 💪 **Regex on Steroids**: You can find all matches for target structure in the input text with detailed AST information and transformed value.
-- 🌀 **Lexerless Freedom**: No token priority headaches. Parse directly from raw text, even with keywords embedded in strings. Tokens are used just as lightweight matching primitives.
+- 🌀 **Lexerless Freedom**: No token priority headaches. Parse directly from raw text, even with keywords embedded in identifiers. Tokens are used just as lightweight matching primitives.
 - 🎨 **Fluent API**: Write parsers in C# that read like clean BNF grammars, boosting readability and maintainability compared to imperative, functional or code-generation approaches.
 - 🧩 **Combinator Style**: Unlock maximum performance by defining complex tokens with immediate value transformation, bypassing the AST construction entirely for a direct, allocation-free result. Perfect for high-speed parsing of well-defined formats. Also can be used with AST mode.
 - 🐛 **Superior Debugging**: Get detailed, actionable error messages with stack traces, walk traces and precise source locations. Richest API for manual error information included.
@@ -68,8 +68,8 @@ Or do it manually by cloning this repository.
 
 # Tutorials, docs and examples
 
-- [Tutorials (old)](https://github.com/RomeCore/RCParsing/blob/main/docs_md/tutorials.md) - Detailed tutorials in the Markdown file, explaining features and mechanics of this library, highly recommended to read!
 - [Tutorials](https://romecore.github.io/RCParsing/guide/) - The tutorial website, not completely migrated from the markdown version yet.
+- [Tutorials (old)](https://github.com/RomeCore/RCParsing/blob/main/docs_md/tutorials.md) - Detailed tutorials in the Markdown file, explaining features and mechanics of this library, highly recommended to read!
 - [Syntax colorizer](https://github.com/RomeCore/RCParsing/tree/main/samples/SyntaxColorizer) - The syntax colorizer sample that automatically colorizes text based on provided parser.
 - [Math calculator](https://github.com/RomeCore/RCParsing/tree/main/samples/MathCalculator) - Math expression evaluator with support of power, math functions and constants.
 
