@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -60,6 +61,65 @@ namespace RCParsing.Utils
 			}
 
 			return sb.ToString();
+		}
+
+		/// <summary>
+		/// Returns <see langword="true"/> if <paramref name="comparison"/> means ignore case string comparison.
+		/// </summary>
+		/// <param name="comparison">The string comparison to check.</param>
+		public static bool IsIgnoreCase(this StringComparison comparison)
+		{
+			return comparison == StringComparison.OrdinalIgnoreCase ||
+				comparison == StringComparison.CurrentCultureIgnoreCase ||
+				comparison == StringComparison.InvariantCultureIgnoreCase;
+		}
+		
+		/// <summary>
+		/// Returns <see langword="true"/> if <paramref name="comparison"/> means case-sensitive string comparison.
+		/// </summary>
+		/// <param name="comparison">The string comparison to check.</param>
+		public static bool IsCaseSensitive(this StringComparison comparison)
+		{
+			return comparison == StringComparison.Ordinal ||
+				comparison == StringComparison.CurrentCulture ||
+				comparison == StringComparison.InvariantCulture;
+		}
+
+		/// <summary>
+		/// Returns <see langword="true"/> if <paramref name="comparer"/> is one of default set from <see cref="StringComparer"/> that means ignore case string comparison.
+		/// </summary>
+		/// <param name="comparer">The string comparer to check.</param>
+		public static bool IsDefaultIgnoreCase(this StringComparer comparer)
+		{
+			return comparer == StringComparer.OrdinalIgnoreCase ||
+				comparer == StringComparer.CurrentCultureIgnoreCase ||
+				comparer == StringComparer.InvariantCultureIgnoreCase;
+		}
+
+		/// <summary>
+		/// Returns <see langword="true"/> if <paramref name="comparer"/> is one of default set from <see cref="StringComparer"/> that means case-sensitive string comparison.
+		/// </summary>
+		/// <param name="comparer">The string comparer to check.</param>
+		public static bool IsDefaultCaseSensitive(this StringComparer? comparer)
+		{
+			return comparer == StringComparer.Ordinal ||
+				comparer == StringComparer.CurrentCulture ||
+				comparer == StringComparer.InvariantCulture;
+		}
+
+		/// <summary>
+		/// Returns <see langword="true"/> if <paramref name="comparer"/> is one of default set from <see cref="StringComparer"/> or <see langword="null"/>.
+		/// </summary>
+		/// <param name="comparer">The string comparer to check.</param>
+		public static bool IsNullOrDefault(this StringComparer? comparer)
+		{
+			return comparer == null ||
+				comparer == StringComparer.Ordinal ||
+				comparer == StringComparer.CurrentCulture ||
+				comparer == StringComparer.InvariantCulture ||
+				comparer == StringComparer.OrdinalIgnoreCase ||
+				comparer == StringComparer.CurrentCultureIgnoreCase ||
+				comparer == StringComparer.InvariantCultureIgnoreCase;
 		}
 	}
 }

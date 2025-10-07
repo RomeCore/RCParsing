@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using RCParsing.Building;
 using RCParsing.TokenPatterns;
 
-namespace RCParsing.Tests
+namespace RCParsing.Tests.Tokens
 {
 	public class CombinatorTokensTests
 	{
@@ -73,9 +73,20 @@ namespace RCParsing.Tests
 				));
 
 			var parser = builder.Build();
+
 			var result = parser.MatchToken("value", " \"hello\" ");
 			Assert.True(result.Success);
 			Assert.Equal("hello", result.IntermediateValue);
+
+			result = parser.MatchToken("value", " 999 ");
+			Assert.True(result.Success);
+			Assert.Equal((double)999, result.IntermediateValue);
+
+			Assert.True(parser.MatchesToken("value", " \"hello\" ", out var matchedLength));
+			Assert.Equal(8, matchedLength);
+
+			Assert.True(parser.MatchesToken("value", " 999 ", out matchedLength));
+			Assert.Equal(4, matchedLength);
 		}
 
 		[Fact]
@@ -241,6 +252,8 @@ namespace RCParsing.Tests
 			var error = parser.TryMatchToken("value", invalidJson).Context.CreateErrorGroups().Last!;
 			Assert.Equal(35, error.Column);
 			Assert.Equal(5, error.Line);
+
+			Assert.True(parser.MatchesToken("value", "[90, 60, true, null]"));
 		}
 	}
 }

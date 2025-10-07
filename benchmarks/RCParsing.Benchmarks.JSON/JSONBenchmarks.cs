@@ -29,15 +29,33 @@ namespace RCParsing.Benchmarks.JSON
 		}
 
 		[Benchmark, BenchmarkCategory("short")]
+		public void JsonShort_RCParsing_NoValue()
+		{
+			RCJsonParser.ParseNoValue(TestJSONs.shortJson);
+		}
+
+		[Benchmark, BenchmarkCategory("short")]
 		public void JsonShort_RCParsing_Optimized()
 		{
 			var value = RCJsonParser.ParseOptimized(TestJSONs.shortJson);
 		}
 
 		[Benchmark, BenchmarkCategory("short")]
+		public void JsonShort_RCParsing_Optimized_NoValue()
+		{
+			RCJsonParser.ParseOptimizedNoValue(TestJSONs.shortJson);
+		}
+
+		[Benchmark, BenchmarkCategory("short")]
 		public void JsonShort_RCParsing_TokenCombination()
 		{
 			var value = RCCombinatorJsonParser.Parse(TestJSONs.shortJson);
+		}
+
+		[Benchmark, BenchmarkCategory("short")]
+		public void JsonShort_RCParsing_TokenCombination_NoValue()
+		{
+			RCCombinatorJsonParser.CheckParse(TestJSONs.shortJson);
 		}
 
 		[Benchmark, BenchmarkCategory("short")]
@@ -56,6 +74,12 @@ namespace RCParsing.Benchmarks.JSON
 		public void JsonShort_ANTLR()
 		{
 			var value = AntlrJsonParser.Parse(TestJSONs.shortJson);
+		}
+
+		[Benchmark, BenchmarkCategory("short")]
+		public void JsonShort_ANTLR_NoValue()
+		{
+			AntlrJsonParser.ParseNoValue(TestJSONs.shortJson);
 		}
 
 		[Benchmark, BenchmarkCategory("short")]
@@ -91,15 +115,33 @@ namespace RCParsing.Benchmarks.JSON
 		}
 
 		[Benchmark, BenchmarkCategory("big")]
+		public void JsonBig_RCParsing_NoValue()
+		{
+			RCJsonParser.ParseNoValue(TestJSONs.bigJson);
+		}
+
+		[Benchmark, BenchmarkCategory("big")]
 		public void JsonBig_RCParsing_Optimized()
 		{
 			var value = RCJsonParser.ParseOptimized(TestJSONs.bigJson);
 		}
 
 		[Benchmark, BenchmarkCategory("big")]
+		public void JsonBig_RCParsing_Optimized_NoValue()
+		{
+			RCJsonParser.ParseOptimizedNoValue(TestJSONs.bigJson);
+		}
+
+		[Benchmark, BenchmarkCategory("big")]
 		public void JsonBig_RCParsing_TokenCombination()
 		{
 			var value = RCCombinatorJsonParser.Parse(TestJSONs.bigJson);
+		}
+
+		[Benchmark, BenchmarkCategory("big")]
+		public void JsonBig_RCParsing_TokenCombination_NoValue()
+		{
+			RCCombinatorJsonParser.CheckParse(TestJSONs.bigJson);
 		}
 
 		[Benchmark, BenchmarkCategory("big")]
@@ -118,6 +160,12 @@ namespace RCParsing.Benchmarks.JSON
 		public void JsonBig_ANTLR()
 		{
 			var value = AntlrJsonParser.Parse(TestJSONs.bigJson);
+		}
+
+		[Benchmark, BenchmarkCategory("big")]
+		public void JsonBig_ANTLR_NoValue()
+		{
+			AntlrJsonParser.ParseNoValue(TestJSONs.bigJson);
 		}
 
 		[Benchmark, BenchmarkCategory("big")]

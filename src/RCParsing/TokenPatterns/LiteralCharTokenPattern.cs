@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using RCParsing.Utils;
 
 namespace RCParsing.TokenPatterns
 {
@@ -39,7 +41,11 @@ namespace RCParsing.TokenPatterns
 			boxedChar = literal;
 		}
 
-		protected override HashSet<char>? FirstCharsCore => new(new [] { Literal });
+		protected override HashSet<char> FirstCharsCore => Comparison.IsCaseSensitive() ?
+			new(new char[] { Literal }) :
+			new(new char[] { char.ToLower(Literal), char.ToUpper(Literal) });
+		protected override bool IsFirstCharDeterministicCore => true;
+		protected override bool IsOptionalCore => false;
 
 
 

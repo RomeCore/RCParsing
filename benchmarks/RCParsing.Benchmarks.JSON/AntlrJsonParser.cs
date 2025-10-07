@@ -87,5 +87,14 @@ namespace RCParsing.Benchmarks.JSON
 			var value = parser.value();
 			return Visitor.Value(value);
 		}
+
+		public static void ParseNoValue(string input)
+		{
+			var charStream = CharStreams.fromString(input);
+			var lexer = new jsonLexer(charStream);
+			var tokens = new CommonTokenStream(lexer);
+			var parser = new jsonParser(tokens);
+			var value = parser.value();
+		}
 	}
 }

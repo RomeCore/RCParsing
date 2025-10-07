@@ -44,8 +44,9 @@ namespace RCParsing.ParserRules
 			MaxCount = maxCount;
 		}
 
-		protected override HashSet<char>? FirstCharsCore => MinCount == 0 ? null :
-			GetRule(Rule).FirstChars;
+		protected override HashSet<char> FirstCharsCore => GetRule(Rule).FirstChars;
+		protected override bool IsFirstCharDeterministicCore => GetRule(Rule).IsFirstCharDeterministic;
+		protected override bool IsOptionalCore => MinCount == 0 || GetRule(Rule).IsOptional;
 
 
 
@@ -91,6 +92,14 @@ namespace RCParsing.ParserRules
 		{
 			return parseFunction(ref context, ref settings, ref childSettings);
 		}
+
+
+
+		/*protected override ParsedRule ParseIncrementally(ParserContext context,
+			ParserSettings settings, ParserSettings childSettings, ParsedRule node, TextChange change, int newVersion)
+		{
+
+		}*/
 
 
 

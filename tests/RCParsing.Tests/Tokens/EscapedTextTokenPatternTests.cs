@@ -3,10 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using RCParsing;
 using RCParsing.Building;
 
-namespace RCParsing.Tests
+namespace RCParsing.Tests.Tokens
 {
 	public class EscapedTextTokenPatternTests
 	{

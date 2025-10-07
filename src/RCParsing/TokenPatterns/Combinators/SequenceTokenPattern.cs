@@ -39,7 +39,38 @@ namespace RCParsing.TokenPatterns.Combinators
 			PassageFunction = passageFunction;
 		}
 
-		protected override HashSet<char>? FirstCharsCore => GetTokenPattern(TokenPatterns[0]).FirstChars;
+		protected override HashSet<char> FirstCharsCore
+		{
+			get
+			{
+				HashSet<char> firstChars = new();
+				for (int i = 0; i < TokenPatterns.Count; i++)
+				{
+					var tokenPattern = GetTokenPattern(TokenPatterns[i]);
+					foreach (var ch in tokenPattern.FirstChars)
+						firstChars.Add(ch);
+					if (!tokenPattern.IsOptional)
+						break;
+				}
+				return firstChars;
+			}
+		}
+		protected override bool IsFirstCharDeterministicCore
+		{
+			get
+			{
+				bool isDeterministic = true;
+				for (int i = 0; i < TokenPatterns.Count; i++)
+				{
+					var tokenPattern = GetTokenPattern(TokenPatterns[i]);
+					isDeterministic = isDeterministic && tokenPattern.IsFirstCharDeterministic;
+					if (!tokenPattern.IsOptional)
+						break;
+				}
+				return isDeterministic;
+			}
+		}
+		protected override bool IsOptionalCore => TokenPatterns.All(i => GetTokenPattern(i).IsOptional);
 
 
 

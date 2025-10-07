@@ -4,13 +4,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace RCParsing.Tests
+namespace RCParsing.Tests.MathExpr
 {
 	public class MathExpressionsTests
 	{
 		private static void AssertEval(double expected, string expr)
 		{
-			var actual = MathExpr.MathParser.ParseExpression(expr);
+			var actual = MathParser.ParseExpression(expr);
 			Assert.Equal(expected, actual, 0.001);
 		}
 
@@ -74,7 +74,7 @@ namespace RCParsing.Tests
 			AssertEval(Math.E, "e");
 			AssertEval(double.PositiveInfinity, "inf");
 			AssertEval(double.Epsilon, "eps");
-			Assert.True(double.IsNaN(MathExpr.MathParser.ParseExpression("nan")));
+			Assert.True(double.IsNaN(MathParser.ParseExpression("nan")));
 		}
 
 		[Fact]
@@ -123,8 +123,8 @@ namespace RCParsing.Tests
 		[Fact]
 		public void EdgeCases()
 		{
-			Assert.True(double.IsNaN(MathExpr.MathParser.ParseExpression("0 * inf")));
-			Assert.True(double.IsNaN(MathExpr.MathParser.ParseExpression("0 / 0")));
+			Assert.True(double.IsNaN(MathParser.ParseExpression("0 * inf")));
+			Assert.True(double.IsNaN(MathParser.ParseExpression("0 / 0")));
 			AssertEval(double.PositiveInfinity, "1 / 0");
 			AssertEval(double.PositiveInfinity, "inf + 1");
 			AssertEval(double.PositiveInfinity, "inf * 2");

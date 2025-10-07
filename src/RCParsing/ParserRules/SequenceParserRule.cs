@@ -29,7 +29,38 @@ namespace RCParsing.ParserRules
 				throw new ArgumentException("Sequence must have at least one rule");
 		}
 
-		protected override HashSet<char>? FirstCharsCore => GetRule(Rules[0]).FirstChars;
+		protected override HashSet<char> FirstCharsCore
+		{
+			get
+			{
+				HashSet<char> firstChars = new();
+				for (int i = 0; i < Rules.Count; i++)
+				{
+					var rule = GetRule(Rules[i]);
+					foreach (var ch in rule.FirstChars)
+						firstChars.Add(ch);
+					if (!rule.IsOptional)
+						break;
+				}
+				return firstChars;
+			}
+		}
+		protected override bool IsFirstCharDeterministicCore
+		{
+			get
+			{
+				bool isDeterministic = true;
+				for (int i = 0; i < Rules.Count; i++)
+				{
+					var rule = GetRule(Rules[i]);
+					isDeterministic = isDeterministic && rule.IsFirstCharDeterministic;
+					if (!rule.IsOptional)
+						break;
+				}
+				return isDeterministic;
+			}
+		}
+		protected override bool IsOptionalCore => Rules.All(i => GetRule(i).IsOptional);
 
 
 

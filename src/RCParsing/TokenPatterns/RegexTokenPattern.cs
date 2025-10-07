@@ -48,7 +48,9 @@ namespace RCParsing.TokenPatterns
 			Regex = regex;
 		}
 
-		protected override HashSet<char>? FirstCharsCore => null;
+		protected override HashSet<char> FirstCharsCore => new();
+		protected override bool IsFirstCharDeterministicCore => false;
+		protected override bool IsOptionalCore => false;
 
 
 
@@ -60,7 +62,7 @@ namespace RCParsing.TokenPatterns
 			if (!match.Success || match.Index != position)
 			{
 				if (position >= furthestError.position)
-					furthestError = new ParsingError(position, 0, "Cannot match regular expression,", Id, true);
+					furthestError = new ParsingError(position, 0, "Cannot match regular expression.", Id, true);
 				return ParsedElement.Fail;
 			}
 			else

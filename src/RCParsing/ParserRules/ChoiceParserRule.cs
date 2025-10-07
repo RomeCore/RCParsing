@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using RCParsing.Utils;
 
@@ -10,7 +11,12 @@ namespace RCParsing.ParserRules
 	/// </summary>
 	public class ChoiceParserRule : ParserRule
 	{
-		private int[] _choicesIds;
+		private readonly int[] _choicesIds;
+
+		/// <summary>
+		/// The child element selection behaviour of this choice rule.
+		/// </summary>
+		public ChoiceMode Mode { get; }
 
 		/// <summary>
 		/// The rule ids that are being chosen from.
@@ -20,23 +26,42 @@ namespace RCParsing.ParserRules
 		/// <summary>
 		/// Initializes a new instance of the <see cref="ChoiceParserRule"/> class.
 		/// </summary>
+		/// <param name="mode">The child element selection behaviour of this choice rule.</param>
 		/// <param name="parserRuleIds">The parser rules ids to choose from.</param>
-		public ChoiceParserRule(IEnumerable<int> parserRuleIds)
+		public ChoiceParserRule(ChoiceMode mode, IEnumerable<int> parserRuleIds)
 		{
+			if (!Enum.IsDefined(typeof(ChoiceMode), mode))
+				throw new ArgumentOutOfRangeException(nameof(mode));
+			Mode = mode;
+
 			_choicesIds = parserRuleIds?.ToArray() ?? throw new ArgumentNullException(nameof(parserRuleIds));
 			Choices = _choicesIds.AsReadOnlyList();
 			if (_choicesIds.Length == 0)
 				throw new ArgumentException("At least one parser rule must be provided.", nameof(parserRuleIds));
 		}
 
-		protected override HashSet<char>? FirstCharsCore
+		protected override HashSet<char> FirstCharsCore
 		{
 			get
 			{
 				var childFirstChars = Choices.Select(id => GetRule(id).FirstChars).ToArray();
-				if (childFirstChars.Any(fcs => fcs == null))
-					return null;
-				return new(childFirstChars.SelectMany(fcs => fcs!).Distinct());
+				return new(childFirstChars.SelectMany(fcs => fcs).Distinct());
+			}
+		}
+		protected override bool IsFirstCharDeterministicCore
+		{
+			get
+			{
+				var childDeterministic = Choices.Select(id => GetRule(id).IsFirstCharDeterministic).ToArray();
+				return childDeterministic.All(o => o);
+			}
+		}
+		protected override bool IsOptionalCore
+		{
+			get
+			{
+				var childOptionals = Choices.Select(id => GetRule(id).IsOptional).ToArray();
+				return childOptionals.Any(o => o);
 			}
 		}
 
@@ -50,92 +75,164 @@ namespace RCParsing.ParserRules
 		{
 			base.Initialize(initFlags);
 
+			var parseFunctions = new Func<ParserContext, ParserSettings, ParsedRule>[_choicesIds.Length];
+
+			for (int i = 0; i < _choicesIds.Length; i++)
+			{
+				var id = Choices[i];
+				var rule = GetRule(id);
+
+				if (initFlags.HasFlag(ParserInitFlags.InlineRules) && rule.CanBeInlined)
+				{
+					parseFunctions[i] = (ctx, chStng) => rule.Parse(ctx, chStng, chStng);
+				}
+				else
+				{
+					parseFunctions[i] = (ctx, chStng) => TryParseRule(id, ctx, chStng);
+				}
+			}
+
+			ParsedRule ParseFirst(ref ParserContext context, ref ParserSettings settings, ref ParserSettings childSettings)
+			{
+				for (int i = 0; i < parseFunctions.Length; i++)
+				{
+					var parsedRule = parseFunctions[i](context, childSettings);
+
+					if (parsedRule.success)
+					{
+						parsedRule.occurency = i;
+						return ParsedRule.Rule(Id,
+							parsedRule.startIndex,
+							parsedRule.length,
+							parsedRule.passedBarriers,
+							ParsedRuleChildUtils.Single(ref parsedRule),
+							parsedRule.intermediateValue);
+					}
+				}
+
+				RecordError(ref context, ref settings, "Found no matching choice.");
+				return ParsedRule.Fail;
+			}
+
+			ParsedRule ParseShortest(ref ParserContext context, ref ParserSettings settings, ref ParserSettings childSettings)
+			{
+				int shortestLen = int.MaxValue;
+				ParsedRule shortest = ParsedRule.Fail;
+
+				for (int i = 0; i < parseFunctions.Length; i++)
+				{
+					var parsedRule = parseFunctions[i](context, childSettings);
+
+					if (parsedRule.success && parsedRule.length < shortestLen)
+					{
+						parsedRule.occurency = i;
+						shortestLen = parsedRule.length;
+						shortest = parsedRule;
+					}
+				}
+
+				if (shortest.success)
+				{
+					return ParsedRule.Rule(Id,
+						shortest.startIndex,
+						shortest.length,
+						shortest.passedBarriers,
+						ParsedRuleChildUtils.Single(ref shortest),
+						shortest.intermediateValue);
+				}
+
+				RecordError(ref context, ref settings, "Found no matching choice.");
+				return ParsedRule.Fail;
+			}
+
+			ParsedRule ParseLongest(ref ParserContext context, ref ParserSettings settings, ref ParserSettings childSettings)
+			{
+				int longestLen = int.MinValue;
+				ParsedRule longest = ParsedRule.Fail;
+
+				for (int i = 0; i < parseFunctions.Length; i++)
+				{
+					var parsedRule = parseFunctions[i](context, childSettings);
+
+					if (parsedRule.success && parsedRule.length > longestLen)
+					{
+						parsedRule.occurency = i;
+						longestLen = parsedRule.length;
+						longest = parsedRule;
+					}
+				}
+
+				if (longest.success)
+				{
+					return ParsedRule.Rule(Id,
+						longest.startIndex,
+						longest.length,
+						longest.passedBarriers,
+						ParsedRuleChildUtils.Single(ref longest),
+						longest.intermediateValue);
+				}
+
+				RecordError(ref context, ref settings, "Found no matching choice.");
+				return ParsedRule.Fail;
+			}
+
 			if (!initFlags.HasFlag(ParserInitFlags.FirstCharacterMatch))
 			{
-				var parseFunctions = new Func<ParserContext, ParserSettings, ParsedRule>[_choicesIds.Length];
+				switch (Mode)
+				{
+					default:
+					case ChoiceMode.First:
+						parseFunction = ParseFirst;
+						break;
+
+					case ChoiceMode.Shortest:
+						parseFunction = ParseShortest;
+						break;
+
+					case ChoiceMode.Longest:
+						parseFunction = ParseLongest;
+						break;
+				}
+			}
+			else
+			{
+				var optimizedCandidates = new Func<ParserContext, ParserSettings, ParsedRule>[char.MaxValue + 1][];
+				var nonDeterministic = new List<Func<ParserContext, ParserSettings, ParsedRule>>();
+
+				foreach (var ch in FirstChars)
+				{
+					var choicesByChar = new List<Func<ParserContext, ParserSettings, ParsedRule>>();
+					for (int i = 0; i < _choicesIds.Length; i++)
+					{
+						var id = Choices[i];
+						var rule = GetRule(id);
+
+						if (!rule.IsFirstCharDeterministic || rule.FirstChars.Contains(ch))
+							choicesByChar.Add(parseFunctions[i]);
+					}
+					optimizedCandidates[ch] = choicesByChar.ToArray();
+				}
 
 				for (int i = 0; i < _choicesIds.Length; i++)
 				{
 					var id = Choices[i];
 					var rule = GetRule(id);
-
-					if (initFlags.HasFlag(ParserInitFlags.InlineRules) && rule.CanBeInlined)
-					{
-						parseFunctions[i] = (ctx, chStng) => rule.Parse(ctx, chStng, chStng);
-					}
-					else
-					{
-						parseFunctions[i] = (ctx, chStng) => TryParseRule(id, ctx, chStng);
-					}
+					if (!rule.IsFirstCharDeterministic)
+						nonDeterministic.Add(parseFunctions[i]);
 				}
 
-				ParsedRule Parse(ref ParserContext context, ref ParserSettings settings, ref ParserSettings childSettings)
+				var _nonDeterministic = nonDeterministic.ToArray();
+
+				for (int c = 0; c < 0xffff + 1; c++)
 				{
-					for (int i = 0; i < parseFunctions.Length; i++)
-					{
-						var parsedRule = parseFunctions[i](context, childSettings);
-
-						if (parsedRule.success)
-						{
-							parsedRule.occurency = i;
-							return ParsedRule.Rule(Id,
-								parsedRule.startIndex,
-								parsedRule.length,
-								parsedRule.passedBarriers,
-								ParsedRuleChildUtils.Single(ref parsedRule),
-								parsedRule.intermediateValue);
-						}
-					}
-
-					RecordError(ref context, ref settings, "Found no matching choice.");
-					return ParsedRule.Fail;
+					if (optimizedCandidates[c] == null)
+						optimizedCandidates[c] = _nonDeterministic;
 				}
 
-				parseFunction = Parse;
-			}
-			else
-			{
-				var candidatesByFirstChar = new Dictionary<char, Func<ParserContext, ParserSettings, ParsedRule>[]>();
-				var _nonDeterministicCandidates = new List<Func<ParserContext, ParserSettings, ParsedRule>>();
-
-				if (FirstChars != null)
-					foreach (var ch in FirstChars)
-					{
-						var rules = new List<Func<ParserContext, ParserSettings, ParsedRule>>();
-						foreach (var choice in Choices)
-						{
-							int id = choice;
-							var rule = GetRule(id);
-							if (rule.FirstChars == null || rule.FirstChars.Contains(ch))
-							{
-								if (initFlags.HasFlag(ParserInitFlags.InlineRules) && rule.CanBeInlined)
-									rules.Add((ctx, chStng) => rule.Parse(ctx, chStng, chStng));
-								else
-									rules.Add((ctx, chStng) => TryParseRule(id, ctx, chStng));
-							}
-							candidatesByFirstChar[ch] = rules.ToArray();
-						}
-					}
-
-				foreach (var choice in Choices)
+				ParsedRule ParseFirstLookahead(ref ParserContext context, ref ParserSettings settings, ref ParserSettings childSettings)
 				{
-					int id = choice;
-					var rule = GetRule(id);
-					if (rule.FirstChars == null)
-					{
-						if (initFlags.HasFlag(ParserInitFlags.InlineRules) && rule.CanBeInlined)
-							_nonDeterministicCandidates.Add((ctx, chStng) => rule.Parse(ctx, chStng, chStng));
-						else
-							_nonDeterministicCandidates.Add((ctx, chStng) => TryParseRule(id, ctx, chStng));
-					}
-				}
-
-				var nonDeterministicCandidates = _nonDeterministicCandidates.ToArray();
-
-				ParsedRule Parse(ref ParserContext context, ref ParserSettings settings, ref ParserSettings childSettings)
-				{
-					if (!candidatesByFirstChar.TryGetValue(context.input[context.position], out var candidates))
-						candidates = nonDeterministicCandidates;
+					var ch = context.input[context.position];
+					var candidates = optimizedCandidates[ch];
 
 					for (int i = 0; i < candidates.Length; i++)
 					{
@@ -157,7 +254,89 @@ namespace RCParsing.ParserRules
 					return ParsedRule.Fail;
 				}
 
-				parseFunction = Parse;
+				ParsedRule ParseShortestLookahead(ref ParserContext context, ref ParserSettings settings, ref ParserSettings childSettings)
+				{
+					var ch = context.input[context.position];
+					var candidates = optimizedCandidates[ch];
+
+					int shortestLen = int.MaxValue;
+					ParsedRule shortest = ParsedRule.Fail;
+
+					for (int i = 0; i < candidates.Length; i++)
+					{
+						var parsedRule = candidates[i](context, childSettings);
+
+						if (parsedRule.success && parsedRule.length < shortestLen)
+						{
+							parsedRule.occurency = i;
+							shortestLen = parsedRule.length;
+							shortest = parsedRule;
+						}
+					}
+
+					if (shortest.success)
+					{
+						return ParsedRule.Rule(Id,
+							shortest.startIndex,
+							shortest.length,
+							shortest.passedBarriers,
+							ParsedRuleChildUtils.Single(ref shortest),
+							shortest.intermediateValue);
+					}
+
+					RecordError(ref context, ref settings, "Found no matching choice.");
+					return ParsedRule.Fail;
+				}
+
+				ParsedRule ParseLongestLookahead(ref ParserContext context, ref ParserSettings settings, ref ParserSettings childSettings)
+				{
+					var ch = context.input[context.position];
+					var candidates = optimizedCandidates[ch];
+
+					int longestLen = int.MinValue;
+					ParsedRule longest = ParsedRule.Fail;
+
+					for (int i = 0; i < candidates.Length; i++)
+					{
+						var parsedRule = candidates[i](context, childSettings);
+
+						if (parsedRule.success && parsedRule.length > longestLen)
+						{
+							parsedRule.occurency = i;
+							longestLen = parsedRule.length;
+							longest = parsedRule;
+						}
+					}
+
+					if (longest.success)
+					{
+						return ParsedRule.Rule(Id,
+							longest.startIndex,
+							longest.length,
+							longest.passedBarriers,
+							ParsedRuleChildUtils.Single(ref longest),
+							longest.intermediateValue);
+					}
+
+					RecordError(ref context, ref settings, "Found no matching choice.");
+					return ParsedRule.Fail;
+				}
+
+				switch (Mode)
+				{
+					default:
+					case ChoiceMode.First:
+						parseFunction = ParseFirstLookahead;
+						break;
+
+					case ChoiceMode.Shortest:
+						parseFunction = ParseShortestLookahead;
+						break;
+
+					case ChoiceMode.Longest:
+						parseFunction = ParseLongestLookahead;
+						break;
+				}
 			}
 
 			parseFunction = WrapParseFunction(parseFunction, initFlags);
@@ -214,5 +393,4 @@ namespace RCParsing.ParserRules
 			return hashCode;
 		}
 	}
-
 }

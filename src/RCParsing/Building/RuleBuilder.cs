@@ -398,10 +398,11 @@ namespace RCParsing.Building
 		/// <summary>
 		/// Adds a choice rule to the current sequence.
 		/// </summary>
+		/// <param name="mode">The behaviour to use when selecting resulting choice.</param>
 		/// <param name="choices">The choices for this rule.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		/// <exception cref="ParserBuildingException">Thrown if any of builder actions have not added any elements.</exception>
-		public RuleBuilder Choice(IEnumerable<Or<Action<RuleBuilder>, string>> choices)
+		public RuleBuilder Choice(ChoiceMode mode, IEnumerable<Or<Action<RuleBuilder>, string>> choices)
 		{
 			var builtValues = choices.Select(c =>
 			{
@@ -421,6 +422,7 @@ namespace RCParsing.Building
 			}).ToList();
 
 			var choice = new BuildableChoiceParserRule();
+			choice.Mode = mode;
 			choice.Choices.AddRange(builtValues);
 			choice.ParsedValueFactory = DefaultFactory_Choice;
 			return Rule(choice);
@@ -429,23 +431,81 @@ namespace RCParsing.Building
 		/// <summary>
 		/// Adds a choice rule to the current sequence.
 		/// </summary>
+		/// <param name="mode">The behaviour to use when selecting resulting choice.</param>
 		/// <param name="choices">The choices for this rule.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		/// <exception cref="ParserBuildingException">Thrown if any of builder actions have not added any elements.</exception>
-		public RuleBuilder Choice(IEnumerable<Action<RuleBuilder>> choices)
+		public RuleBuilder Choice(ChoiceMode mode, IEnumerable<Action<RuleBuilder>> choices)
 		{
-			return Choice(choices.Select(c => new Or<Action<RuleBuilder>, string>(c)).ToArray());
+			return Choice(mode, choices.Select(c => new Or<Action<RuleBuilder>, string>(c)));
 		}
 
 		/// <summary>
 		/// Adds a choice rule to the current sequence.
 		/// </summary>
+		/// <param name="mode">The behaviour to use when selecting resulting choice.</param>
+		/// <param name="choices">The choices for this rule.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if any of builder actions have not added any elements.</exception>
+		public RuleBuilder Choice(ChoiceMode mode, params Action<RuleBuilder>[] choices)
+		{
+			return Choice(mode, (IEnumerable<Action<RuleBuilder>>)choices);
+		}
+
+		/// <summary>
+		/// Adds a choice rule to the current sequence.
+		/// </summary>
+		/// <remarks>
+		/// Stops at first succeeded element and returns it.
+		/// </remarks>
+		/// <param name="choices">The choices for this rule.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if any of builder actions have not added any elements.</exception>
+		public RuleBuilder Choice(IEnumerable<Action<RuleBuilder>> choices)
+		{
+			return Choice(ChoiceMode.First, choices.Select(c => new Or<Action<RuleBuilder>, string>(c)).ToArray());
+		}
+
+		/// <summary>
+		/// Adds a choice rule to the current sequence.
+		/// </summary>
+		/// <remarks>
+		/// Stops at first succeeded element and returns it.
+		/// </remarks>
 		/// <param name="choices">The choices for this rule.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		/// <exception cref="ParserBuildingException">Thrown if any of builder actions have not added any elements.</exception>
 		public RuleBuilder Choice(params Action<RuleBuilder>[] choices)
 		{
 			return Choice((IEnumerable<Action<RuleBuilder>>)choices);
+		}
+
+		/// <summary>
+		/// Adds a choice rule to the current sequence.
+		/// </summary>
+		/// <remarks>
+		/// Tries to match all elements and returns the first longest one.
+		/// </remarks>
+		/// <param name="choices">The choices for this rule.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if any of builder actions have not added any elements.</exception>
+		public RuleBuilder LongestChoice(IEnumerable<Action<RuleBuilder>> choices)
+		{
+			return Choice(ChoiceMode.Longest, choices.Select(c => new Or<Action<RuleBuilder>, string>(c)).ToArray());
+		}
+
+		/// <summary>
+		/// Adds a choice rule to the current sequence.
+		/// </summary>
+		/// <remarks>
+		/// Tries to match all elements and returns the first longest one.
+		/// </remarks>
+		/// <param name="choices">The choices for this rule.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if any of builder actions have not added any elements.</exception>
+		public RuleBuilder LongestChoice(params Action<RuleBuilder>[] choices)
+		{
+			return LongestChoice((IEnumerable<Action<RuleBuilder>>)choices);
 		}
 
 		/// <summary>

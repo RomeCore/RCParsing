@@ -96,9 +96,14 @@ namespace RCParsing
 				// If fail, reparse current node.
 			}
 
+			var rule = _rules[node.ruleId];
+			var specialReparsed = rule.ParseIncrementallyInternal(context,
+				settings, childSettings, node, change, newVersion);
+			if (specialReparsed.success)
+				return specialReparsed;
+
 			// Otherwise, we invalidate and reparse the current node.
 
-			var rule = _rules[node.ruleId];
 			context.position = node.startIndex;
 			var parsedRule = Parse(rule, ref context, ref settings, ref childSettings, canRecover: true);
 			parsedRule = parsedRule.ChangeVersion(newVersion);

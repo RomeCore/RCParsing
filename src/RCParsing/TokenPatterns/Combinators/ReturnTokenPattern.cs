@@ -28,7 +28,9 @@ namespace RCParsing.TokenPatterns.Combinators
 			Value = value;
 		}
 
-		protected override HashSet<char>? FirstCharsCore => GetTokenPattern(Child).FirstChars;
+		protected override HashSet<char> FirstCharsCore => GetTokenPattern(Child).FirstChars;
+		protected override bool IsFirstCharDeterministicCore => GetTokenPattern(Child).IsFirstCharDeterministic;
+		protected override bool IsOptionalCore => GetTokenPattern(Child).IsOptional;
 
 
 
@@ -43,6 +45,10 @@ namespace RCParsing.TokenPatterns.Combinators
 		public override ParsedElement Match(string input, int position, int barrierPosition,
 			object? parserParameter, bool calculateIntermediateValue, ref ParsingError furthestError)
 		{
+			if (!calculateIntermediateValue)
+				return _child.Match(input, position, barrierPosition, parserParameter,
+					false, ref furthestError);
+
 			var initialPosition = position;
 			var child = _child.Match(input, position, barrierPosition, parserParameter,
 				false, ref furthestError);

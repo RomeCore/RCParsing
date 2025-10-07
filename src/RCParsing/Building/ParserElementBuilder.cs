@@ -678,12 +678,21 @@ namespace RCParsing.Building
 		}
 
 		/// <summary>
-		/// Adds a end of file (EOF) token to the current sequence.
+		/// Adds an end of file (EOF) token to the current sequence. It matches the end of input.
 		/// </summary>
 		/// <returns>Current instance for method chaining.</returns>
 		public T EOF()
 		{
 			return Token(new EOFTokenPattern());
+		}
+		
+		/// <summary>
+		/// Adds an empty token to the current sequence. It matches a zero count of characters when position &lt;= end of input, which is always, normally.
+		/// </summary>
+		/// <returns>Current instance for method chaining.</returns>
+		public T Empty()
+		{
+			return Token(new EmptyTokenPattern());
 		}
 
 		private static NumberType NumberTypeFromCLR(Type type)

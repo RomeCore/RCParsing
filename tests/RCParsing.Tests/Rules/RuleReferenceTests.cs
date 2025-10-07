@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using RCParsing.Building;
 
-namespace RCParsing.Tests
+namespace RCParsing.Tests.Rules
 {
 	public class RuleReferenceTests
 	{

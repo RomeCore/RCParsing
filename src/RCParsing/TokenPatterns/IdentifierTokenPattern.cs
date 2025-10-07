@@ -52,6 +52,12 @@ namespace RCParsing.TokenPatterns
 			ContinuePredicate = continuePredicate ?? throw new ArgumentNullException(nameof(continuePredicate));
 		}
 
+		protected override HashSet<char> FirstCharsCore => new();
+		protected override bool IsFirstCharDeterministicCore => false;
+		protected override bool IsOptionalCore => false;
+
+
+
 		/// <summary>
 		/// Creates a new instance of the <see cref="IdentifierTokenPattern"/> class that matches ASCII identifiers.
 		/// </summary>
@@ -73,10 +79,6 @@ namespace RCParsing.TokenPatterns
 				c => char.IsLetterOrDigit(c) || c == '_',
 				minLength, maxLength);
 		}
-
-		protected override HashSet<char>? FirstCharsCore =>
-			new(Enumerable.Range(0, char.MaxValue)
-			.Where(i => StartPredicate((char)i)).Select(i => (char)i));
 
 
 

@@ -16,6 +16,9 @@ namespace RCParsing.TokenPatterns
 		{
 		}
 
+		protected override HashSet<char>? FirstCharsCore => new(new[] { ' ', '\t', '\n', '\r' });
+		protected override bool IsFirstCharDeterministicCore => true;
+		protected override bool IsOptionalCore => false;
 
 
 		public override ParsedElement Match(string input, int position, int barrierPosition,
@@ -34,8 +37,6 @@ namespace RCParsing.TokenPatterns
 		}
 
 
-
-		protected override HashSet<char>? FirstCharsCore => new (new [] { ' ', '\t', '\n', '\r' });
 
 		public override string ToStringOverride(int remainingDepth)
 		{

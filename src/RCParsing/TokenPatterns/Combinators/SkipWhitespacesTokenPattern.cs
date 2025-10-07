@@ -13,19 +13,21 @@ namespace RCParsing.TokenPatterns.Combinators
 		/// <summary>
 		/// Gets the token pattern ID that should be parsed after skipping whitespaces.
 		/// </summary>
-		public int Pattern { get; }
+		public int Child { get; }
 
 		/// <summary>
 		/// Initializes a new instance of <see cref="SkipWhitespacesTokenPattern"/> class.
 		/// </summary>
-		/// <param name="pattern">The token pattern ID that should be parsed after skipping whitespaces.</param>
-		public SkipWhitespacesTokenPattern(int pattern)
+		/// <param name="child">The token pattern ID that should be parsed after skipping whitespaces.</param>
+		public SkipWhitespacesTokenPattern(int child)
 		{
-			Pattern = pattern;
+			Child = child;
 		}
 
-		protected override HashSet<char>? FirstCharsCore => new (GetTokenPattern(Pattern).FirstChars
+		protected override HashSet<char> FirstCharsCore => new(GetTokenPattern(Child).FirstChars
 			.Concat(new char[] { ' ', '\t', '\r', '\n' }));
+		protected override bool IsFirstCharDeterministicCore => GetTokenPattern(Child).IsFirstCharDeterministic;
+		protected override bool IsOptionalCore => GetTokenPattern(Child).IsOptional;
 
 
 
@@ -34,7 +36,7 @@ namespace RCParsing.TokenPatterns.Combinators
 		protected override void PreInitialize(ParserInitFlags initFlags)
 		{
 			base.PreInitialize(initFlags);
-			_pattern = GetTokenPattern(Pattern);
+			_pattern = GetTokenPattern(Child);
 		}
 
 		public override ParsedElement Match(string input, int position, int barrierPosition,
@@ -65,20 +67,20 @@ namespace RCParsing.TokenPatterns.Combinators
 				return "skipWhitespaces...";
 
 			return $"skipWhitespaces:\n" +
-				   GetTokenPattern(Pattern).ToString(remainingDepth - 1).Indent("  ");
+				   GetTokenPattern(Child).ToString(remainingDepth - 1).Indent("  ");
 		}
 
 		public override bool Equals(object? obj)
 		{
 			return base.Equals(obj) &&
 				   obj is SkipWhitespacesTokenPattern pattern &&
-				   Pattern == pattern.Pattern;
+				   Child == pattern.Child;
 		}
 
 		public override int GetHashCode()
 		{
 			int hashCode = base.GetHashCode();
-			hashCode = hashCode * 397 + Pattern.GetHashCode();
+			hashCode = hashCode * 397 + Child.GetHashCode();
 			return hashCode;
 		}
 	}

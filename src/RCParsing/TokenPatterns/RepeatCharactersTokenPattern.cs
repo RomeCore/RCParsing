@@ -44,9 +44,9 @@ namespace RCParsing.TokenPatterns
 			MaxCount = maxCount;
 		}
 
-		protected override HashSet<char>? FirstCharsCore => MinCount == 0 ? null :
-			new(Enumerable.Range(0, char.MaxValue)
-			.Where(i => CharacterPredicate((char)i)).Select(i => (char)i));
+		protected override HashSet<char> FirstCharsCore => new();
+		protected override bool IsFirstCharDeterministicCore => true;
+		protected override bool IsOptionalCore => MinCount == 0;
 
 
 

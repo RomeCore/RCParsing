@@ -292,10 +292,11 @@ namespace RCParsing.Building
 		/// <summary>
 		/// Adds a choice token pattern to the current sequence.
 		/// </summary>
+		/// <param name="mode">The behaviour to use when selecting resulting choice.</param>
 		/// <param name="choices">The choices for this token pattern.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		/// <exception cref="ParserBuildingException">Thrown if any of builder actions have not added any elements.</exception>
-		public TokenBuilder Choice(IEnumerable<Or<Action<TokenBuilder>, string>> choices)
+		public TokenBuilder Choice(ChoiceMode mode, IEnumerable<Or<Action<TokenBuilder>, string>> choices)
 		{
 			var builtValues = choices.Select(c =>
 			{
@@ -317,6 +318,7 @@ namespace RCParsing.Building
 			}).ToList();
 
 			var choice = new BuildableChoiceTokenPattern();
+			choice.Mode = mode;
 			choice.Choices.AddRange(builtValues);
 			return Token(choice);
 		}
@@ -324,23 +326,81 @@ namespace RCParsing.Building
 		/// <summary>
 		/// Adds a choice token pattern to the current sequence.
 		/// </summary>
+		/// <param name="mode">The behaviour to use when selecting resulting choice.</param>
 		/// <param name="choices">The choices for this token pattern.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		/// <exception cref="ParserBuildingException">Thrown if any of builder actions have not added any elements.</exception>
-		public TokenBuilder Choice(IEnumerable<Action<TokenBuilder>> choices)
+		public TokenBuilder Choice(ChoiceMode mode, IEnumerable<Action<TokenBuilder>> choices)
 		{
-			return Choice(choices.Select(c => new Or<Action<TokenBuilder>, string>(c)).ToArray());
+			return Choice(mode, choices.Select(c => new Or<Action<TokenBuilder>, string>(c)));
 		}
 
 		/// <summary>
 		/// Adds a choice token pattern to the current sequence.
 		/// </summary>
+		/// <param name="mode">The behaviour to use when selecting resulting choice.</param>
+		/// <param name="choices">The choices for this token pattern.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if any of builder actions have not added any elements.</exception>
+		public TokenBuilder Choice(ChoiceMode mode, params Action<TokenBuilder>[] choices)
+		{
+			return Choice(mode, (IEnumerable<Action<TokenBuilder>>)choices);
+		}
+		
+		/// <summary>
+		/// Adds a choice token pattern to the current sequence.
+		/// </summary>
+		/// <remarks>
+		/// Stops at first succeeded element and returns it.
+		/// </remarks>
+		/// <param name="choices">The choices for this token pattern.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if any of builder actions have not added any elements.</exception>
+		public TokenBuilder Choice(IEnumerable<Action<TokenBuilder>> choices)
+		{
+			return Choice(ChoiceMode.First, choices.Select(c => new Or<Action<TokenBuilder>, string>(c)).ToArray());
+		}
+
+		/// <summary>
+		/// Adds a choice token pattern to the current sequence.
+		/// </summary>
+		/// <remarks>
+		/// Stops at first succeeded element and returns it.
+		/// </remarks>
 		/// <param name="choices">The choices for this token pattern.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		/// <exception cref="ParserBuildingException">Thrown if any of builder actions have not added any elements.</exception>
 		public TokenBuilder Choice(params Action<TokenBuilder>[] choices)
 		{
 			return Choice((IEnumerable<Action<TokenBuilder>>)choices);
+		}
+
+		/// <summary>
+		/// Adds a choice token pattern to the current sequence.
+		/// </summary>
+		/// <remarks>
+		/// Tries to match all elements and returns the first longest one.
+		/// </remarks>
+		/// <param name="choices">The choices for this token pattern.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if any of builder actions have not added any elements.</exception>
+		public TokenBuilder LongestChoice(IEnumerable<Action<TokenBuilder>> choices)
+		{
+			return Choice(ChoiceMode.Longest, choices.Select(c => new Or<Action<TokenBuilder>, string>(c)).ToArray());
+		}
+
+		/// <summary>
+		/// Adds a choice token pattern to the current sequence.
+		/// </summary>
+		/// <remarks>
+		/// Tries to match all elements and returns the first longest one.
+		/// </remarks>
+		/// <param name="choices">The choices for this token pattern.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if any of builder actions have not added any elements.</exception>
+		public TokenBuilder LongestChoice(params Action<TokenBuilder>[] choices)
+		{
+			return LongestChoice((IEnumerable<Action<TokenBuilder>>)choices);
 		}
 
 		/// <summary>

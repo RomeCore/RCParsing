@@ -13,6 +13,11 @@ namespace RCParsing.Building.ParserRules
 	public class BuildableChoiceParserRule : BuildableParserRule
 	{
 		/// <summary>
+		/// Gets or sets the child element selection behaviour of this choice rule.
+		/// </summary>
+		public ChoiceMode Mode { get; set; }
+
+		/// <summary>
 		/// The choices of this parser rule.
 		/// </summary>
 		public List<Or<string, BuildableParserRule>> Choices { get; } = new List<Or<string, BuildableParserRule>>();
@@ -21,7 +26,7 @@ namespace RCParsing.Building.ParserRules
 
 		protected override ParserRule BuildRule(List<int>? ruleChildren, List<int>? tokenChildren)
 		{
-			return new ChoiceParserRule(ruleChildren);
+			return new ChoiceParserRule(Mode, ruleChildren);
 		}
 
 		public override bool Equals(object? obj)
@@ -34,6 +39,7 @@ namespace RCParsing.Building.ParserRules
 		public override int GetHashCode()
 		{
 			int hashCode = base.GetHashCode();
+			hashCode = hashCode * 397 + Mode.GetHashCode() * 23;
 			hashCode = hashCode * 397 + Choices.GetSequenceHashCode() * 23;
 			return hashCode;
 		}

@@ -7,7 +7,7 @@
 [![License](https://img.shields.io/github/license/RomeCore/RCParsing.svg)](https://github.com/RomeCore/RCParsing/blob/main/LICENSE)
 [![Star me on GitHub](https://img.shields.io/github/stars/RomeCore/RCParsing.svg?style=social&label=Star%20Me)](https://github.com/RomeCore/RCParsing)
 
-**A Fluent, Lexerless Parser Builder for .NET — Define ANY grammars with the elegance of BNF and the power of C#.**
+**RCParsing - the fluent, lightweight and powerful .NET lexerless parsing library for language development (DSL) and data scraping.**
 
 This library focuses on **Developer-experience (DX)** first, providing best toolkit for creating your **programming languages**, **file formats** or even **data extraction tools** with declarative API, debugging tools, and more. This allows you to design your parser directly in code and easily fix it using stack and walk traces with detailed error messages.
 
@@ -21,7 +21,7 @@ This library focuses on **Developer-experience (DX)** first, providing best tool
 - 🐍 **Hybrid Power**: Unique support for **barrier tokens** to parse indent-sensitive languages like Python and YAML.
 - ☄️ **Incremental Parsing**: Edit large documents with instant feedback. Our persistent AST enables efficient re-parsing of only changed sections, perfect for LSP servers and real-time editing scenarios.
 - 💪 **Regex on Steroids**: You can find all matches for target structure in the input text with detailed AST information and transformed value.
-- 🌀 **Lexerless Freedom**: No token priority headaches. Parse directly from raw text, even with keywords embedded in strings. Tokens are used just as lightweight matching primitives.
+- 🌀 **Lexerless Freedom**: No token priority headaches. Parse directly from raw text, even with keywords embedded in identifiers. Tokens are used just as lightweight matching primitives.
 - 🎨 **Fluent API**: Write parsers in C# that read like clean BNF grammars, boosting readability and maintainability compared to imperative, functional or code-generation approaches.
 - 🧩 **Combinator Style**: Unlock maximum performance by defining complex tokens with immediate value transformation, bypassing the AST construction entirely for a direct, allocation-free result. Perfect for high-speed parsing of well-defined formats. Also can be used with AST mode.
 - 🐛 **Superior Debugging**: Get detailed, actionable error messages with stack traces, walk traces and precise source locations. Richest API for manual error information included.
@@ -40,12 +40,13 @@ This library focuses on **Developer-experience (DX)** first, providing best tool
 	- [A + B](#a--b) - Basic arithmetic expression parser with result calculation.
 	- [JSON (with incremental parsing)](#json-with-incremental-parsing) - A complete JSON parser with comments and skipping (with incremental parsing example included).
 	- [Python-like](#python-like) - Demonstrating barrier tokens for indentation.
-	- [JSON token combination](#json-token-combination) - A maximum speed approach for getting values without AST.
+	- [JSON token combination](#json-token-combination) - A maximum speed approach for getting values without AST or just to validate inputs with zero-overhead.
 	- [Finding patterns](#finding-patterns) - How to find all occurrences of a rule in a string.
 	- [Errors example](#errors-example) - Just a simple example of how errors look in default and debug modes.
 - [Comparison with other parsing libraries](#comparison-with-other-parsing-libraries)
 - [Benchmarks](#benchmarks)
-	- [JSON](#json-1)
+	- [JSON AST](#json-ast)
+	- [JSON Combinators](#json-combinators)
 	- [Expressions](#expressions)
 	- [Regex](#regex)
 - [Projects using RCParsing](#projects-using-rcparsing)
@@ -67,8 +68,8 @@ Or do it manually by cloning this repository.
 
 # Tutorials, docs and examples
 
-- [Tutorials (old)](https://github.com/RomeCore/RCParsing/blob/main/docs_md/tutorials.md) - Detailed tutorials in the Markdown file, explaining features and mechanics of this library, highly recommended to read!
 - [Tutorials](https://romecore.github.io/RCParsing/guide/) - The tutorial website, not completely migrated from the markdown version yet.
+- [Tutorials (old)](https://github.com/RomeCore/RCParsing/blob/main/docs_md/tutorials.md) - Detailed tutorials in the Markdown file, explaining features and mechanics of this library, highly recommended to read!
 - [Syntax colorizer](https://github.com/RomeCore/RCParsing/tree/main/samples/SyntaxColorizer) - The syntax colorizer sample that automatically colorizes text based on provided parser.
 - [Math calculator](https://github.com/RomeCore/RCParsing/tree/main/samples/MathCalculator) - Math expression evaluator with support of power, math functions and constants.
 
@@ -434,6 +435,29 @@ var json =
 // Match the token directly and produce intermediate value
 var result = parser.MatchToken<Dictionary<string, object>>("value", json);
 Console.WriteLine(result["name"]); // Outputs: Sample Data
+
+var invalidJson =
+"""
+{
+	"id": 1,
+	"name": "Sample Data",
+	"created": "2023-01-01T00:00:00",
+	"tags": ["tag1", "tag2", "tag3"],,
+	"isActive": true,
+	"nested": {
+		"value": 123.456,
+		"description": "Nested description"
+	}
+}
+""";
+
+// Retrieve the furthest error
+var error = parser.TryMatchToken("value", invalidJson).Context.CreateErrorGroups().Last!;
+Console.WriteLine(error.Column); // 35
+Console.WriteLine(error.Line);   // 5
+
+// Also you can check if the input matches token the fastest way, without value calculation:
+Console.WriteLine(parser.MatchesToken("value", "[90, 60, true, null]", out int matchedLength)); // true
 ```
 
 ## Finding patterns
@@ -665,40 +689,63 @@ AMD Ryzen 5 5600 3.60GHz, 1 CPU, 12 logical and 6 physical cores
   Job-KTXINV : .NET 8.0.18 (8.0.1825.31117), X64 RyuJIT AVX2
 ```
 
-## JSON
+## JSON AST
 
 The JSON value calculation with the typeset `Dictionary<string, object>`, `object[]`, `string`, `int` and `null`.
 
-| Method                               | Mean           | Error        | StdDev       | Ratio | RatioSD | Gen0     | Gen1    | Allocated | Alloc Ratio |
-|------------------------------------- |---------------:|-------------:|-------------:|------:|--------:|---------:|--------:|----------:|------------:|
-| JsonBig_RCParsing                    |   166,563.6 ns |  1,550.19 ns |    688.30 ns |  1.00 |    0.01 |  13.1836 |  3.6621 |  222336 B |        1.00 |
-| JsonBig_RCParsing_Optimized          |    99,578.1 ns |  1,203.19 ns |    429.07 ns |  0.60 |    0.00 |   9.2773 |  2.1973 |  156712 B |        0.70 |
-| JsonBig_RCParsing_TokenCombination   |    30,124.3 ns |    279.09 ns |     99.53 ns |  0.18 |    0.00 |   2.5635 |  0.1831 |   43096 B |        0.19 |
-| JsonBig_SystemTextJson               |    12,501.0 ns |     51.21 ns |     22.74 ns |  0.08 |    0.00 |   0.5035 |  0.0153 |    8648 B |        0.04 |
-| JsonBig_NewtonsoftJson               |    48,258.1 ns |    314.92 ns |    139.83 ns |  0.29 |    0.00 |   4.7607 |  0.9766 |   80176 B |        0.36 |
-| JsonBig_ANTLR                        |   184,954.4 ns |    498.21 ns |    177.67 ns |  1.11 |    0.00 |  19.5313 |  7.5684 |  330584 B |        1.49 |
-| JsonBig_Parlot                       |    41,351.8 ns |    516.85 ns |    229.48 ns |  0.25 |    0.00 |   1.9531 |  0.1221 |   32848 B |        0.15 |
-| JsonBig_Pidgin                       |   213,947.0 ns |  1,219.96 ns |    541.67 ns |  1.28 |    0.01 |   3.9063 |  0.2441 |   66816 B |        0.30 |
-| JsonBig_Superpower                   | 1,191,550.3 ns |  3,853.95 ns |  1,374.36 ns |  7.15 |    0.03 |  39.0625 |  5.8594 |  653627 B |        2.94 |
-| JsonBig_Sprache                      | 1,232,307.4 ns | 28,065.79 ns | 12,461.38 ns |  7.40 |    0.08 | 232.4219 | 27.3438 | 3899736 B |       17.54 |
-|                                      |                |              |              |       |         |          |         |           |             |
-| JsonShort_RCParsing                  |     8,965.7 ns |     64.95 ns |     28.84 ns |  1.00 |    0.00 |   0.6561 |       - |   10992 B |        1.00 |
-| JsonShort_RCParsing_Optimized        |     5,620.1 ns |    135.28 ns |     60.06 ns |  0.63 |    0.01 |   0.5341 |  0.0076 |    8976 B |        0.82 |
-| JsonShort_RCParsing_TokenCombination |     1,530.2 ns |      5.98 ns |      2.13 ns |  0.17 |    0.00 |   0.1354 |       - |    2280 B |        0.21 |
-| JsonShort_SystemTextJson             |       790.0 ns |     11.70 ns |      5.19 ns |  0.09 |    0.00 |   0.0401 |       - |     672 B |        0.06 |
-| JsonShort_NewtonsoftJson             |     2,824.3 ns |    287.70 ns |    127.74 ns |  0.32 |    0.01 |   0.3891 |       - |    6552 B |        0.60 |
-| JsonShort_ANTLR                      |    10,575.1 ns |     43.55 ns |     15.53 ns |  1.18 |    0.00 |   1.1444 |  0.0305 |   19360 B |        1.76 |
-| JsonShort_Parlot                     |     2,199.4 ns |     16.57 ns |      5.91 ns |  0.25 |    0.00 |   0.1144 |       - |    1960 B |        0.18 |
-| JsonShort_Pidgin                     |    10,794.7 ns |    109.21 ns |     48.49 ns |  1.20 |    0.01 |   0.2136 |       - |    3664 B |        0.33 |
-| JsonShort_Superpower                 |    66,359.1 ns |    220.78 ns |     98.03 ns |  7.40 |    0.02 |   1.9531 |       - |   34117 B |        3.10 |
-| JsonShort_Sprache                    |    64,819.0 ns |    617.46 ns |    220.19 ns |  7.23 |    0.03 |  12.6953 |  0.2441 |  213168 B |       19.39 |
+| Method                                       | Mean           | Error        | StdDev      | Ratio | RatioSD | Gen0     | Gen1    | Allocated | Alloc Ratio |
+|--------------------------------------------- |---------------:|-------------:|------------:|------:|--------:|---------:|--------:|----------:|------------:|
+| JsonBig_RCParsing                            |   166,213.0 ns |  6,623.77 ns | 2,362.10 ns |  1.00 |    0.02 |  13.1836 |  3.4180 |  222376 B |        1.00 |
+| JsonBig_RCParsing_NoValue                    |   132,519.0 ns |  1,187.88 ns |   527.43 ns |  0.80 |    0.01 |   8.0566 |  2.4414 |  138512 B |        0.62 |
+| JsonBig_RCParsing_Optimized                  |    98,398.9 ns |    500.44 ns |   222.20 ns |  0.59 |    0.01 |   9.2773 |  2.1973 |  156752 B |        0.70 |
+| JsonBig_RCParsing_Optimized_NoValue          |    65,744.2 ns |    279.39 ns |   124.05 ns |  0.40 |    0.01 |   4.2725 |  0.9766 |   72888 B |        0.33 |
+| JsonBig_ANTLR                                |   191,451.1 ns |    668.94 ns |   297.02 ns |  1.15 |    0.01 |  19.5313 |  7.5684 |  330584 B |        1.49 |
+| JsonBig_ANTLR_NoValue                        |   126,522.5 ns |    703.35 ns |   312.29 ns |  0.76 |    0.01 |  10.7422 |  3.9063 |  180232 B |        0.81 |
+|                                              |                |              |             |       |         |          |         |           |             |
+| JsonShort_RCParsing                          |     8,993.1 ns |     38.48 ns |    13.72 ns |  1.00 |    0.00 |   0.6561 |       - |   11032 B |        1.00 |
+| JsonShort_RCParsing_NoValue                  |     7,115.5 ns |     31.02 ns |    13.77 ns |  0.79 |    0.00 |   0.3891 |       - |    6632 B |        0.60 |
+| JsonShort_RCParsing_Optimized                |     5,312.8 ns |     44.35 ns |    19.69 ns |  0.59 |    0.00 |   0.5341 |  0.0076 |    9016 B |        0.82 |
+| JsonShort_RCParsing_Optimized_NoValue        |     3,585.8 ns |     26.96 ns |    11.97 ns |  0.40 |    0.00 |   0.2747 |       - |    4616 B |        0.42 |
+| JsonShort_ANTLR                              |    10,166.4 ns |     46.71 ns |    16.66 ns |  1.13 |    0.00 |   1.1444 |  0.0305 |   19360 B |        1.75 |
+| JsonShort_ANTLR_NoValue                      |     6,926.1 ns |     56.58 ns |    25.12 ns |  0.77 |    0.00 |   0.6332 |  0.0229 |   10600 B |        0.96 |
 
 Notes:
 
 - `RCParsing` uses its default configuration, without any optimizations and settings applied.
 - `RCParsing_Optimized` uses `UseInlining()`, `UseFirstCharacterMatch()`, `IgnoreErrors()` and `SkipWhitespacesOptimized()` settings.
+- `*_NoValue` methods does not calculates a value.
+- `JsonShort` methods uses ~20 lines of hardcoded (not generated) JSON with simple content.
+- `JsonBig` methods uses ~180 lines of hardcoded (not generated) JSON with various content (deep, long objects/arrays).
+
+## JSON Combinators
+
+The JSON value calculation with the typeset `Dictionary<string, object>`, `object[]`, `string`, `int` and `null`.
+
+| Method                                       | Mean           | Error        | StdDev      | Ratio | RatioSD | Gen0     | Gen1    | Allocated | Alloc Ratio |
+|--------------------------------------------- |---------------:|-------------:|------------:|------:|--------:|---------:|--------:|----------:|------------:|
+| JsonBig_RCParsing                            |   166,213.0 ns |  6,623.77 ns | 2,362.10 ns |  1.00 |    0.02 |  13.1836 |  3.4180 |  222376 B |        1.00 |
+| JsonBig_RCParsing_NoValue                    |   132,519.0 ns |  1,187.88 ns |   527.43 ns |  0.80 |    0.01 |   8.0566 |  2.4414 |  138512 B |        0.62 |
+| JsonBig_RCParsing_TokenCombination           |    29,418.8 ns |    282.64 ns |   125.49 ns |  0.18 |    0.00 |   2.5635 |  0.1831 |   43096 B |        0.19 |
+| JsonBig_RCParsing_TokenCombination_NoValue   |    17,654.4 ns |    280.98 ns |   100.20 ns |  0.11 |    0.00 |   0.4883 |       - |    8312 B |        0.04 |
+| JsonBig_Parlot                               |    41,223.5 ns |    334.42 ns |   148.48 ns |  0.25 |    0.00 |   1.9531 |  0.1221 |   32848 B |        0.15 |
+| JsonBig_Pidgin                               |   203,084.5 ns |    871.36 ns |   386.89 ns |  1.22 |    0.02 |   3.9063 |  0.2441 |   66816 B |        0.30 |
+| JsonBig_Superpower                           | 1,192,126.5 ns |  6,339.95 ns | 2,260.89 ns |  7.17 |    0.09 |  39.0625 |  5.8594 |  653627 B |        2.94 |
+| JsonBig_Sprache                              | 1,186,974.3 ns | 17,918.07 ns | 6,389.76 ns |  7.14 |    0.10 | 232.4219 | 27.3438 | 3899736 B |       17.54 |
+|                                              |                |              |             |       |         |          |         |           |             |
+| JsonShort_RCParsing                          |     8,993.1 ns |     38.48 ns |    13.72 ns |  1.00 |    0.00 |   0.6561 |       - |   11032 B |        1.00 |
+| JsonShort_RCParsing_NoValue                  |     7,115.5 ns |     31.02 ns |    13.77 ns |  0.79 |    0.00 |   0.3891 |       - |    6632 B |        0.60 |
+| JsonShort_RCParsing_TokenCombination         |     1,481.1 ns |     18.81 ns |     8.35 ns |  0.16 |    0.00 |   0.1354 |       - |    2280 B |        0.21 |
+| JsonShort_RCParsing_TokenCombination_NoValue |       944.3 ns |      4.24 ns |     1.88 ns |  0.11 |    0.00 |   0.0334 |       - |     568 B |        0.05 |
+| JsonShort_Parlot                             |     2,292.3 ns |      4.91 ns |     2.18 ns |  0.25 |    0.00 |   0.1144 |       - |    1960 B |        0.18 |
+| JsonShort_Pidgin                             |    11,392.7 ns |     81.91 ns |    36.37 ns |  1.27 |    0.00 |   0.2136 |       - |    3664 B |        0.33 |
+| JsonShort_Superpower                         |    64,844.8 ns |    387.06 ns |   171.86 ns |  7.21 |    0.02 |   1.9531 |       - |   34117 B |        3.09 |
+| JsonShort_Sprache                            |    63,070.5 ns |  1,094.44 ns |   485.94 ns |  7.01 |    0.05 |  12.6953 |  0.2441 |  213168 B |       19.32 |
+
+Notes:
+
 - `RCParsing_TokenCombination` uses complex manual tokens with immediate transformations instead of rules, and `UseFirstCharacterMatch()` setting.
 - `Parlot` uses `Compiled()` version of parser.
+- `*_NoValue` methods does not calculates a value.
 - `JsonShort` methods uses ~20 lines of hardcoded (not generated) JSON with simple content.
 - `JsonBig` methods uses ~180 lines of hardcoded (not generated) JSON with various content (deep, long objects/arrays).
 
