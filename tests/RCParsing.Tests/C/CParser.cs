@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace RCParsing.Tests.C
 {
 	/// <summary>
-	/// 
+	/// The C parser based on ANTLR grammar, not completed yet due to NFA algorithm used in ANTLR
 	/// </summary>
 	public class CParser
 	{
@@ -17,10 +17,12 @@ namespace RCParsing.Tests.C
 				.Choice(
 					b => b.Whitespaces(),
 					b => b.Literal("//").ZeroOrMoreChars(c => c != '\n' && c != '\r'),
+					b => b.Literal("#define").ZeroOrMoreChars(c => c != '\n' && c != '\r'),
+					b => b.Literal("#include").ZeroOrMoreChars(c => c != '\n' && c != '\r'),
 					b => b.Literal("/*").TextUntil("*/").Literal("*/")
 				).Configure(c => c.IgnoreErrors());
 
-			builder.Settings.UseCaching().WriteStackTrace().RecordWalkTrace().SetMaxStepsToDisplay(350).Skip(b => b.Token("skip"), ParserSkippingStrategy.SkipBeforeParsingGreedy);
+			builder.Settings.UseCaching().RecordWalkTrace().SetMaxStepsToDisplay(350).Skip(b => b.Token("skip"), ParserSkippingStrategy.SkipBeforeParsingGreedy);
 
 			builder.CreateToken("Identifier").Identifier();
 			builder.CreateToken("Constant").Number<double>();
@@ -28,7 +30,7 @@ namespace RCParsing.Tests.C
 			builder.CreateToken("DigitSequence").Number<uint>();
 
 			builder.CreateRule("primaryExpression")
-				.Choice(
+				.LongestChoice(
 					b => b.Token("Identifier"),
 					b => b.Token("Constant"),
 					b => b.OneOrMore(b => b.Token("StringLiteral")),
@@ -50,20 +52,20 @@ namespace RCParsing.Tests.C
 				.OneOrMoreSeparated(b => b.Rule("genericAssociation"), b => b.Literal(","));
 
 			builder.CreateRule("genericAssociation")
-				.Choice(
+				.LongestChoice(
 					b => b.Rule("typeName"),
 					b => b.Keyword("default")
 				)
 				.Literal(":").Rule("assignmentExpression");
 
 			builder.CreateRule("postfixExpression")
-				.Choice(
+				.LongestChoice(
 					b => b.Rule("primaryExpression"),
 					b => b.Optional(b => b.Keyword("__extension__"))
 						.Literal("(").Rule("typeName").Literal(")")
 						.Literal("{").Rule("initializerList").Optional(b => b.Literal(",")).Literal("}")
 				)
-				.ZeroOrMore(b => b.Choice(
+				.ZeroOrMore(b => b.LongestChoice(
 					b => b.Literal("[").Rule("expression").Literal("]"),
 					b => b.Literal("(").Optional(b => b.Rule("argumentExpressionList")).Literal(")"),
 					b => b.LiteralChoice(".", "->").Token("Identifier"),
@@ -75,7 +77,7 @@ namespace RCParsing.Tests.C
 
 			builder.CreateRule("unaryExpression")
 				.ZeroOrMore(b => b.LiteralChoice("++", "--", "sizeof"))
-				.Choice(
+				.LongestChoice(
 					b => b.Rule("postfixExpression"),
 					b => b.Token("unaryOperator").Rule("castExpression"),
 					b => b.KeywordChoice("sizeof", "_Alignof")
@@ -87,7 +89,7 @@ namespace RCParsing.Tests.C
 				.LiteralChoice("&", "*", "+", "-", "~", "!");
 
 			builder.CreateRule("castExpression")
-				.Choice(
+				.LongestChoice(
 					b => b.Optional(b => b.Keyword("__extension__"))
 						.Literal("(").Rule("typeName").Literal(")").Rule("castExpression"),
 					b => b.Rule("unaryExpression"),
@@ -144,7 +146,7 @@ namespace RCParsing.Tests.C
 				.Optional(b => b.Literal("?").Rule("expression").Literal(":").Rule("conditionalExpression"));
 
 			builder.CreateRule("assignmentExpression")
-				.Choice(
+				.LongestChoice(
 					b => b.Rule("unaryExpression").Token("assignmentOperator").Rule("assignmentExpression"),
 					b => b.Rule("conditionalExpression"),
 					b => b.Token("DigitSequence")
@@ -160,7 +162,7 @@ namespace RCParsing.Tests.C
 				.Rule("conditionalExpression");
 
 			builder.CreateRule("declaration")
-				.Choice(
+				.LongestChoice(
 					b => b.Rule("declarationSpecifiers")
 						.Optional(b => b.Rule("initDeclaratorList"))
 						.Literal(";"),
@@ -190,7 +192,7 @@ namespace RCParsing.Tests.C
 				.KeywordChoice("typedef", "extern", "static", "_Thread_local", "auto", "register");
 
 			builder.CreateRule("typeSpecifier")
-				.Choice(
+				.LongestChoice(
 					b => b.KeywordChoice("void", "char", "short", "int", "long", "float", "double",
 										"signed", "unsigned", "_Bool", "_Complex",
 										"__m128", "__m128d", "__m128i"),
@@ -207,7 +209,7 @@ namespace RCParsing.Tests.C
 				);
 
 			builder.CreateRule("structOrUnionSpecifier")
-				.Choice(
+				.LongestChoice(
 					b => b.Token("structOrUnion")
 						.Optional(b => b.Token("Identifier"))
 						.Literal("{").Rule("structDeclarationList").Literal("}"),
@@ -221,13 +223,13 @@ namespace RCParsing.Tests.C
 				.OneOrMore(b => b.Rule("structDeclaration"));
 
 			builder.CreateRule("structDeclaration")
-				.Choice(
+				.LongestChoice(
 					b => b.Rule("specifierQualifierList").Optional(b => b.Rule("structDeclaratorList")).Literal(";"),
 					b => b.Rule("staticAssertDeclaration")
 				);
 
 			builder.CreateRule("specifierQualifierList")
-				.OneOrMore(b => b.Choice(
+				.OneOrMore(b => b.LongestChoice(
 					b => b.Token("typeQualifier"),
 					b => b.Rule("typeSpecifier")
 				));
@@ -240,7 +242,7 @@ namespace RCParsing.Tests.C
 				.OneOrMoreSeparated(b => b.Rule("structDeclarator"), b => b.Literal(","));
 
 			builder.CreateRule("structDeclarator")
-				.Choice(
+				.LongestChoice(
 					b => b.Optional(b => b.Rule("declarator"))
 						.Literal(":").Rule("constantExpression"),
 					b => b.Rule("declarator")
@@ -249,7 +251,7 @@ namespace RCParsing.Tests.C
 			// 18. Enum Specifier
 			builder.CreateRule("enumSpecifier")
 				.Keyword("enum")
-				.Choice(
+				.LongestChoice(
 					b => b.Optional(b => b.Token("Identifier"))
 						.Literal("{").Rule("enumeratorList").Optional(b => b.Literal(",")).Literal("}"),
 					b => b.Token("Identifier")
@@ -270,7 +272,7 @@ namespace RCParsing.Tests.C
 				.Keyword("_Atomic").Literal("(").Rule("typeName").Literal(")");
 
 			builder.CreateRule("functionSpecifier")
-				.Choice(
+				.LongestChoice(
 					b => b.KeywordChoice("inline", "_Noreturn", "__inline__", "__stdcall"),
 					b => b.Rule("gccAttributeSpecifier"),
 					b => b.Keyword("__declspec").Literal("(").Token("Identifier").Literal(")")
@@ -278,7 +280,7 @@ namespace RCParsing.Tests.C
 
 			builder.CreateRule("alignmentSpecifier")
 				.Keyword("_Alignas").Literal("(")
-				.Choice(b => b.Rule("typeName"), b => b.Rule("constantExpression"))
+				.LongestChoice(b => b.Rule("typeName"), b => b.Rule("constantExpression"))
 				.Literal(")");
 
 			builder.CreateRule("declarator")
@@ -287,12 +289,12 @@ namespace RCParsing.Tests.C
 				.ZeroOrMore(b => b.Rule("gccDeclaratorExtension"));
 
 			builder.CreateRule("directDeclarator")
-				.Choice(
+				.LongestChoice(
 					b => b.Literal("(").Optional(b => b.Token("vcSpecificModifer")).Rule("declarator").Literal(")"),
 					b => b.Token("Identifier").Literal(":").Token("DigitSequence"), // bit field
 					b => b.Optional(b => b.Token("vcSpecificModifer")).Token("Identifier") // VC Extension
 				)
-				.ZeroOrMore(b => b.Choice(
+				.ZeroOrMore(b => b.LongestChoice(
 					b => b.Literal("[").Optional(b => b.Rule("typeQualifierList"))
 						.Optional(b => b.Rule("assignmentExpression")).Literal("]"),
 					b => b.Literal("[").Keyword("static")
@@ -310,7 +312,7 @@ namespace RCParsing.Tests.C
 							  "__thiscall", "__vectorcall");
 
 			builder.CreateRule("gccDeclaratorExtension")
-				.Choice(
+				.LongestChoice(
 					b => b.Keyword("__asm").Literal("(").OneOrMore(b => b.Token("StringLiteral")).Literal(")"),
 					b => b.Rule("gccAttributeSpecifier")
 				);
@@ -327,7 +329,7 @@ namespace RCParsing.Tests.C
 				.Optional(b => b.Literal("(").Optional(b => b.Rule("argumentExpressionList")).Literal(")"));
 
 			builder.CreateRule("pointer")
-				.OneOrMore(b => b.Choice(b => b.Literal("*"), b => b.Literal("^")) // ^ - Blocks extension
+				.OneOrMore(b => b.LongestChoice(b => b.Literal("*"), b => b.Literal("^")) // ^ - Blocks extension
 					.Optional(b => b.Rule("typeQualifierList")));
 
 			builder.CreateRule("typeQualifierList")
@@ -341,7 +343,7 @@ namespace RCParsing.Tests.C
 				.OneOrMoreSeparated(b => b.Rule("parameterDeclaration"), b => b.Literal(","));
 
 			builder.CreateRule("parameterDeclaration")
-				.Choice(
+				.LongestChoice(
 					b => b.Rule("declarationSpecifiers").Rule("declarator"),
 					b => b.Rule("declarationSpecifiers").Optional(b => b.Rule("abstractDeclarator"))
 				);
@@ -354,7 +356,7 @@ namespace RCParsing.Tests.C
 				.Optional(b => b.Rule("abstractDeclarator"));
 
 			builder.CreateRule("abstractDeclarator")
-				.Choice(
+				.LongestChoice(
 					b => b.Optional(b => b.Rule("pointer"))
 						.Rule("directAbstractDeclarator")
 						.ZeroOrMore(b => b.Rule("gccDeclaratorExtension")),
@@ -362,7 +364,7 @@ namespace RCParsing.Tests.C
 				);
 
 			builder.CreateRule("directAbstractDeclarator")
-				.Choice(
+				.LongestChoice(
 					b => b.Literal("(").Rule("abstractDeclarator").Literal(")").ZeroOrMore(b => b.Rule("gccDeclaratorExtension")),
 					b => b.Literal("[").Optional(b => b.Rule("typeQualifierList"))
 						.Optional(b => b.Rule("assignmentExpression")).Literal("]"),
@@ -373,7 +375,7 @@ namespace RCParsing.Tests.C
 					b => b.Literal("[").Literal("*").Literal("]"),
 					b => b.Literal("(").Optional(b => b.Rule("parameterTypeList")).Literal(")").ZeroOrMore(b => b.Rule("gccDeclaratorExtension"))
 				)
-				.ZeroOrMore(b => b.Choice(
+				.ZeroOrMore(b => b.LongestChoice(
 					b => b.Literal("[").Optional(b => b.Rule("typeQualifierList"))
 						.Optional(b => b.Rule("assignmentExpression")).Literal("]"),
 					b => b.Literal("[").Keyword("static").Optional(b => b.Rule("typeQualifierList"))
@@ -389,7 +391,7 @@ namespace RCParsing.Tests.C
 				.Token("Identifier");
 
 			builder.CreateRule("initializer")
-				.Choice(
+				.LongestChoice(
 					b => b.Rule("assignmentExpression"),
 					b => b.Literal("{").Rule("initializerList").Optional(b => b.Literal(",")).Literal("}")
 				);
@@ -407,7 +409,7 @@ namespace RCParsing.Tests.C
 				.OneOrMore(b => b.Rule("designator"));
 
 			builder.CreateRule("designator")
-				.Choice(
+				.LongestChoice(
 					b => b.Literal("[").Rule("constantExpression").Literal("]"),
 					b => b.Literal(".").Token("Identifier")
 				);
@@ -417,7 +419,7 @@ namespace RCParsing.Tests.C
 				.OneOrMore(b => b.Token("StringLiteral")).Literal(")").Literal(";");
 
 			builder.CreateRule("statement")
-				.Choice(
+				.LongestChoice(
 					b => b.Rule("labeledStatement"),
 					b => b.Rule("compoundStatement"),
 					b => b.Rule("expressionStatement"),
@@ -434,7 +436,7 @@ namespace RCParsing.Tests.C
 				);
 
 			builder.CreateRule("labeledStatement")
-				.Choice(
+				.LongestChoice(
 					b => b.Token("Identifier").Literal(":").Optional(b => b.Rule("statement")),
 					b => b.Keyword("case").Rule("constantExpression").Literal(":").Rule("statement"),
 					b => b.Keyword("default").Literal(":").Rule("statement")
@@ -447,7 +449,7 @@ namespace RCParsing.Tests.C
 				.OneOrMore(b => b.Rule("blockItem"));
 
 			builder.CreateRule("blockItem")
-				.Choice(
+				.LongestChoice(
 					b => b.Rule("statement"),
 					b => b.Rule("declaration")
 				);
@@ -456,7 +458,7 @@ namespace RCParsing.Tests.C
 				.Optional(b => b.Rule("expression")).Literal(";");
 
 			builder.CreateRule("selectionStatement")
-				.Choice(
+				.LongestChoice(
 					b => b.Keyword("if").Literal("(").Rule("expression").Literal(")")
 						.Rule("statement")
 						.Optional(b => b.Keyword("else").Rule("statement")),
@@ -464,7 +466,7 @@ namespace RCParsing.Tests.C
 				);
 
 			builder.CreateRule("iterationStatement")
-				.Choice(
+				.LongestChoice(
 					b => b.Keyword("while").Literal("(").Rule("expression").Literal(")").Rule("statement"),
 					b => b.Keyword("do").Rule("statement").Keyword("while")
 						.Literal("(").Rule("expression").Literal(")").Literal(";"),
@@ -472,7 +474,7 @@ namespace RCParsing.Tests.C
 				);
 
 			builder.CreateRule("forCondition")
-				.Choice(
+				.LongestChoice(
 					b => b.Rule("forDeclaration"),
 					b => b.Optional(b => b.Rule("expression"))
 				)
@@ -486,7 +488,7 @@ namespace RCParsing.Tests.C
 				.OneOrMoreSeparated(b => b.Rule("assignmentExpression"), b => b.Literal(","));
 
 			builder.CreateRule("jumpStatement")
-				.Choice(
+				.LongestChoice(
 					b => b.Keyword("goto").Token("Identifier"),
 					b => b.Keyword("continue"),
 					b => b.Keyword("break"),
@@ -503,15 +505,17 @@ namespace RCParsing.Tests.C
 				.OneOrMore(b => b.Rule("externalDeclaration"));
 
 			builder.CreateRule("externalDeclaration")
-				.Choice(
+				.LongestChoice(
 					b => b.Rule("declaration"),
 					b => b.Rule("functionDefinition"),
 					b => b.Literal(";") // stray semicolon
 				);
 
 			builder.CreateRule("functionDefinition")
-				.Rule("declarationSpecifier")
-				.Rule("declarator")
+				.OneOrMore(b => b.LongestChoice(
+					b => b.Rule("declarationSpecifier"),
+					b => b.Rule("declarator")
+				))
 				.Optional(b => b.Rule("declarationList"))
 				.Rule("compoundStatement");
 
