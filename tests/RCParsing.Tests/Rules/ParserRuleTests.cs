@@ -26,8 +26,21 @@ namespace RCParsing.Tests.Rules
 				.Token("identifier");
 
 			var parser = builder.Build();
+
+			Assert.Single(parser.TokenPatterns);
+			Assert.Single(parser.Rules);
 		}
-		
+
+		[Fact]
+		public void EmptyBuilding()
+		{
+			var builder = new ParserBuilder();
+			var parser = builder.Build();
+
+			Assert.Empty(parser.TokenPatterns);
+			Assert.Empty(parser.Rules);
+		}
+
 		[Fact]
 		public void SimpleExpressionParsing()
 		{

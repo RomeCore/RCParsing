@@ -10,7 +10,7 @@ namespace RCParsing.Tests.Rules
 	public class ChoiceRuleTests
 	{
 		[Fact]
-		public void FirstChoiceTest_Simple()
+		public void First_Simple()
 		{
 			var builder = new ParserBuilder();
 
@@ -34,7 +34,7 @@ namespace RCParsing.Tests.Rules
 		}
 
 		[Fact]
-		public void FirstChoiceTest_OrderMatters()
+		public void First_OrderMatters()
 		{
 			var builder = new ParserBuilder();
 
@@ -51,7 +51,7 @@ namespace RCParsing.Tests.Rules
 		}
 
 		[Fact]
-		public void LongestChoiceTest_Operators()
+		public void Longest_Operators()
 		{
 			var builder = new ParserBuilder();
 
@@ -75,7 +75,7 @@ namespace RCParsing.Tests.Rules
 		}
 
 		[Fact]
-		public void ChoiceTest_EmptyInput()
+		public void First_EmptyInput()
 		{
 			var builder = new ParserBuilder();
 
@@ -91,7 +91,7 @@ namespace RCParsing.Tests.Rules
 		}
 
 		[Fact]
-		public void ChoiceTest_NoMatchingAlternative()
+		public void First_NoMatchingAlternative()
 		{
 			var builder = new ParserBuilder();
 
@@ -107,7 +107,7 @@ namespace RCParsing.Tests.Rules
 		}
 
 		[Fact]
-		public void ChoiceTest_WithOptional()
+		public void First_WithOptional()
 		{
 			var builder = new ParserBuilder();
 
@@ -136,7 +136,7 @@ namespace RCParsing.Tests.Rules
 		}
 
 		[Fact]
-		public void LongestChoiceTest_OverlappingPatterns()
+		public void Longest_OverlappingPatterns()
 		{
 			var builder = new ParserBuilder();
 
@@ -156,7 +156,7 @@ namespace RCParsing.Tests.Rules
 		}
 
 		[Fact]
-		public void ChoiceTest_MixedRulesAndTokens()
+		public void First_MixedRulesAndTokens()
 		{
 			var builder = new ParserBuilder();
 
@@ -190,7 +190,7 @@ namespace RCParsing.Tests.Rules
 		}
 
 		[Fact]
-		public void ShortestChoiceTest_Behavior()
+		public void Shortest_Behavior()
 		{
 			var builder = new ParserBuilder();
 
@@ -207,7 +207,7 @@ namespace RCParsing.Tests.Rules
 		}
 
 		[Fact]
-		public void ChoiceTest_WithWhitespaceHandling()
+		public void First_WithWhitespaceHandling()
 		{
 			var builder = new ParserBuilder();
 			builder.Settings.SkipWhitespaces();
@@ -226,7 +226,7 @@ namespace RCParsing.Tests.Rules
 		}
 
 		[Fact]
-		public void ChoiceTest_NestedChoices()
+		public void First_NestedChoices()
 		{
 			var builder = new ParserBuilder();
 
@@ -246,6 +246,51 @@ namespace RCParsing.Tests.Rules
 
 			var result2 = parser.Parse<object>("42");
 			Assert.Equal("number", result2);
+		}
+
+		[Fact]
+		public void First_Lookahead()
+		{
+			var builder = new ParserBuilder();
+
+			builder.Settings.UseFirstCharacterMatch().RecordWalkTrace();
+
+			builder.CreateMainRule()
+				.Choice(
+					 b => b.Literal("{"),
+					 b => b.Literal("["),
+					 b => b.Regex("0"), // Non-deterministic
+					 b => b.Literal("("),
+					 b => b.Empty() // It's also non-deterministic
+				);
+
+			var parser = builder.Build();
+
+			var ast1 = parser.Parse("{");
+			Assert.Equal(1, ast1.Length);
+			Assert.Equal(4, ast1.Context.walkTrace.Count);
+
+			var ast2 = parser.Parse("[");
+			Assert.Equal(1, ast2.Length);
+			Assert.Equal(4, ast2.Context.walkTrace.Count);
+
+			var ast3 = parser.Parse("0");
+			Assert.Equal(1, ast3.Length);
+			Assert.Equal(4, ast3.Context.walkTrace.Count);
+
+			var ast4 = parser.Parse("");
+			Assert.Equal(0, ast4.Length);
+			Assert.Equal(6, ast4.Context.walkTrace.Count);
+
+			var ast5 = parser.Parse("x");
+			Assert.Equal(0, ast5.Length);
+			// It will check all of non-deterministic choices and match empty choice
+			Assert.Equal(6, ast5.Context.walkTrace.Count);
+
+			// First it will check non-deterministic choice (our Regex), then will go to '('
+			var ast6 = parser.Parse("(");
+			Assert.Equal(1, ast6.Length);
+			Assert.Equal(6, ast6.Context.walkTrace.Count);
 		}
 	}
 }

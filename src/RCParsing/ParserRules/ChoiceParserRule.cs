@@ -231,8 +231,9 @@ namespace RCParsing.ParserRules
 
 				ParsedRule ParseFirstLookahead(ref ParserContext context, ref ParserSettings settings, ref ParserSettings childSettings)
 				{
-					var ch = context.input[context.position];
-					var candidates = optimizedCandidates[ch];
+					var candidates = context.position < context.maxPosition ?
+						optimizedCandidates[context.input[context.position]] :
+						_nonDeterministic;
 
 					for (int i = 0; i < candidates.Length; i++)
 					{
@@ -256,8 +257,9 @@ namespace RCParsing.ParserRules
 
 				ParsedRule ParseShortestLookahead(ref ParserContext context, ref ParserSettings settings, ref ParserSettings childSettings)
 				{
-					var ch = context.input[context.position];
-					var candidates = optimizedCandidates[ch];
+					var candidates = context.position < context.maxPosition ?
+						optimizedCandidates[context.input[context.position]] :
+						_nonDeterministic;
 
 					int shortestLen = int.MaxValue;
 					ParsedRule shortest = ParsedRule.Fail;
@@ -290,8 +292,9 @@ namespace RCParsing.ParserRules
 
 				ParsedRule ParseLongestLookahead(ref ParserContext context, ref ParserSettings settings, ref ParserSettings childSettings)
 				{
-					var ch = context.input[context.position];
-					var candidates = optimizedCandidates[ch];
+					var candidates = context.position < context.maxPosition ?
+						optimizedCandidates[context.input[context.position]] :
+						_nonDeterministic;
 
 					int longestLen = int.MinValue;
 					ParsedRule longest = ParsedRule.Fail;
