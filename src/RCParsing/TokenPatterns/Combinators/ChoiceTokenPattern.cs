@@ -115,8 +115,9 @@ namespace RCParsing.TokenPatterns.Combinators
 		{
 			if (_optimizedCandidates != null && position < barrierPosition)
 			{
-				var firstChar = input[position];
-				var candidates = _optimizedCandidates[firstChar];
+				var candidates = position < barrierPosition ?
+					_optimizedCandidates[input[position]] :
+					_nonDeterministic;
 
 				switch (Mode)
 				{
