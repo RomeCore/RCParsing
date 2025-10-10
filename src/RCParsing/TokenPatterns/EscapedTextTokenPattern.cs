@@ -71,7 +71,7 @@ namespace RCParsing.TokenPatterns
 			_comparerWasSet = comparer != null;
 			_escape = new Trie(escapeMappings.Select(kvp => new KeyValuePair<string, object?>(kvp.Key, kvp.Value)),
 				comparer != null ? CharComparer : null);
-			_forbidden = new Trie(forbidden,comparer != null ? CharComparer : null);
+			_forbidden = new Trie(forbidden, comparer != null ? CharComparer : null);
 			_escapeNonEmpty = _escape.Count > 0;
 		}
 

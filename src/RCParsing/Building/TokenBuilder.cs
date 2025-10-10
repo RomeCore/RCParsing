@@ -233,6 +233,71 @@ namespace RCParsing.Building
 		}
 
 		/// <summary>
+		/// Adds a lookahead token pattern to the current sequence.
+		/// </summary>
+		/// <param name="isPositive">Determines whether the lookahead is positive (true) or negative (false).</param>
+		/// <param name="builderAction">The action to build the inner token pattern.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if builder action did not add any elements.</exception>
+		public TokenBuilder Lookahead(bool isPositive, Action<TokenBuilder> builderAction)
+		{
+			var builder = new TokenBuilder(ParserBuilder);
+			builderAction(builder);
+
+			if (!builder.CanBeBuilt)
+				throw new ParserBuildingException($"{(isPositive ? "Positive" : "Negative")} lookahead child token pattern cannot be empty.");
+
+			return Token(new BuildableLookaheadTokenPattern
+			{
+				Child = builder.BuildingPattern.Value,
+				IsPositive = isPositive
+			});
+		}
+
+		/// <summary>
+		/// Adds a positive lookahead token pattern to the current sequence.
+		/// </summary>
+		/// <param name="builderAction">The action to build the inner token pattern.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if builder action did not add any elements.</exception>
+		public TokenBuilder PositiveLookahead(Action<TokenBuilder> builderAction)
+		{
+			var builder = new TokenBuilder(ParserBuilder);
+			builderAction(builder);
+
+			if (!builder.CanBeBuilt)
+				throw new ParserBuildingException("Positive lookahead child token pattern cannot be empty.");
+
+			return Token(new BuildableLookaheadTokenPattern
+			{
+				Child = builder.BuildingPattern.Value,
+				IsPositive = true
+			});
+		}
+
+		/// <summary>
+		/// Adds a negative lookahead token pattern to the current sequence.
+		/// </summary>
+		/// <param name="builderAction">The action to build the inner token pattern.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if builder action did not add any elements.</exception>
+		public TokenBuilder NegativeLookahead(Action<TokenBuilder> builderAction)
+		{
+			var builder = new TokenBuilder(ParserBuilder);
+			builderAction(builder);
+
+			if (!builder.CanBeBuilt)
+				throw new ParserBuildingException("Negative lookahead child token pattern cannot be empty.");
+
+			return Token(new BuildableLookaheadTokenPattern
+			{
+				Child = builder.BuildingPattern.Value,
+				IsPositive = false
+			});
+		}
+
+
+		/// <summary>
 		/// Adds a repeatable token pattern to the current sequence with specified minimum and maximum occurrences.
 		/// </summary>
 		/// <param name="builderAction">The token builder action to build the repeatable token.</param>

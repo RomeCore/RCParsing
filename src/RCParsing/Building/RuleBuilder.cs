@@ -337,6 +337,70 @@ namespace RCParsing.Building
 		}
 
 		/// <summary>
+		/// Adds a lookahead rule to the current sequence.
+		/// </summary>
+		/// <param name="isPositive">Whether to perform a positive lookahead (true) or negative lookahead (false).</param>
+		/// <param name="builderAction">The rule builder action to build the child rule.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if the builder action did not add any elements.</exception>
+		public RuleBuilder Lookahead(bool isPositive, Action<RuleBuilder> builderAction)
+		{
+			var builder = new RuleBuilder(ParserBuilder);
+			builderAction(builder);
+
+			if (!builder.CanBeBuilt)
+				throw new ParserBuildingException("Positive lookahead child rule cannot be empty.");
+
+			return Rule(new BuildableLookaheadParserRule
+			{
+				IsPositive = isPositive,
+				Child = builder.BuildingRule.Value
+			});
+		}
+
+		/// <summary>
+		/// Adds a positive lookahead rule to the current sequence.
+		/// </summary>
+		/// <param name="builderAction">The rule builder action to build the child rule.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if the builder action did not add any elements.</exception>
+		public RuleBuilder PositiveLookahead(Action<RuleBuilder> builderAction)
+		{
+			var builder = new RuleBuilder(ParserBuilder);
+			builderAction(builder);
+
+			if (!builder.CanBeBuilt)
+				throw new ParserBuildingException("Positive lookahead child rule cannot be empty.");
+
+			return Rule(new BuildableLookaheadParserRule
+			{
+				IsPositive = true,
+				Child = builder.BuildingRule.Value
+			});
+		}
+
+		/// <summary>
+		/// Adds a negative lookahead rule to the current sequence.
+		/// </summary>
+		/// <param name="builderAction">The rule builder action to build the child rule.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if the builder action did not add any elements.</exception>
+		public RuleBuilder NegativeLookahead(Action<RuleBuilder> builderAction)
+		{
+			var builder = new RuleBuilder(ParserBuilder);
+			builderAction(builder);
+
+			if (!builder.CanBeBuilt)
+				throw new ParserBuildingException("Negative lookahead child rule cannot be empty.");
+
+			return Rule(new BuildableLookaheadParserRule
+			{
+				IsPositive = false,
+				Child = builder.BuildingRule.Value
+			});
+		}
+
+		/// <summary>
 		/// Adds a repeatable rule to the current sequence with specified minimum and maximum occurrences.
 		/// </summary>
 		/// <param name="builderAction">The rule builder action to build the repeatable rule.</param>

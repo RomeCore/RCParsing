@@ -88,8 +88,15 @@ namespace RCParsing
 					topFrame = topFrame.Previous;
 				}
 
-				if (topFrame != null)
-					sb.AppendLine("Stack trace truncated...");
+				int remainingFrames = 0;
+				while (topFrame != null)
+				{
+					remainingFrames++;
+					topFrame = topFrame.Previous;
+				}
+
+				if (remainingFrames > 0)
+					sb.AppendLine($"Stack trace truncated ({remainingFrames} more frame(s) omitted)...");
 
 				sb.Length -= Environment.NewLine.Length;
 

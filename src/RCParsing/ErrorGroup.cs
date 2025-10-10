@@ -321,7 +321,7 @@ namespace RCParsing
 			{
 				sb.AppendLine();
 				var expected = flags.HasFlag(ErrorFormattingFlags.DisplayRules) ?
-					Expected.Select(e => e.ToString()).ToList() : Expected.Tokens.Select(e => e.ToString()).ToList();
+					Expected.Select(e => e.ToString()).Distinct().ToList() : Expected.Tokens.Select(e => e.ToString()).Distinct().ToList();
 				var unexpected = $"'{GetCharacterDisplay(Input, Position, Context.maxPosition)}' is unexpected character";
 
 				if (UnexpectedBarrier != null)

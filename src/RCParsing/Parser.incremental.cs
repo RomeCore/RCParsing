@@ -96,6 +96,8 @@ namespace RCParsing
 				// If fail, reparse current node.
 			}
 
+			// Try to use the special strategy to parse this node (if implemented).
+
 			var rule = _rules[node.ruleId];
 			var specialReparsed = rule.ParseIncrementallyInternal(context,
 				settings, childSettings, node, change, newVersion);

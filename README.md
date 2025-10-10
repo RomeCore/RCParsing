@@ -32,6 +32,10 @@ This library focuses on **Developer-experience (DX)** first, providing best tool
 - 📦 **Batteries Included**: Useful built-in tokens and rules (regex, identifiers, numbers, escaped strings, separated lists, custom tokens, and more...).
 - 🖥️ **Broad Compatibility**: Targets `.NET Standard 2.0` (runs on `.NET Framework 4.6.1+`), `.NET 6.0`, and `.NET 8.0`.
 
+## What will be here in future?
+
+- **Semantic analysis**: Tools for semantic analysis
+
 # Table of contents
 
 - [Installation](#installation)
@@ -654,27 +658,35 @@ This table highlights the unique architectural and usability features of each li
 | **Error Messages**         | **Extremely Detailed, extendable with API** | Simple              | Manual messages        | Simple              | **Simple by default, extendable** |
 | **Minimum .NET Target**    | **.NET Standard 2.0**                       | .NET 7.0            | .NET Standard 2.0      | .NET Standard 2.0   | **.NET Framework 4.5**            |
 
-## Comparison with each library
+### Suitability by language complexity
 
-### ANTLR
+```mermaid
+---
+config:
+  themeVariables:
+    xyChart:
+      title: "Suitability for .NET parsing libraries by language complexity"
+      plotColorPalette: '#25C #2C2, #C22'
+      showDataLabel: true
+---
 
-This is a powerful tool for creating own DSLs with a wide ecosystem and multiple languages support (C#, Java, Python, C++ and others). But it requires a step of code generation and it can be a bit complex to set up for beginners. Also it uses a lexer-based algorithm, so you need to carefully setup a lexer for complex languages, also it barely fits for code/text mixed grammars. Therefore, RCParsing can be a bit slow for complex grammars, but it not tested yet.
+xychart-beta
+    x-axis ["Very simple", "Simple", "Middle", "Complex", "Very complex"]
+    y-axis "Suitability" 0 --> 100
+    line "RCParsing" [95, 92, 85, 55, 20]
+    line "Combinators (Parlot, Pidgin, Sprache, Superpower)" [85, 70, 40, 15, 5]
+    line "ANTLR" [30, 50, 80, 95, 90]
+```
 
-### Parlot
+Legend:
 
-Parlot is known as fastest parser combinator library for .NET with support of context-specific parsing, global skipping and compilation via expression trees. But it's not that friendly for debug, you required to manually place errors in parsers, otherwise you just get nothing on parsing. But RCParsing shown that it is faster than Parlot, and it handles errors automatically, but it does not have global skip-tokens in the combinator style.
+- 🔵 RCParsing
+- 🟢 Combinators
+- 🔴 ANTLR
 
-### Pidgin
+Explanation:
 
-Pidgin is a memory-efficient and fast parser combinator library for .NET with some kind of incremental parsing support. It was created before Parlot and supports streams of any type of input, even binary. It supports LINQ-based syntax for creating parsers, but needs to manually place skip parsers in everything. 
-
-### Sprache and Superpower
-
-The legacy parser combinators for .NET, came out more than 10 years ago, but somewhat unefficient in performance, especially memory usage. But Sprache has the most readable API comparing than Pidgin and Parlot (in my opinion). Superpower is a more modern alternative to Sprache, but uses lexer-based approach and requires more amount of code.
-
-## Why RCParsing outstands
-
-It designed to be a more convenient than other libraries, and later it been optimized and now it has a better performance than other libraries. It also supports both modes: AST and immediate calculations, or them together. RCParsing can produce stack and walk traces for errors, recover from them, and supports incremental parsing.
+**RCParsing** is most suitable for simple and mid-complex languages due to pure Fluent API, flexible skipping and debugging, and also can be suitable for most complex languages if you not care about performance. General combinators such as **Parlot**, **Pidgin**, **Sprache** and **Superpower** can be bad for middle+ complex languages due to debugging limitations and manual character skipping. Then, **ANTLR** uses lexer-based LL(*) algorithm, which guarantees a fastest speed even with complex grammars, but requires a step of code generation and can be overkill for simple languages.
 
 # Benchmarks
 
@@ -691,7 +703,7 @@ AMD Ryzen 5 5600 3.60GHz, 1 CPU, 12 logical and 6 physical cores
 
 ## JSON AST
 
-The JSON value calculation with the typeset `Dictionary<string, object>`, `object[]`, `string`, `int` and `null`.
+The JSON value calculation with the typeset `Dictionary<string, object>`, `object[]`, `string`, `int` and `null`. It uses visitors to transform value from AST (Abstract Syntax Tree).
 
 | Method                                       | Mean           | Error        | StdDev      | Ratio | RatioSD | Gen0     | Gen1    | Allocated | Alloc Ratio |
 |--------------------------------------------- |---------------:|-------------:|------------:|------:|--------:|---------:|--------:|----------:|------------:|
@@ -719,7 +731,7 @@ Notes:
 
 ## JSON Combinators
 
-The JSON value calculation with the typeset `Dictionary<string, object>`, `object[]`, `string`, `int` and `null`.
+The JSON value calculation with the typeset `Dictionary<string, object>`, `object[]`, `string`, `int` and `null`. It uses token combination style for immediate transformations without AST.
 
 | Method                                       | Mean           | Error        | StdDev      | Ratio | RatioSD | Gen0     | Gen1    | Allocated | Alloc Ratio |
 |--------------------------------------------- |---------------:|-------------:|------------:|------:|--------:|---------:|--------:|----------:|------------:|
@@ -798,7 +810,6 @@ Matching identifiers and emails in the plain text.
 | IdentifiersShort_RCParsing_Optimized |   2,930.9 ns |     56.37 ns |    14.64 ns |  0.73 |    0.01 |  0.2518 |      - |    4240 B |        1.00 |
 | IdentifiersShort_Regex               |   2,386.2 ns |    160.57 ns |    41.70 ns |  0.59 |    0.01 |  0.3624 | 0.0076 |    6104 B |        1.44 |
 
-
 Notes:
 
 - `RCParsing` uses naive pattern for matching, without any optimization settings applied.
@@ -806,6 +817,28 @@ Notes:
 - `Regex` uses `RegexOptions.Compiled` flags.
 - `Identifiers` pattern is `[a-zA-Z_][a-zA-Z0-9_]*`.
 - `Emails` pattern is `[a-zA-Z0-9]+@[a-zA-Z0-9]+\.[a-zA-Z0-9]+`.
+
+## GraphQL
+
+Just GraphQL parsing without transformations from AST. GraphQL is a mid-complex language that can be described in 600 lines of ANTLR's version of BNF notation. 
+
+| Method                                 | Mean        | Error      | StdDev    | Ratio | RatioSD | Gen0     | Gen1     | Gen2    | Allocated  | Alloc Ratio |
+|--------------------------------------- |------------:|-----------:|----------:|------:|--------:|---------:|---------:|--------:|-----------:|------------:|
+| QueryBig_RCParsing_Default             |   751.06 us |  31.508 us | 11.236 us |  1.00 |    0.02 |  30.2734 |  15.6250 |  4.8828 |  555.85 KB |        1.00 |
+| QueryBig_RCParsing_Optimized           |   343.41 us |   5.090 us |  2.260 us |  0.46 |    0.01 |  18.0664 |   4.8828 |       - |  298.66 KB |        0.54 |
+| QueryBig_ANTLR                         | 1,217.86 us |   7.620 us |  2.717 us |  1.62 |    0.02 |  35.1563 |  11.7188 |       - |  590.55 KB |        1.06 |
+|                                        |             |            |           |       |         |          |          |         |            |             |
+| QueryShort_RCParsing_Default           |    69.97 us |   0.354 us |  0.126 us |  1.00 |    0.00 |   4.1504 |   0.4883 |       - |   69.28 KB |        1.00 |
+| QueryShort_RCParsing_Optimized         |    46.66 us |  14.940 us |  6.633 us |  0.67 |    0.09 |   2.1973 |   0.1221 |       - |   36.85 KB |        0.53 |
+| QueryShort_ANTLR                       |    69.40 us |   1.888 us |  0.838 us |  0.99 |    0.01 |   5.9814 |   0.7324 |       - |    99.2 KB |        1.43 |
+
+Notes:
+
+- `RCParsing` uses its default configuration, without any optimizations and settings applied.
+- `RCParsing_Optimized` uses `UseInlining()`, `IgnoreErrors()` and `UseFirstCharacterMatch()` settings.
+- `RCParsing` grammar was ported from this [ANTLR Grammar](https://github.com/antlr/grammars-v4/blob/master/graphql/GraphQL.g4).
+- `QueryShort` methods uses ~40 lines of hardcoded (not generated) GraphQL query.
+- `QueryBig` methods uses ~400 lines of hardcoded (not generated) GraphQL query with various content (all syntax structures, long and deep queries).
 
 *More benchmarks will be later here...*
 

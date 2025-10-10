@@ -374,7 +374,7 @@ namespace RCParsing.Tests.Rules
 
 			var parser = builder.Build();
 
-			var result = parser.ParseRule("id", "test", "prefix_");
+			var result = parser.ParseRule("id", "test", parameter: "prefix_");
 			Assert.Equal("prefix_test", result.Value);
 		}
 	}

@@ -290,7 +290,8 @@ namespace RCParsing
 					break;
 
 				case ParserErrorHandlingMode.Throw:
-					throw error.ToException(this);
+					errors.Add(error);
+					throw new ParsingException(this);
 			}
 		}
 

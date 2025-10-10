@@ -448,7 +448,15 @@ namespace RCParsing
 		private static void ValidateReparseContext(ParserContext oldContext, ParserContext newContext)
 		{
 			if (oldContext.position != newContext.position)
-				throw new InvalidOperationException("Cannot reparse the context with mismatched minimum and maximum positions.");
+				throw new InvalidOperationException("Cannot reparse the context with mismatched minimum positions.");
+		}
+
+		private static void ValidateReparseContextChange(ParserContext oldContext, ParserContext newContext, TextChange change)
+		{
+			var maxPosDelta = oldContext.maxPosition - newContext.maxPosition;
+			var changeDelta = change.oldLength - change.newLength;
+			if (maxPosDelta != changeDelta)
+				throw new InvalidOperationException("Cannot reparse the context with mismatched maximum (input length) positions.");
 		}
 
 		/// <summary>
@@ -464,8 +472,9 @@ namespace RCParsing
 			var newContext = parser.CreateContext(input, parameter);
 
 			ValidateReparseContext(context, newContext);
-
 			var change = new TextChange(context.input, newContext.input);
+			ValidateReparseContextChange(context, newContext, change);
+
 			var reparsed = parser.ParseIncrementally(Result, newContext, change);
 			return Updated(newContext, reparsed);
 		}
@@ -484,8 +493,9 @@ namespace RCParsing
 			var newContext = parser.CreateContext(input, startIndex, parameter);
 
 			ValidateReparseContext(context, newContext);
-
 			var change = new TextChange(context.input, newContext.input);
+			ValidateReparseContextChange(context, newContext, change);
+
 			var reparsed = parser.ParseIncrementally(Result, newContext, change);
 			return Updated(newContext, reparsed);
 		}
@@ -505,8 +515,9 @@ namespace RCParsing
 			var newContext = parser.CreateContext(input, startIndex, length, parameter);
 
 			ValidateReparseContext(context, newContext);
-
 			var change = new TextChange(context.input, newContext.input);
+			ValidateReparseContextChange(context, newContext, change);
+
 			var reparsed = parser.ParseIncrementally(Result, newContext, change);
 			return Updated(newContext, reparsed);
 		}
@@ -523,9 +534,10 @@ namespace RCParsing
 			if (context.parser != _context.parser)
 				throw new InvalidOperationException("Cannot reparse the context with different parsers.");
 
-			ValidateReparseContext(_context, context);
+			ValidateReparseContext(context, context);
+			var change = new TextChange(context.input, context.input);
+			ValidateReparseContextChange(context, context, change);
 
-			var change = new TextChange(_context.input, context.input);
 			var reparsed = parser.ParseIncrementally(Result, context, change);
 			return Updated(context, reparsed);
 		}
@@ -543,7 +555,8 @@ namespace RCParsing
 			if (context.parser != _context.parser)
 				throw new InvalidOperationException("Cannot reparse the context with different parsers.");
 
-			ValidateReparseContext(_context, context);
+			ValidateReparseContext(context, context);
+			ValidateReparseContextChange(context, context, change);
 
 			var reparsed = parser.ParseIncrementally(Result, context, change);
 			return Updated(context, reparsed);
