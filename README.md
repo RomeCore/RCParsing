@@ -49,7 +49,7 @@ This library focuses on **Developer-experience (DX)** first, providing best tool
 	- [JSON Combinators](#json-combinators) - Comparing JSON parsing across combinators, uses parser with token combination style for maximum speed.
 	- [Expressions](#expressions) - Calculating expressions with '+-*/' operators with precedence rules.
 	- [Regex](#regex) - Finding identifiers and emails in plain text using regex-like `FindAllMatches` feature.
-	- [Python](#python) - Parsing entire Python 3.13.
+	- [Python](#python) - Parsing entire the Python 3.13 grammar.
 - [Projects using RCParsing](#projects-using-rcparsing)
 - [Roadmap](#roadmap)
 - [Contributing](#contributing)
