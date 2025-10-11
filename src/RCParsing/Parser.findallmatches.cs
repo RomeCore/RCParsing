@@ -49,8 +49,9 @@ namespace RCParsing
 			}
 
 			if (settings.skipRule == -1 ||
-				settings.skippingStrategy == ParserSkippingStrategy.Default ||
-				context.positionsToAvoidSkipping[context.position])
+				settings.skippingStrategy == ParserSkippingStrategy.Default
+				// || context.positionsToAvoidSkipping[context.position]
+				)
 			{
 				while (context.position < context.maxPosition)
 				{

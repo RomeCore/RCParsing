@@ -292,5 +292,28 @@ namespace RCParsing.Tests.Rules
 			Assert.Equal(1, ast6.Length);
 			Assert.Equal(6, ast6.Context.walkTrace.Count);
 		}
+
+		[Fact]
+		public void Optional_Match()
+		{
+			var builder = new ParserBuilder();
+
+			builder.Settings.UseFirstCharacterMatch();
+
+			builder.CreateMainRule()
+				.Choice(
+					 b => b.Optional(b => b.Literal('{')),
+					 b => b.Optional(b => b.Literal('}'))
+				);
+
+			var parser = builder.Build();
+
+			var ast1 = parser.Parse("{");
+			Assert.Equal(1, ast1.Length);
+
+			// Despite to lookahead, it will match optional choice
+			var ast2 = parser.Parse("}");
+			Assert.Equal(0, ast2.Length);
+		}
 	}
 }

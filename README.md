@@ -26,15 +26,11 @@ This library focuses on **Developer-experience (DX)** first, providing best tool
 - 🧩 **Combinator Style**: Unlock maximum performance by defining complex tokens with immediate value transformation, bypassing the AST construction entirely for a direct, allocation-free result. Perfect for high-speed parsing of well-defined formats. Also can be used with AST mode.
 - 🐛 **Superior Debugging**: Get detailed, actionable error messages with stack traces, walk traces and precise source locations. Richest API for manual error information included.
 - 🚑 **Error Recovery**: Define custom recovery strategies per rule to handle syntax errors and go further.
-- ⚡ **Blazing Fast**: Performance is now on par with the fastest .NET parsing libraries (see benchmarks below).
+- ⚡ **Blazing Fast**: Performance is now on par with the fastest .NET parsing libraries, even with most complex grammars (see benchmarks below).
 - 🌳 **Rich AST**: Parser makes an AST (Abstract Syntax Tree) from raw text, with ability to optimize, fully analyze and calculate the result value entirely lazy, reducing unnecessary allocations.
 - 🔧 **Configurable Skipping**: Advanced strategies for whitespace and comments, allowing you to use conflicting tokens in your main rules.
 - 📦 **Batteries Included**: Useful built-in tokens and rules (regex, identifiers, numbers, escaped strings, separated lists, custom tokens, and more...).
 - 🖥️ **Broad Compatibility**: Targets `.NET Standard 2.0` (runs on `.NET Framework 4.6.1+`), `.NET 6.0`, and `.NET 8.0`.
-
-## What will be here in future?
-
-- **Semantic analysis**: Tools for semantic analysis
 
 # Table of contents
 
@@ -49,10 +45,11 @@ This library focuses on **Developer-experience (DX)** first, providing best tool
 	- [Errors example](#errors-example) - Just a simple example of how errors look in default and debug modes.
 - [Comparison with other parsing libraries](#comparison-with-other-parsing-libraries)
 - [Benchmarks](#benchmarks)
-	- [JSON AST](#json-ast)
-	- [JSON Combinators](#json-combinators)
-	- [Expressions](#expressions)
-	- [Regex](#regex)
+	- [JSON AST](#json-ast) - Comparing JSON parsing with ANTLR, uses JSON parser with default rule-based style.
+	- [JSON Combinators](#json-combinators) - Comparing JSON parsing across combinators, uses parser with token combination style for maximum speed.
+	- [Expressions](#expressions) - Calculating expressions with '+-*/' operators with precedence rules.
+	- [Regex](#regex) - Finding identifiers and emails in plain text using regex-like `FindAllMatches` feature.
+	- [Python](#python) - Parsing entire Python 3.13.
 - [Projects using RCParsing](#projects-using-rcparsing)
 - [Roadmap](#roadmap)
 - [Contributing](#contributing)
@@ -73,9 +70,11 @@ Or do it manually by cloning this repository.
 # Tutorials, docs and examples
 
 - [Tutorials](https://romecore.github.io/RCParsing/guide/) - The tutorial website, not completely migrated from the markdown version yet.
-- [Tutorials (old)](https://github.com/RomeCore/RCParsing/blob/main/docs_md/tutorials.md) - Detailed tutorials in the Markdown file, explaining features and mechanics of this library, highly recommended to read!
+- [Tutorials (old)](https://github.com/RomeCore/RCParsing/blob/main/docs_md/tutorials.md) - Detailed tutorials in the Markdown file, explaining features and mechanics of this library.
 - [Syntax colorizer](https://github.com/RomeCore/RCParsing/tree/main/samples/SyntaxColorizer) - The syntax colorizer sample that automatically colorizes text based on provided parser.
 - [Math calculator](https://github.com/RomeCore/RCParsing/tree/main/samples/MathCalculator) - Math expression evaluator with support of power, math functions and constants.
+- [ANTLR to RCParsing converter](https://github.com/RomeCore/RCParsing/tree/main/samples/ANTLRToRCParsingConverter) - Simple tool for generating RCParsing API code from ANTLR rules.
+- [Tests Library](https://github.com/RomeCore/RCParsing/tree/main/tests/RCParsing.Tests) - The tests directory that contains tests for various things, including C, GraphQL and Python.
 
 # Simple examples
 
@@ -632,18 +631,7 @@ Walk Trace:
 
 # Comparison with Other Parsing Libraries
 
-`RCParsing` is designed to outstand with unique features, and **easy** developer experience, but it is good enough to compete with other fastest parser tools.
-
-### Performance at a Glance (based on benchmarks)
-
-| Library        | Speed (Relative to RCParsing default mode)  | Speed (Relative to RCParsing token combination style) | Memory Efficiency                      | Type              |
-| :------------- | :------------------------------------------ | :---------------------------------------------------- | :------------------------------------- | :---------------- |
-| **RCParsing**  | 1.00x (baseline)                            | **1.00x (baseline), ~5.00x faster than default**      | **High or Excellent** (based on style) | **Both**          |
-| **Parlot**     | **~3.50x-3.70x faster**                     | ~1.20x-1.45x slower                                   | **Excellent**                          | Combinator        |
-| **Pidgin**     | ~1.45x-3.00x slower                         | ~6.75x-13.55x slower                                  | **Excellent**                          | Combinator        |
-| **ANTLR**      | ~1.20x-1.30x slower                         | ~6.60x-7.30x slower                                   | High                                   | AST-based         |
-| **Superpower** | ~8.00x-8.10x slower                         | ~40.75x slower                                        | Medium                                 | Combinator        |
-| **Sprache**    | ~7.50x-8.10x slower                         | ~41.00x slower                                        | Very low                               | Combinator        |
+`RCParsing` is designed to outstand with unique features, and **easy** developer experience, but it performance is good enough to compete with other fastest parser tools.
 
 ### Feature Comparison
 
@@ -657,36 +645,6 @@ This table highlights the unique architectural and usability features of each li
 | **Skipping**               | **6 strategies, global or manual**          | Manual              | Global or manual       | Lexer-based         | Lexer-based                       |
 | **Error Messages**         | **Extremely Detailed, extendable with API** | Simple              | Manual messages        | Simple              | **Simple by default, extendable** |
 | **Minimum .NET Target**    | **.NET Standard 2.0**                       | .NET 7.0            | .NET Standard 2.0      | .NET Standard 2.0   | **.NET Framework 4.5**            |
-
-### Suitability by language complexity
-
-```mermaid
----
-config:
-  themeVariables:
-    xyChart:
-      title: "Suitability for .NET parsing libraries by language complexity"
-      plotColorPalette: '#25C #2C2, #C22'
-      showDataLabel: true
----
-
-xychart-beta
-    x-axis ["Very simple", "Simple", "Middle", "Complex", "Very complex"]
-    y-axis "Suitability" 0 --> 100
-    line "RCParsing" [95, 92, 85, 55, 20]
-    line "Combinators (Parlot, Pidgin, Sprache, Superpower)" [85, 70, 40, 15, 5]
-    line "ANTLR" [30, 50, 80, 95, 90]
-```
-
-Legend:
-
-- 🔵 RCParsing
-- 🟢 Combinators
-- 🔴 ANTLR
-
-Explanation:
-
-**RCParsing** is most suitable for simple and mid-complex languages due to pure Fluent API, flexible skipping and debugging, and also can be suitable for most complex languages if you not care about performance. General combinators such as **Parlot**, **Pidgin**, **Sprache** and **Superpower** can be bad for middle+ complex languages due to debugging limitations and manual character skipping. Then, **ANTLR** uses lexer-based LL(*) algorithm, which guarantees a fastest speed even with complex grammars, but requires a step of code generation and can be overkill for simple languages.
 
 # Benchmarks
 
@@ -707,19 +665,19 @@ The JSON value calculation with the typeset `Dictionary<string, object>`, `objec
 
 | Method                                       | Mean           | Error        | StdDev      | Ratio | RatioSD | Gen0     | Gen1    | Allocated | Alloc Ratio |
 |--------------------------------------------- |---------------:|-------------:|------------:|------:|--------:|---------:|--------:|----------:|------------:|
-| JsonBig_RCParsing                            |   166,213.0 ns |  6,623.77 ns | 2,362.10 ns |  1.00 |    0.02 |  13.1836 |  3.4180 |  222376 B |        1.00 |
-| JsonBig_RCParsing_NoValue                    |   132,519.0 ns |  1,187.88 ns |   527.43 ns |  0.80 |    0.01 |   8.0566 |  2.4414 |  138512 B |        0.62 |
-| JsonBig_RCParsing_Optimized                  |    98,398.9 ns |    500.44 ns |   222.20 ns |  0.59 |    0.01 |   9.2773 |  2.1973 |  156752 B |        0.70 |
-| JsonBig_RCParsing_Optimized_NoValue          |    65,744.2 ns |    279.39 ns |   124.05 ns |  0.40 |    0.01 |   4.2725 |  0.9766 |   72888 B |        0.33 |
-| JsonBig_ANTLR                                |   191,451.1 ns |    668.94 ns |   297.02 ns |  1.15 |    0.01 |  19.5313 |  7.5684 |  330584 B |        1.49 |
-| JsonBig_ANTLR_NoValue                        |   126,522.5 ns |    703.35 ns |   312.29 ns |  0.76 |    0.01 |  10.7422 |  3.9063 |  180232 B |        0.81 |
+| JsonBig_RCParsing                            |   204,608.9 ns | 12,662.21 ns | 5,622.10 ns |  1.00 |    0.04 |  13.1836 |  3.9063 |  221880 B |        1.00 |
+| JsonBig_RCParsing_NoValue                    |   159,211.6 ns |  2,989.65 ns | 1,066.14 ns |  0.78 |    0.02 |   8.0566 |  2.4414 |  138016 B |        0.62 |
+| JsonBig_RCParsing_Optimized                  |    93,754.2 ns |    809.58 ns |   359.46 ns |  0.46 |    0.01 |   9.2773 |  2.0752 |  156256 B |        0.70 |
+| JsonBig_RCParsing_Optimized_NoValue          |    75,500.3 ns | 17,682.37 ns | 7,851.08 ns |  0.37 |    0.04 |   4.2725 |  0.8545 |   72392 B |        0.33 |
+| JsonBig_ANTLR                                |   183,579.8 ns |  2,031.71 ns |   902.09 ns |  0.90 |    0.02 |  19.5313 |  7.5684 |  330584 B |        1.49 |
+| JsonBig_ANTLR_NoValue                        |   122,045.1 ns |    708.53 ns |   314.59 ns |  0.60 |    0.02 |  10.7422 |  4.1504 |  180232 B |        0.81 |
 |                                              |                |              |             |       |         |          |         |           |             |
-| JsonShort_RCParsing                          |     8,993.1 ns |     38.48 ns |    13.72 ns |  1.00 |    0.00 |   0.6561 |       - |   11032 B |        1.00 |
-| JsonShort_RCParsing_NoValue                  |     7,115.5 ns |     31.02 ns |    13.77 ns |  0.79 |    0.00 |   0.3891 |       - |    6632 B |        0.60 |
-| JsonShort_RCParsing_Optimized                |     5,312.8 ns |     44.35 ns |    19.69 ns |  0.59 |    0.00 |   0.5341 |  0.0076 |    9016 B |        0.82 |
-| JsonShort_RCParsing_Optimized_NoValue        |     3,585.8 ns |     26.96 ns |    11.97 ns |  0.40 |    0.00 |   0.2747 |       - |    4616 B |        0.42 |
-| JsonShort_ANTLR                              |    10,166.4 ns |     46.71 ns |    16.66 ns |  1.13 |    0.00 |   1.1444 |  0.0305 |   19360 B |        1.75 |
-| JsonShort_ANTLR_NoValue                      |     6,926.1 ns |     56.58 ns |    25.12 ns |  0.77 |    0.00 |   0.6332 |  0.0229 |   10600 B |        0.96 |
+| JsonShort_RCParsing                          |    10,349.6 ns |    124.24 ns |    44.30 ns |  1.00 |    0.01 |   0.6409 |       - |   10936 B |        1.00 |
+| JsonShort_RCParsing_NoValue                  |     8,377.9 ns |    112.15 ns |    49.79 ns |  0.81 |    0.01 |   0.3815 |       - |    6536 B |        0.60 |
+| JsonShort_RCParsing_Optimized                |     5,349.1 ns |     51.37 ns |    18.32 ns |  0.52 |    0.00 |   0.5264 |  0.0076 |    8920 B |        0.82 |
+| JsonShort_RCParsing_Optimized_NoValue        |     3,409.7 ns |     21.47 ns |     9.53 ns |  0.33 |    0.00 |   0.2670 |       - |    4520 B |        0.41 |
+| JsonShort_ANTLR                              |    10,132.4 ns |    113.86 ns |    40.60 ns |  0.98 |    0.01 |   1.1444 |  0.0305 |   19360 B |        1.77 |
+| JsonShort_ANTLR_NoValue                      |     6,667.6 ns |     44.08 ns |    19.57 ns |  0.64 |    0.00 |   0.6332 |  0.0229 |   10600 B |        0.97 |
 
 Notes:
 
@@ -735,23 +693,23 @@ The JSON value calculation with the typeset `Dictionary<string, object>`, `objec
 
 | Method                                       | Mean           | Error        | StdDev      | Ratio | RatioSD | Gen0     | Gen1    | Allocated | Alloc Ratio |
 |--------------------------------------------- |---------------:|-------------:|------------:|------:|--------:|---------:|--------:|----------:|------------:|
-| JsonBig_RCParsing                            |   166,213.0 ns |  6,623.77 ns | 2,362.10 ns |  1.00 |    0.02 |  13.1836 |  3.4180 |  222376 B |        1.00 |
-| JsonBig_RCParsing_NoValue                    |   132,519.0 ns |  1,187.88 ns |   527.43 ns |  0.80 |    0.01 |   8.0566 |  2.4414 |  138512 B |        0.62 |
-| JsonBig_RCParsing_TokenCombination           |    29,418.8 ns |    282.64 ns |   125.49 ns |  0.18 |    0.00 |   2.5635 |  0.1831 |   43096 B |        0.19 |
-| JsonBig_RCParsing_TokenCombination_NoValue   |    17,654.4 ns |    280.98 ns |   100.20 ns |  0.11 |    0.00 |   0.4883 |       - |    8312 B |        0.04 |
-| JsonBig_Parlot                               |    41,223.5 ns |    334.42 ns |   148.48 ns |  0.25 |    0.00 |   1.9531 |  0.1221 |   32848 B |        0.15 |
-| JsonBig_Pidgin                               |   203,084.5 ns |    871.36 ns |   386.89 ns |  1.22 |    0.02 |   3.9063 |  0.2441 |   66816 B |        0.30 |
-| JsonBig_Superpower                           | 1,192,126.5 ns |  6,339.95 ns | 2,260.89 ns |  7.17 |    0.09 |  39.0625 |  5.8594 |  653627 B |        2.94 |
-| JsonBig_Sprache                              | 1,186,974.3 ns | 17,918.07 ns | 6,389.76 ns |  7.14 |    0.10 | 232.4219 | 27.3438 | 3899736 B |       17.54 |
+| JsonBig_RCParsing                            |   204,608.9 ns | 12,662.21 ns | 5,622.10 ns |  1.00 |    0.04 |  13.1836 |  3.9063 |  221880 B |        1.00 |
+| JsonBig_RCParsing_NoValue                    |   159,211.6 ns |  2,989.65 ns | 1,066.14 ns |  0.78 |    0.02 |   8.0566 |  2.4414 |  138016 B |        0.62 |
+| JsonBig_RCParsing_TokenCombination           |    28,764.1 ns |    396.91 ns |   176.23 ns |  0.14 |    0.00 |   2.5635 |  0.1831 |   43096 B |        0.19 |
+| JsonBig_RCParsing_TokenCombination_NoValue   |    17,508.8 ns |     84.55 ns |    37.54 ns |  0.09 |    0.00 |   0.4883 |       - |    8312 B |        0.04 |
+| JsonBig_Parlot                               |    41,634.4 ns |    232.42 ns |   103.20 ns |  0.20 |    0.01 |   1.9531 |  0.1221 |   32848 B |        0.15 |
+| JsonBig_Pidgin                               |   197,369.0 ns |    617.13 ns |   274.01 ns |  0.97 |    0.02 |   3.9063 |  0.2441 |   66816 B |        0.30 |
+| JsonBig_Superpower                           | 1,184,126.8 ns |  8,091.53 ns | 3,592.69 ns |  5.79 |    0.15 |  39.0625 |  5.8594 |  653627 B |        2.95 |
+| JsonBig_Sprache                              | 1,146,488.4 ns |  6,118.19 ns | 2,716.52 ns |  5.61 |    0.14 | 232.4219 | 27.3438 | 3899736 B |       17.58 |
 |                                              |                |              |             |       |         |          |         |           |             |
-| JsonShort_RCParsing                          |     8,993.1 ns |     38.48 ns |    13.72 ns |  1.00 |    0.00 |   0.6561 |       - |   11032 B |        1.00 |
-| JsonShort_RCParsing_NoValue                  |     7,115.5 ns |     31.02 ns |    13.77 ns |  0.79 |    0.00 |   0.3891 |       - |    6632 B |        0.60 |
-| JsonShort_RCParsing_TokenCombination         |     1,481.1 ns |     18.81 ns |     8.35 ns |  0.16 |    0.00 |   0.1354 |       - |    2280 B |        0.21 |
-| JsonShort_RCParsing_TokenCombination_NoValue |       944.3 ns |      4.24 ns |     1.88 ns |  0.11 |    0.00 |   0.0334 |       - |     568 B |        0.05 |
-| JsonShort_Parlot                             |     2,292.3 ns |      4.91 ns |     2.18 ns |  0.25 |    0.00 |   0.1144 |       - |    1960 B |        0.18 |
-| JsonShort_Pidgin                             |    11,392.7 ns |     81.91 ns |    36.37 ns |  1.27 |    0.00 |   0.2136 |       - |    3664 B |        0.33 |
-| JsonShort_Superpower                         |    64,844.8 ns |    387.06 ns |   171.86 ns |  7.21 |    0.02 |   1.9531 |       - |   34117 B |        3.09 |
-| JsonShort_Sprache                            |    63,070.5 ns |  1,094.44 ns |   485.94 ns |  7.01 |    0.05 |  12.6953 |  0.2441 |  213168 B |       19.32 |
+| JsonShort_RCParsing                          |    10,349.6 ns |    124.24 ns |    44.30 ns |  1.00 |    0.01 |   0.6409 |       - |   10936 B |        1.00 |
+| JsonShort_RCParsing_NoValue                  |     8,377.9 ns |    112.15 ns |    49.79 ns |  0.81 |    0.01 |   0.3815 |       - |    6536 B |        0.60 |
+| JsonShort_RCParsing_TokenCombination         |     1,503.5 ns |     18.96 ns |     8.42 ns |  0.15 |    0.00 |   0.1354 |       - |    2280 B |        0.21 |
+| JsonShort_RCParsing_TokenCombination_NoValue |       980.6 ns |     16.23 ns |     7.21 ns |  0.09 |    0.00 |   0.0324 |       - |     568 B |        0.05 |
+| JsonShort_Parlot                             |     2,224.6 ns |      9.00 ns |     4.00 ns |  0.21 |    0.00 |   0.1144 |       - |    1960 B |        0.18 |
+| JsonShort_Pidgin                             |    10,881.9 ns |    216.14 ns |    95.97 ns |  1.05 |    0.01 |   0.2136 |       - |    3664 B |        0.34 |
+| JsonShort_Superpower                         |    66,092.8 ns |    241.35 ns |    86.07 ns |  6.39 |    0.03 |   1.9531 |       - |   34117 B |        3.12 |
+| JsonShort_Sprache                            |    62,895.2 ns |    496.98 ns |   220.66 ns |  6.08 |    0.03 |  12.6953 |  0.2441 |  213168 B |       19.49 |
 
 Notes:
 
@@ -822,15 +780,15 @@ Notes:
 
 Just GraphQL parsing without transformations from AST. GraphQL is a mid-complex language that can be described in 600 lines of ANTLR's version of BNF notation. 
 
-| Method                                 | Mean        | Error      | StdDev    | Ratio | RatioSD | Gen0     | Gen1     | Gen2    | Allocated  | Alloc Ratio |
-|--------------------------------------- |------------:|-----------:|----------:|------:|--------:|---------:|---------:|--------:|-----------:|------------:|
-| QueryBig_RCParsing_Default             |   751.06 us |  31.508 us | 11.236 us |  1.00 |    0.02 |  30.2734 |  15.6250 |  4.8828 |  555.85 KB |        1.00 |
-| QueryBig_RCParsing_Optimized           |   343.41 us |   5.090 us |  2.260 us |  0.46 |    0.01 |  18.0664 |   4.8828 |       - |  298.66 KB |        0.54 |
-| QueryBig_ANTLR                         | 1,217.86 us |   7.620 us |  2.717 us |  1.62 |    0.02 |  35.1563 |  11.7188 |       - |  590.55 KB |        1.06 |
-|                                        |             |            |           |       |         |          |          |         |            |             |
-| QueryShort_RCParsing_Default           |    69.97 us |   0.354 us |  0.126 us |  1.00 |    0.00 |   4.1504 |   0.4883 |       - |   69.28 KB |        1.00 |
-| QueryShort_RCParsing_Optimized         |    46.66 us |  14.940 us |  6.633 us |  0.67 |    0.09 |   2.1973 |   0.1221 |       - |   36.85 KB |        0.53 |
-| QueryShort_ANTLR                       |    69.40 us |   1.888 us |  0.838 us |  0.99 |    0.01 |   5.9814 |   0.7324 |       - |    99.2 KB |        1.43 |
+| Method                                 | Mean        | Error     | StdDev    | Ratio | RatioSD | Gen0     | Gen1    | Gen2    | Allocated  | Alloc Ratio |
+|--------------------------------------- |------------:|----------:|----------:|------:|--------:|---------:|--------:|--------:|-----------:|------------:|
+| QueryBig_RCParsing_Default             | 1,645.29 us |  6.565 us |  2.915 us |  1.00 |    0.00 |  27.3438 |  9.7656 |  1.9531 |  554.86 KB |        1.00 |
+| QueryBig_RCParsing_Optimized           |   453.46 us | 18.405 us |  8.172 us |  0.28 |    0.00 |  18.0664 |  4.3945 |       - |  295.82 KB |        0.53 |
+| QueryBig_ANTLR                         | 1,200.23 us |  7.136 us |  2.545 us |  0.73 |    0.00 |  35.1563 | 11.7188 |       - |  590.55 KB |        1.06 |
+|                                        |             |           |           |       |         |          |         |         |            |             |
+| QueryShort_RCParsing_Default           |   162.92 us |  0.479 us |  0.171 us |  1.00 |    0.00 |   4.1504 |  0.4883 |       - |   69.15 KB |        1.00 |
+| QueryShort_RCParsing_Optimized         |    47.14 us |  0.347 us |  0.154 us |  0.29 |    0.00 |   2.0752 |  0.1221 |       - |   34.86 KB |        0.50 |
+| QueryShort_ANTLR                       |    66.79 us |  0.569 us |  0.253 us |  0.41 |    0.00 |   5.9814 |  0.7324 |       - |    99.2 KB |        1.43 |
 
 Notes:
 
@@ -840,11 +798,38 @@ Notes:
 - `QueryShort` methods uses ~40 lines of hardcoded (not generated) GraphQL query.
 - `QueryBig` methods uses ~400 lines of hardcoded (not generated) GraphQL query with various content (all syntax structures, long and deep queries).
 
+## Python
+
+Yes, seriously, the entire Python 3.13 parsing, without transformations from AST. Involves barrier tokens for RCParsing and custom lexer for ANTLR.
+
+| Method                                  | Mean        | Error     | StdDev    | Ratio | RatioSD | Gen0     | Gen1     | Gen2     | Allocated   | Alloc Ratio |
+|---------------------------------------- |------------:|----------:|----------:|------:|--------:|---------:|---------:|---------:|------------:|------------:|
+| PythonBig_RCParsing_Default             | 36,722.4 us | 638.32 us | 283.42 us |  1.00 |    0.01 | 384.6154 | 307.6923 | 153.8462 | 37397.21 KB |        1.00 |
+| PythonBig_RCParsing_Optimized           |  6,133.8 us |  11.42 us |   4.07 us |  0.17 |    0.00 | 218.7500 | 109.3750 |        - |  3863.07 KB |        0.10 |
+| PythonBig_RCParsing_Memoized            |          NA |        NA |        NA |     ? |       ? |       NA |       NA |       NA |          NA |           ? |
+| PythonBig_RCParsing_MemoizedOptimized   |          NA |        NA |        NA |     ? |       ? |       NA |       NA |       NA |          NA |           ? |
+| PythonBig_ANTLR                         |  5,673.8 us |  18.01 us |   8.00 us |  0.15 |    0.00 | 406.2500 | 281.2500 |        - |  6699.11 KB |        0.18 |
+|                                         |             |           |           |       |         |          |          |          |             |             |
+| PythonShort_RCParsing_Default           |  3,696.3 us |  37.07 us |  16.46 us |  1.00 |    0.01 |  42.9688 |  23.4375 |   7.8125 |  2555.13 KB |        1.00 |
+| PythonShort_RCParsing_Optimized         |    710.3 us |   7.08 us |   2.52 us |  0.19 |    0.00 |  27.3438 |   5.8594 |        - |   460.98 KB |        0.18 |
+| PythonShort_RCParsing_Memoized          |  1,579.9 us |  49.83 us |  22.12 us |  0.43 |    0.01 |  31.2500 |  23.4375 |   5.8594 |  1336.86 KB |        0.52 |
+| PythonShort_RCParsing_MemoizedOptimized |    765.3 us |  27.49 us |   9.80 us |  0.21 |    0.00 |  19.5313 |  18.5547 |   4.8828 |   570.82 KB |        0.22 |
+| PythonShort_ANTLR                       |    550.1 us |   9.09 us |   3.24 us |  0.15 |    0.00 |  46.8750 |  12.6953 |        - |   780.65 KB |        0.31 |
+
+Notes:
+
+- `RCParsing` uses its default configuration, without any optimizations and settings applied.
+- `RCParsing_Optimized` uses `UseInlining()`, `IgnoreErrors()` and `UseFirstCharacterMatch()` settings.
+- `RCParsing` grammar was ported using this [ANTLR Grammar](https://github.com/antlr/grammars-v4/blob/master/graphql/GraphQL.g4) and [Python Reference Grammar](https://docs.python.org/3.13/reference/grammar.html).
+- `PythonShort` methods uses ~20 lines of hardcoded (not generated) Python code, see [source](https://github.com/python/cpython/blob/3.13/Lib/antigravity.py).
+- `PythonBig` methods uses ~430 lines of hardcoded (not generated) Python code, see [source](https://github.com/python/cpython/blob/3.13/Lib/fileinput.py).
+- Memoization currently works bad with barrier tokens, we're working on it!
+
 *More benchmarks will be later here...*
 
 # Projects using RCParsing
 
-- [RCLargeLangugeModels](https://github.com/RomeCore/RCLargeLanguageModels): My project, used for `LLT`, the template Razor-like language with VERY *specific* syntax.
+- [RCLargeLangugeModels](https://github.com/RomeCore/RCLargeLanguageModels): Used for `LLT`, the template Razor-like language.
 
 *Using RCParsing in your project? We'd love to feature it here! Submit a pull request to add your project to the list.*
 
@@ -855,6 +840,9 @@ The future development of `RCParsing` is focused on:
 - **API Ergonomics:** Introducing even more expressive and fluent methods (such as expression builder).
 - **New Built-in Rules:** Adding common patterns (e.g., number with wide range of notations).
 - **Visualization Tooling:** Exploring tools for debugging and visualizing resulting AST.
+- **Grammar Transformers**: Builder extensions that can be used to optimize parsers, eliminate left recursion and more.
+- **Semantic analysis**: Multi-stage tools that simplifies AST semantic analysis.
+- **NFA Algorithm**: Adaptive parsing algorithm, which is more powerful for parsing complex rules.
 
 # Contributing
 

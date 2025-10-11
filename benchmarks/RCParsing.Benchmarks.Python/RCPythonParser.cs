@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace RCParsing.Tests.Python
+namespace RCParsing.Benchmarks.Python
 {
 	/// <summary>
 	/// The Python 3.13 parser. Grammar took from https://github.com/antlr/grammars-v4/tree/master/python/python3_13 <br/>
@@ -20,7 +20,7 @@ namespace RCParsing.Tests.Python
 	/// 2, *newline*
 	/// "string"]
 	/// </summary>
-	public static class PythonParser
+	public class RCPythonParser
 	{
 		public static void FillWithRules(ParserBuilder builder)
 		{

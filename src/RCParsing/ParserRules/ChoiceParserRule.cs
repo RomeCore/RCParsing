@@ -207,7 +207,7 @@ namespace RCParsing.ParserRules
 						var id = Choices[i];
 						var rule = GetRule(id);
 
-						if (!rule.IsFirstCharDeterministic || rule.FirstChars.Contains(ch))
+						if (!rule.IsFirstCharDeterministic || rule.IsOptional || rule.FirstChars.Contains(ch))
 							choicesByChar.Add(parseFunctions[i]);
 					}
 					optimizedCandidates[ch] = choicesByChar.ToArray();
@@ -217,7 +217,7 @@ namespace RCParsing.ParserRules
 				{
 					var id = Choices[i];
 					var rule = GetRule(id);
-					if (!rule.IsFirstCharDeterministic)
+					if (!rule.IsFirstCharDeterministic || rule.IsOptional)
 						nonDeterministic.Add(parseFunctions[i]);
 				}
 
