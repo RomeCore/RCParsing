@@ -1,9 +1,10 @@
 ﻿using System;
-using System.Linq;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Data;
+using System.Linq;
 using System.Text;
 using RCParsing.Utils;
-using System.Collections.ObjectModel;
 
 namespace RCParsing.TokenPatterns.Combinators
 {
@@ -91,13 +92,13 @@ namespace RCParsing.TokenPatterns.Combinators
 				{
 					var choicesByChar = new List<TokenPattern>();
 					foreach (var pattern in _choices)
-						if (!pattern.IsFirstCharDeterministic || pattern.FirstChars.Contains(ch))
+						if (!pattern.IsFirstCharDeterministic || pattern.IsOptional || pattern.FirstChars.Contains(ch))
 							choicesByChar.Add(pattern);
 					_optimizedCandidates[ch] = choicesByChar.ToArray();
 				}
 
 				foreach (var pattern in _choices)
-					if (!pattern.IsFirstCharDeterministic)
+					if (!pattern.IsFirstCharDeterministic || pattern.IsOptional)
 						nonDeterministic.Add(pattern);
 
 				_nonDeterministic = nonDeterministic.ToArray();

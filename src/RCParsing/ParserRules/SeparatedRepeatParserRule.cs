@@ -221,7 +221,7 @@ namespace RCParsing.ParserRules
 			string mainPointer = childIndex == Rule ? " <-- here" : " ";
 			string sepPointer = childIndex == Separator ? " <-- here" : "";
 
-			return $"SeparatedRepeat{alias}{alias}[{MinCount}..{(MaxCount == -1 ? "" : MaxCount)}]{trailing}: " +
+			return $"SeparatedRepeat{alias}[{MinCount}..{(MaxCount == -1 ? "" : MaxCount)}]{trailing}: " +
 				   $"{GetRule(Rule).ToString(remainingDepth - 1)}{mainPointer}\n" +
 				   $"sep {GetRule(Separator).ToString(remainingDepth - 1)}{sepPointer}";
 		}

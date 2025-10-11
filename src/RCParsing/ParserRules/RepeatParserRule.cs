@@ -98,7 +98,28 @@ namespace RCParsing.ParserRules
 		/*protected override ParsedRule ParseIncrementally(ParserContext context,
 			ParserSettings settings, ParserSettings childSettings, ParsedRule node, TextChange change, int newVersion)
 		{
+			List<ParsedRule> rules = new List<ParsedRule>();
+			var initialPosition = context.position;
+			ParsedRule lastReparsed = default;
 
+			foreach (var child in node.children!)
+			{
+				if (child.startIndex + child.length <= change.startIndex)
+				{
+					rules.Add(child);
+				}
+				else
+				{
+					context.position = child.startIndex;
+					lastReparsed = TryParseRule(Rule, context, settings);
+				}
+
+				if (change.startIndex >= child.startIndex && change.startIndex < child.startIndex + child.length)
+				{
+
+				}
+			}
+			return ParsedRule.Rule(Id, initialPosition, context.position - initialPosition, context.passedBarriers, rules, null);
 		}*/
 
 

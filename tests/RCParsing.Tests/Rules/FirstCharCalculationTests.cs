@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace RCParsing.Tests.Rules
 {
-	public class FirstCharCalculation
+	public class FirstCharCalculationTests
 	{
 		[Fact]
 		public void TokenCombinators_First()
@@ -125,7 +125,6 @@ namespace RCParsing.Tests.Rules
 
 			var parser = builder.Build();
 
-			// FirstChars последовательности - это FirstChars первого элемента
 			Assert.Equal(new HashSet<char>(['a']), parser.GetTokenPattern("seq1").FirstChars);
 			Assert.Equal(new HashSet<char>(['o', 'r']), parser.GetTokenPattern("seq2").FirstChars); // 'o' от optional, 'r' от required
 			Assert.Equal(new HashSet<char>(['x', 'y']), parser.GetTokenPattern("seq3").FirstChars);
@@ -174,7 +173,6 @@ namespace RCParsing.Tests.Rules
 
 			var parser = builder.Build();
 
-			// Первые символы: 'p' от optional "pre_", 'f' от "func", 'v' от "var"
 			var expected = new HashSet<char>(['p', 'f', 'v']);
 			var actual = parser.GetTokenPattern("complex").FirstChars;
 
@@ -201,7 +199,6 @@ namespace RCParsing.Tests.Rules
 
 			var parser = builder.Build();
 
-			// Empty не добавляет символов в FirstChars
 			Assert.Empty(parser.GetTokenPattern("empty1").FirstChars);
 			Assert.Equal(new HashSet<char>(['a']), parser.GetTokenPattern("empty2").FirstChars);
 			Assert.Equal(new HashSet<char>(['b']), parser.GetTokenPattern("empty3").FirstChars);

@@ -29,6 +29,7 @@ namespace RCParsing.ParserRules
 
 
 		protected override HashSet<char> FirstCharsCore => GetRule(Rule).FirstChars;
+		protected override bool IsFirstCharDeterministicCore => GetRule(Rule).IsFirstCharDeterministic;
 		protected override bool IsOptionalCore => true;
 
 
