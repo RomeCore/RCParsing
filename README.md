@@ -721,21 +721,21 @@ Notes:
 
 ## Expressions
 
-The `int` value calculation from expression with parentheses `()`, spaces and operators `+-/*` with priorities.
+The `int` value calculation from expression with parentheses `()`, spaces and operators `+-/*` with precedence.
 
-| Method                                     | Mean         | Error       | StdDev      | Ratio | RatioSD | Gen0    | Gen1    | Allocated | Alloc Ratio |
-|------------------------------------------- |-------------:|------------:|------------:|------:|--------:|--------:|--------:|----------:|------------:|
-| ExpressionBig_RCParsing                    | 258,484.1 ns | 4,221.70 ns |   653.31 ns |  1.00 |    0.00 | 23.4375 | 11.2305 |  399704 B |        1.00 |
-| ExpressionBig_RCParsing_Optimized          | 179,193.0 ns |   622.43 ns |    96.32 ns |  0.69 |    0.00 | 19.7754 |  8.3008 |  334080 B |        0.84 |
-| ExpressionBig_RCParsing_TokenCombination   |  54,463.7 ns | 1,455.89 ns |   225.30 ns |  0.21 |    0.00 |  4.1504 |  0.0610 |   70288 B |        0.18 |
-| ExpressionBig_Parlot                       |  63,761.8 ns |   339.88 ns |    88.27 ns |  0.25 |    0.00 |  3.2959 |       - |   56608 B |        0.14 |
-| ExpressionBig_Pidgin                       | 700,906.7 ns | 7,006.51 ns | 1,819.57 ns |  2.71 |    0.01 |  0.9766 |       - |   23540 B |        0.06 |
-|                                            |              |             |             |       |         |         |         |           |             |
-| ExpressionShort_RCParsing                  |   2,310.8 ns |    34.09 ns |     8.85 ns |  1.00 |    0.00 |  0.2174 |       - |    3696 B |        1.00 |
-| ExpressionShort_RCParsing_Optimized        |   1,638.7 ns |    22.90 ns |     5.95 ns |  0.71 |    0.00 |  0.2117 |       - |    3544 B |        0.96 |
-| ExpressionShort_RCParsing_TokenCombination |     459.0 ns |     4.37 ns |     1.14 ns |  0.20 |    0.00 |  0.0391 |       - |     656 B |        0.18 |
-| ExpressionShort_Parlot                     |     603.4 ns |     5.78 ns |     1.50 ns |  0.26 |    0.00 |  0.0534 |       - |     896 B |        0.24 |
-| ExpressionShort_Pidgin                     |   6,655.6 ns |   256.88 ns |    66.71 ns |  2.88 |    0.03 |  0.0153 |       - |     344 B |        0.09 |
+| Method                                     | Mean         | Error        | StdDev      | Ratio | RatioSD | Gen0    | Gen1    | Allocated | Alloc Ratio |
+|------------------------------------------- |-------------:|-------------:|------------:|------:|--------:|--------:|--------:|----------:|------------:|
+| ExpressionBig_RCParsing                    | 330,461.1 ns | 34,988.41 ns | 9,086.38 ns |  1.00 |    0.04 | 23.4375 | 11.2305 |  399552 B |        1.00 |
+| ExpressionBig_RCParsing_Optimized          | 180,675.9 ns |  4,651.20 ns |   719.78 ns |  0.55 |    0.01 | 19.7754 |  8.7891 |  333928 B |        0.84 |
+| ExpressionBig_RCParsing_TokenCombination   |  59,683.9 ns |    623.53 ns |   161.93 ns |  0.18 |    0.00 |  4.1504 |  0.0610 |   70288 B |        0.18 |
+| ExpressionBig_Parlot                       |  63,349.8 ns |  3,060.58 ns |   473.63 ns |  0.19 |    0.00 |  3.2959 |       - |   56608 B |        0.14 |
+| ExpressionBig_Pidgin                       | 709,868.6 ns | 13,975.98 ns | 2,162.80 ns |  2.15 |    0.05 |  0.9766 |       - |   23536 B |        0.06 |
+|                                            |              |              |             |       |         |         |         |           |             |
+| ExpressionShort_RCParsing                  |   2,527.6 ns |     47.91 ns |    12.44 ns |  1.00 |    0.01 |  0.2213 |       - |    3736 B |        1.00 |
+| ExpressionShort_RCParsing_Optimized        |   1,725.7 ns |     94.04 ns |    24.42 ns |  0.68 |    0.01 |  0.2136 |       - |    3584 B |        0.96 |
+| ExpressionShort_RCParsing_TokenCombination |     474.4 ns |      5.34 ns |     1.39 ns |  0.19 |    0.00 |  0.0391 |       - |     656 B |        0.18 |
+| ExpressionShort_Parlot                     |     591.5 ns |     61.97 ns |    16.09 ns |  0.23 |    0.01 |  0.0534 |       - |     896 B |        0.24 |
+| ExpressionShort_Pidgin                     |   6,522.3 ns |    197.11 ns |    51.19 ns |  2.58 |    0.02 |  0.0153 |       - |     344 B |        0.09 |
 
 Notes:
 
