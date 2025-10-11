@@ -820,6 +820,8 @@ Notes:
 
 - `RCParsing` uses its default configuration, without any optimizations and settings applied.
 - `RCParsing_Optimized` uses `UseInlining()`, `IgnoreErrors()` and `UseFirstCharacterMatch()` settings.
+- `RCParsing_Memoized` uses `UseCaching()` setting.
+- `RCParsing_MemoizedOptimized` uses `UseInlining()`, `IgnoreErrors()`, `UseFirstCharacterMatch()` and `UseCaching()` settings.
 - `RCParsing` grammar was ported using this [ANTLR Grammar](https://github.com/antlr/grammars-v4/blob/master/graphql/GraphQL.g4) and [Python Reference Grammar](https://docs.python.org/3.13/reference/grammar.html).
 - `PythonShort` methods uses ~20 lines of hardcoded (not generated) Python code, see [source](https://github.com/python/cpython/blob/3.13/Lib/antigravity.py).
 - `PythonBig` methods uses ~430 lines of hardcoded (not generated) Python code, see [source](https://github.com/python/cpython/blob/3.13/Lib/fileinput.py).
