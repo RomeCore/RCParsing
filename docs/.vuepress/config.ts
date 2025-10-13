@@ -7,7 +7,7 @@ export default defineUserConfig({
 
   lang: "en-US",
   title: "RCParsing",
-  description: "RCParsing is the ultimate .NET parsing framework for language development and data scraping",
+  description: "RCParsing is the fluent, lightweight and powerful .NET lexerless parsing library for language development (DSL) and data scraping.",
 
   theme,
 

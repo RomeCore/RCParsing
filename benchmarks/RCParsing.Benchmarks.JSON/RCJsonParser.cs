@@ -38,7 +38,7 @@ namespace RCParsing.Benchmarks.JSON
 				);
 
 			builder.CreateToken("number")
-				.Number<double>(NumberFlags.Integer); // Match integer, without convertation
+				.Number<double>(NumberFlags.Integer); // Match integer
 
 			builder.CreateToken("true")
 				.Literal("true").Transform(v => true);

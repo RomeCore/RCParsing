@@ -545,7 +545,35 @@ namespace RCParsing.Building
 		}
 
 		/// <summary>
-		/// Adds a choice rule to the current sequence.
+		/// Adds a shortest choice rule to the current sequence.
+		/// </summary>
+		/// <remarks>
+		/// Tries to match all elements and returns the first shortest one.
+		/// </remarks>
+		/// <param name="choices">The choices for this rule.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if any of builder actions have not added any elements.</exception>
+		public RuleBuilder ShortestChoice(IEnumerable<Action<RuleBuilder>> choices)
+		{
+			return Choice(ChoiceMode.Longest, choices.Select(c => new Or<Action<RuleBuilder>, string>(c)).ToArray());
+		}
+
+		/// <summary>
+		/// Adds a shortest choice rule to the current sequence.
+		/// </summary>
+		/// <remarks>
+		/// Tries to match all elements and returns the first shortest one.
+		/// </remarks>
+		/// <param name="choices">The choices for this rule.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if any of builder actions have not added any elements.</exception>
+		public RuleBuilder ShortestChoice(params Action<RuleBuilder>[] choices)
+		{
+			return ShortestChoice((IEnumerable<Action<RuleBuilder>>)choices);
+		}
+
+		/// <summary>
+		/// Adds a longest choice rule to the current sequence.
 		/// </summary>
 		/// <remarks>
 		/// Tries to match all elements and returns the first longest one.
@@ -559,7 +587,7 @@ namespace RCParsing.Building
 		}
 
 		/// <summary>
-		/// Adds a choice rule to the current sequence.
+		/// Adds a longest choice rule to the current sequence.
 		/// </summary>
 		/// <remarks>
 		/// Tries to match all elements and returns the first longest one.

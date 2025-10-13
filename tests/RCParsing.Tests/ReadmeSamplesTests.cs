@@ -277,7 +277,7 @@ namespace RCParsing.Tests
 			var builder = new ParserBuilder();
 
 			builder.CreateToken("custom")
-				.Custom((self, input, start, end, parameter) =>
+				.Custom((self, input, start, end, parameter, calculateIntermediateValue) =>
 				{
 					var context = (char)parameter!;
 

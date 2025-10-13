@@ -441,7 +441,35 @@ namespace RCParsing.Building
 		}
 
 		/// <summary>
-		/// Adds a choice token pattern to the current sequence.
+		/// Adds a shortest choice token pattern to the current sequence.
+		/// </summary>
+		/// <remarks>
+		/// Tries to match all elements and returns the first shortest one.
+		/// </remarks>
+		/// <param name="choices">The choices for this token pattern.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if any of builder actions have not added any elements.</exception>
+		public TokenBuilder ShortestChoice(IEnumerable<Action<TokenBuilder>> choices)
+		{
+			return Choice(ChoiceMode.Shortest, choices.Select(c => new Or<Action<TokenBuilder>, string>(c)).ToArray());
+		}
+
+		/// <summary>
+		/// Adds a shortest choice token pattern to the current sequence.
+		/// </summary>
+		/// <remarks>
+		/// Tries to match all elements and returns the first shortest one.
+		/// </remarks>
+		/// <param name="choices">The choices for this token pattern.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if any of builder actions have not added any elements.</exception>
+		public TokenBuilder ShortestChoice(params Action<TokenBuilder>[] choices)
+		{
+			return ShortestChoice((IEnumerable<Action<TokenBuilder>>)choices);
+		}
+
+		/// <summary>
+		/// Adds a longest choice token pattern to the current sequence.
 		/// </summary>
 		/// <remarks>
 		/// Tries to match all elements and returns the first longest one.
@@ -455,7 +483,7 @@ namespace RCParsing.Building
 		}
 
 		/// <summary>
-		/// Adds a choice token pattern to the current sequence.
+		/// Adds a longest choice token pattern to the current sequence.
 		/// </summary>
 		/// <remarks>
 		/// Tries to match all elements and returns the first longest one.

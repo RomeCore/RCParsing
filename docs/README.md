@@ -6,7 +6,7 @@ bgImageStyle:
   background-attachment: fixed
 
 heroText: RCParsing
-tagline: The ultimate .NET parsing framework for language development and data scraping
+tagline: The fluent, lightweight and powerful .NET lexerless parsing library for language development (DSL) and data scraping.
 actions:
   - text: Getting Started
     icon: mdi:run-fast
@@ -14,7 +14,12 @@ actions:
     type: primary
 
   - text: Docs
+    icon: book
     link: ./guide/
+
+  - text: Live demo
+    icon: mdi:magic
+    link: https://romecore.github.io/RCParsing.WebDemo/
 
 highlights:
   - header: Fluent BNF-like API

@@ -207,6 +207,9 @@ namespace RCParsing.Tests.Tokens
 				.EOF()
 				.TransformSelect(index: 0);
 
+			builder.CreateRule("")
+				.KeywordIgnoreCase("var");
+
 			var parser = builder.Build();
 
 			var json =

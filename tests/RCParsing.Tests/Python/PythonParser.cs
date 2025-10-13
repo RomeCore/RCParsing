@@ -1650,7 +1650,7 @@ namespace RCParsing.Tests.Python
 				.Newline();
 
 			builder.CreateToken("BACKSLASH_NEWLINE")
-				.Literal("//").Newline();
+				.Literal("\\").Newline();
 
 			builder.CreateToken("WS")
 				.Spaces();

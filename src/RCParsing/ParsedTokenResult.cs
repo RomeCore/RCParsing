@@ -94,6 +94,12 @@ namespace RCParsing
 		}
 
 		/// <summary>
+		/// Gets the intermediate value associated with this token as not-null object. If the value is null, throws an exception.
+		/// </summary>
+		/// <returns>The intermediate value associated with this token.</returns>
+		public object GetIntermediateValue() => IntermediateValue ?? throw new InvalidOperationException("ParsedTokenResult.IntermediateValue is null");
+
+		/// <summary>
 		/// Gets the intermediate value associated with this token as an instance of type <typeparamref name="T"/>.
 		/// </summary>
 		/// <typeparam name="T">The type of value to retrieve.</typeparam>
