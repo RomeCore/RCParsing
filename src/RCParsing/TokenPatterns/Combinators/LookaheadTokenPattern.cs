@@ -46,7 +46,7 @@ namespace RCParsing.TokenPatterns.Combinators
 			object? parserParameter, bool calculateIntermediateValue, ref ParsingError furthestError)
 		{
 			var result = _pattern.Match(input, position, barrierPosition, parserParameter,
-				calculateIntermediateValue, ref furthestError);
+				calculateIntermediateValue && IsPositive, ref furthestError);
 			bool success = IsPositive ? result.success : !result.success;
 
 			if (success)

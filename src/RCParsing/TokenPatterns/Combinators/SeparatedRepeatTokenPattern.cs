@@ -181,7 +181,8 @@ namespace RCParsing.TokenPatterns.Combinators
 
 			while (MaxCount == -1 || count < MaxCount)
 			{
-				var parsedSep = _separator.Match(input, position, barrierPosition, parserParameter, true, ref furthestError);
+				var parsedSep = _separator.Match(input, position, barrierPosition, parserParameter,
+					IncludeSeparatorsInResult, ref furthestError);
 				if (!parsedSep.success || parsedSep.length == 0)
 					break;
 

@@ -415,6 +415,16 @@ namespace RCParsing.Building
 		}
 
 		/// <summary>
+		/// Adds a keyword token to the current sequence with ASCII identifier character checking and case-insensitive matching.
+		/// </summary>
+		/// <param name="keyword">The keyword string to match.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T KeywordIgnoreCase(string keyword)
+		{
+			return Token(KeywordTokenPattern.AsciiKeyword(keyword, StringComparison.OrdinalIgnoreCase));
+		}
+
+		/// <summary>
 		/// Adds a keyword token to the current sequence with Unicode identifier character checking.
 		/// </summary>
 		/// <param name="keyword">The keyword string to match.</param>
@@ -433,6 +443,16 @@ namespace RCParsing.Building
 		public T UnicodeKeyword(string keyword, StringComparison comparison)
 		{
 			return Token(KeywordTokenPattern.UnicodeKeyword(keyword, comparison));
+		}
+
+		/// <summary>
+		/// Adds a keyword token to the current sequence with Unicode identifier character checking and case-insensitive matching.
+		/// </summary>
+		/// <param name="keyword">The keyword string to match.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T UnicodeKeywordIgnoreCase(string keyword)
+		{
+			return Token(KeywordTokenPattern.UnicodeKeyword(keyword, StringComparison.OrdinalIgnoreCase));
 		}
 
 		/// <summary>
@@ -693,6 +713,15 @@ namespace RCParsing.Building
 		public T Empty()
 		{
 			return Token(new EmptyTokenPattern());
+		}
+		
+		/// <summary>
+		/// Adds a fail token to the current sequence. It always fails.
+		/// </summary>
+		/// <returns>Current instance for method chaining.</returns>
+		public T Fail()
+		{
+			return Token(new FailTokenPattern());
 		}
 
 		private static NumberType NumberTypeFromCLR(Type type)

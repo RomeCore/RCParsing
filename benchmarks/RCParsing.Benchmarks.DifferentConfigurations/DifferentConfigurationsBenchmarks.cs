@@ -13,7 +13,7 @@ using RCParsing.Building;
 namespace RCParsing.Benchmarks.DifferentConfigurations
 {
 	[MemoryDiagnoser]
-	[SimpleJob(RuntimeMoniker.Net80, iterationCount: 3, warmupCount: 2)]
+	[SimpleJob(RuntimeMoniker.Net80, iterationCount: 7, warmupCount: 3)]
 	[GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory)]
 	public class DifferentConfigurationsBenchmarks
 	{
