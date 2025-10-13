@@ -40,7 +40,8 @@ namespace RCParsing
 		/// <summary>
 		/// Gets a value indicating whether this rule can be used directly without using parser.
 		/// </summary>
-		public virtual bool CanBeInlined => Settings.isDefault;
+		public virtual bool CanBeInlined => Settings.isDefault &&
+			ErrorRecovery.strategy == ErrorRecoveryStrategy.None;
 
 		/// <summary>
 		/// Gets a value indicating whether this rule can recover from errors.
@@ -89,7 +90,7 @@ namespace RCParsing
 				var prev = toWrap;
 				ParsedRule ParseMemoized(ref ParserContext ctx, ref ParserSettings stng, ref ParserSettings chStng)
 				{
-					if (ctx.cache.TryGetRule(Id, ctx.position, out var cachedResult))
+					if (ctx.cache.TryGetRule(Id, ctx.position, ctx.passedBarriers, out var cachedResult))
 						return cachedResult;
 					/*
 					if (!ctx.cache.TryBeginRule(Id, ctx.position))
@@ -97,7 +98,7 @@ namespace RCParsing
 					*/
 					int position = ctx.position;
 					cachedResult = prev(ref ctx, ref stng, ref chStng);
-					ctx.cache.AddRule(Id, position, cachedResult);
+					ctx.cache.AddRule(Id, position, ctx.passedBarriers, cachedResult);
 					return cachedResult;
 				}
 				toWrap = ParseMemoized;

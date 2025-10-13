@@ -192,4 +192,176 @@ namespace RCParsing.Benchmarks.JSON
 			var value = SpracheJsonParser.ParseJson(TestJSONs.bigJson);
 		}
 	}
+
+	[MemoryDiagnoser]
+	[SimpleJob(RuntimeMoniker.Net80, iterationCount: 7, warmupCount: 2)]
+	[GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory)]
+	public class JSONASTBenchmarks
+	{
+		public JSONASTBenchmarks()
+		{
+		}
+
+		// ====== Short JSON (~20 lines) ======
+
+		[Benchmark(Baseline = true), BenchmarkCategory("short")]
+		public void JsonShort_RCParsing()
+		{
+			var value = RCJsonParser.Parse(TestJSONs.shortJson);
+		}
+
+		[Benchmark, BenchmarkCategory("short")]
+		public void JsonShort_RCParsing_NoValue()
+		{
+			RCJsonParser.ParseNoValue(TestJSONs.shortJson);
+		}
+
+		[Benchmark, BenchmarkCategory("short")]
+		public void JsonShort_RCParsing_Optimized()
+		{
+			var value = RCJsonParser.ParseOptimized(TestJSONs.shortJson);
+		}
+
+		[Benchmark, BenchmarkCategory("short")]
+		public void JsonShort_RCParsing_Optimized_NoValue()
+		{
+			RCJsonParser.ParseOptimizedNoValue(TestJSONs.shortJson);
+		}
+
+		[Benchmark, BenchmarkCategory("short")]
+		public void JsonShort_ANTLR()
+		{
+			var value = AntlrJsonParser.Parse(TestJSONs.shortJson);
+		}
+
+		[Benchmark, BenchmarkCategory("short")]
+		public void JsonShort_ANTLR_NoValue()
+		{
+			AntlrJsonParser.ParseNoValue(TestJSONs.shortJson);
+		}
+
+		// ====== Big JSON (~200 lines) ======
+
+		[Benchmark(Baseline = true), BenchmarkCategory("big")]
+		public void JsonBig_RCParsing()
+		{
+			var value = RCJsonParser.Parse(TestJSONs.bigJson);
+		}
+
+		[Benchmark, BenchmarkCategory("big")]
+		public void JsonBig_RCParsing_NoValue()
+		{
+			RCJsonParser.ParseNoValue(TestJSONs.bigJson);
+		}
+
+		[Benchmark, BenchmarkCategory("big")]
+		public void JsonBig_RCParsing_Optimized()
+		{
+			var value = RCJsonParser.ParseOptimized(TestJSONs.bigJson);
+		}
+
+		[Benchmark, BenchmarkCategory("big")]
+		public void JsonBig_RCParsing_Optimized_NoValue()
+		{
+			RCJsonParser.ParseOptimizedNoValue(TestJSONs.bigJson);
+		}
+
+		[Benchmark, BenchmarkCategory("big")]
+		public void JsonBig_ANTLR()
+		{
+			var value = AntlrJsonParser.Parse(TestJSONs.bigJson);
+		}
+
+		[Benchmark, BenchmarkCategory("big")]
+		public void JsonBig_ANTLR_NoValue()
+		{
+			AntlrJsonParser.ParseNoValue(TestJSONs.bigJson);
+		}
+	}
+
+	[MemoryDiagnoser]
+	[SimpleJob(RuntimeMoniker.Net80, iterationCount: 7, warmupCount: 2)]
+	[GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory)]
+	public class JSONCombinatorBenchmarks
+	{
+		public JSONCombinatorBenchmarks()
+		{
+		}
+
+		// ====== Short JSON (~20 lines) ======
+
+		[Benchmark(Baseline = true), BenchmarkCategory("short")]
+		public void JsonShort_RCParsing()
+		{
+			var value = RCCombinatorJsonParser.Parse(TestJSONs.shortJson);
+		}
+
+		[Benchmark, BenchmarkCategory("short")]
+		public void JsonShort_RCParsing_NoValue()
+		{
+			RCCombinatorJsonParser.CheckParse(TestJSONs.shortJson);
+		}
+
+		[Benchmark, BenchmarkCategory("short")]
+		public void JsonShort_Parlot()
+		{
+			var value = ParlotJsonParser.Parse(TestJSONs.shortJson);
+		}
+
+		[Benchmark, BenchmarkCategory("short")]
+		public void JsonShort_Pidgin()
+		{
+			var value = PidginJsonParser.Parse(TestJSONs.shortJson);
+		}
+
+		[Benchmark, BenchmarkCategory("short")]
+		public void JsonShort_Superpower()
+		{
+			var value = SuperpowerJsonParser.ParseJson(TestJSONs.shortJson);
+		}
+
+		[Benchmark, BenchmarkCategory("short")]
+		public void JsonShort_Sprache()
+		{
+			var value = SpracheJsonParser.ParseJson(TestJSONs.shortJson);
+		}
+
+		// ====== Big JSON (~200 lines) ======
+
+		[Benchmark(Baseline = true), BenchmarkCategory("big")]
+		public void JsonBig_RCParsing()
+		{
+			var value = RCCombinatorJsonParser.Parse(TestJSONs.bigJson);
+		}
+
+		[Benchmark, BenchmarkCategory("big")]
+		public void JsonBig_RCParsing_NoValue()
+		{
+			RCCombinatorJsonParser.CheckParse(TestJSONs.bigJson);
+		}
+
+		[Benchmark, BenchmarkCategory("big")]
+		public void JsonBig_Parlot()
+		{
+			var value = ParlotJsonParser.Parse(TestJSONs.bigJson);
+		}
+
+		[Benchmark, BenchmarkCategory("big")]
+		public void JsonBig_Pidgin()
+		{
+			var value = PidginJsonParser.Parse(TestJSONs.bigJson);
+		}
+
+		[Benchmark, BenchmarkCategory("big")]
+		public void JsonBig_Superpower()
+		{
+			var value = SuperpowerJsonParser.ParseJson(TestJSONs.bigJson);
+		}
+
+		[Benchmark, BenchmarkCategory("big")]
+		public void JsonBig_Sprache()
+		{
+			var value = SpracheJsonParser.ParseJson(TestJSONs.bigJson);
+		}
+	}
 }

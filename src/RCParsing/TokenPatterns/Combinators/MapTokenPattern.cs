@@ -55,8 +55,10 @@ namespace RCParsing.TokenPatterns.Combinators
 			var initialPosition = position;
 			var child = _child.Match(input, position, barrierPosition, parserParameter,
 				calculateIntermediateValue, ref furthestError);
+
 			if (!child.success)
 				return ParsedElement.Fail;
+
 			position = child.startIndex + child.length;
 			var mappedValue = Mapper(child.intermediateValue);
 			return new ParsedElement(initialPosition, position - initialPosition, mappedValue);

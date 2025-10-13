@@ -58,27 +58,27 @@ namespace RCParsing.TokenPatterns.Combinators
 		public override ParsedElement Match(string input, int position, int barrierPosition,
 			object? parserParameter, bool calculateIntermediateValue, ref ParsingError furthestError)
 		{
-			var initialPosition = position;
+			if (!calculateIntermediateValue)
+				return _child.Match(input, position, barrierPosition, parserParameter, false, ref furthestError);
+
 			var child = _child.Match(input, position, barrierPosition, parserParameter, false, ref furthestError);
 			if (!child.success)
 				return ParsedElement.Fail;
 
+			var initialPosition = position;
 			position = child.startIndex + child.length;
 
 			object? value = null;
-			if (calculateIntermediateValue)
-			{
-				int trimStart = Math.Min(TrimStart, child.length);
-				int trimEnd = Math.Min(TrimEnd, child.length - trimStart);
+			int trimStart = Math.Min(TrimStart, child.length);
+			int trimEnd = Math.Min(TrimEnd, child.length - trimStart);
 
-				if (child.length - trimStart - trimEnd > 0)
-				{
-					value = input.Substring(child.startIndex + trimStart, child.length - trimStart - trimEnd);
-				}
-				else
-				{
-					value = string.Empty;
-				}
+			if (child.length - trimStart - trimEnd > 0)
+			{
+				value = input.Substring(child.startIndex + trimStart, child.length - trimStart - trimEnd);
+			}
+			else
+			{
+				value = string.Empty;
 			}
 
 			return new ParsedElement(initialPosition, position - initialPosition, value);

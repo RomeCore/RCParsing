@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -35,25 +36,47 @@ namespace RCParsing.ParserRules
 
 
 		private ParseDelegate parseFunction;
+		private ParserRule rule;
+		private bool canRuleBeInlined;
 
 		protected override void Initialize(ParserInitFlags initFlags)
 		{
 			base.Initialize(initFlags);
+
+			rule = GetRule(Rule);
+			canRuleBeInlined = rule.CanBeInlined && (initFlags & ParserInitFlags.InlineRules) != 0;
 
 			ParsedRule Parse(ref ParserContext context, ref ParserSettings settings, ref ParserSettings childSettings)
 			{
 				var result = TryParseRule(Rule, context, childSettings);
 				if (result.success)
 				{
-					return ParsedRule.Rule(Id, result.startIndex, result.length, result.passedBarriers, ParsedRuleChildUtils.Single(ref result), result.intermediateValue);
+					return ParsedRule.Rule(Id, result.startIndex, result.length, result.passedBarriers,
+						ParsedRuleChildUtils.Single(ref result), result.intermediateValue);
 				}
 				else
 				{
-					return ParsedRule.Rule(Id, context.position, 0, context.passedBarriers, ParsedRuleChildUtils.empty, null);
+					return ParsedRule.Rule(Id, context.position, 0, context.passedBarriers,
+						ParsedRuleChildUtils.empty, null);
 				}
 			};
 
-			parseFunction = Parse;
+			ParsedRule ParseInlined(ref ParserContext context, ref ParserSettings settings, ref ParserSettings childSettings)
+			{
+				var result = rule.Parse(context, childSettings, childSettings);
+				if (result.success)
+				{
+					return ParsedRule.Rule(Id, result.startIndex, result.length, result.passedBarriers,
+						ParsedRuleChildUtils.Single(ref result), result.intermediateValue);
+				}
+				else
+				{
+					return ParsedRule.Rule(Id, context.position, 0, context.passedBarriers,
+						ParsedRuleChildUtils.empty, null);
+				}
+			};
+
+			parseFunction = canRuleBeInlined ? Parse : ParseInlined;
 
 			parseFunction = WrapParseFunction(parseFunction, initFlags);
 		}

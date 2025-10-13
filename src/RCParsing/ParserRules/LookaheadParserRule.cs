@@ -37,29 +37,40 @@ namespace RCParsing.ParserRules
 
 
 		private ParseDelegate parseFunction;
+		private ParserRule rule;
+		private bool canRuleBeInlined;
 
 		protected override void Initialize(ParserInitFlags initFlags)
 		{
 			base.Initialize(initFlags);
 
+			rule = GetRule(Rule);
+			canRuleBeInlined = rule.CanBeInlined && (initFlags & ParserInitFlags.InlineRules) != 0;
+
 			ParsedRule ParsePositive(ref ParserContext context, ref ParserSettings settings, ref ParserSettings childSettings)
 			{
-				var start = context.position;
-				var result = TryParseRule(Rule, context, childSettings);
+				ParsedRule result;
+				if (canRuleBeInlined)
+					result = rule.Parse(context, childSettings, childSettings);
+				else
+					result = TryParseRule(Rule, context, childSettings);
 
 				if (result.success)
-					return ParsedRule.Rule(Id, start, 0, context.passedBarriers, ParsedRuleChildUtils.empty, null);
+					return ParsedRule.Rule(Id, context.position, 0, context.passedBarriers, ParsedRuleChildUtils.empty, null);
 				else
 					return ParsedRule.Fail;
 			}
 
 			ParsedRule ParseNegative(ref ParserContext context, ref ParserSettings settings, ref ParserSettings childSettings)
 			{
-				var start = context.position;
-				var result = TryParseRule(Rule, context, childSettings);
+				ParsedRule result;
+				if (canRuleBeInlined)
+					result = rule.Parse(context, childSettings, childSettings);
+				else
+					result = TryParseRule(Rule, context, childSettings);
 
 				if (!result.success)
-					return ParsedRule.Rule(Id, start, 0, context.passedBarriers, ParsedRuleChildUtils.empty, null);
+					return ParsedRule.Rule(Id, context.position, 0, context.passedBarriers, ParsedRuleChildUtils.empty, null);
 				else
 					return ParsedRule.Fail;
 			}

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using RCParsing.Building;
+using RCParsing.Tests.C;
 using Xunit.Abstractions;
 
 namespace RCParsing.Tests

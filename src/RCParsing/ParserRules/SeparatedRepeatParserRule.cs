@@ -81,17 +81,27 @@ namespace RCParsing.ParserRules
 
 
 		private ParseDelegate parseFunction;
+		private ParserRule rule;
+		private bool canRuleBeInlined;
 
 		protected override void Initialize(ParserInitFlags initFlags)
 		{
 			base.Initialize(initFlags);
+
+			rule = GetRule(Rule);
+			canRuleBeInlined = rule.CanBeInlined && (initFlags & ParserInitFlags.InlineRules) != 0;
 
 			ParsedRule Parse(ref ParserContext context, ref ParserSettings settings, ref ParserSettings childSettings)
 			{
 				var initialPosition = context.position;
 
 				// Try to parse the first element (if required - error if not found; if optional - may return empty result)
-				var firstElement = TryParseRule(Rule, context, childSettings);
+				ParsedRule firstElement;
+				if (canRuleBeInlined)
+					firstElement = rule.Parse(context, childSettings, childSettings);
+				else
+					firstElement = TryParseRule(Rule, context, childSettings);
+
 				if (!firstElement.success)
 				{
 					// No first element found

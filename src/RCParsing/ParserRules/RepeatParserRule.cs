@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Text;
 
@@ -51,10 +52,15 @@ namespace RCParsing.ParserRules
 
 
 		private ParseDelegate parseFunction;
+		private ParserRule rule;
+		private bool canRuleBeInlined;
 
 		protected override void Initialize(ParserInitFlags initFlags)
 		{
 			base.Initialize(initFlags);
+
+			rule = GetRule(Rule);
+			canRuleBeInlined = rule.CanBeInlined && (initFlags & ParserInitFlags.InlineRules) != 0;
 
 			ParsedRule Parse(ref ParserContext context, ref ParserSettings settings, ref ParserSettings childSettings)
 			{
@@ -64,7 +70,11 @@ namespace RCParsing.ParserRules
 
 				for (int i = 0; i < this.MaxCount || this.MaxCount == -1; i++)
 				{
-					parsedRule = TryParseRule(Rule, context, childSettings);
+					if (i == 0 && canRuleBeInlined)
+						parsedRule = rule.Parse(context, childSettings, childSettings);
+					else
+						parsedRule = TryParseRule(Rule, context, childSettings);
+
 					if (!parsedRule.success)
 						break;
 

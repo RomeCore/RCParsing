@@ -10,8 +10,12 @@ namespace RCParsing.Tests.Python
 	{
 		private Parser parser = PythonParser.CreateParser(b => b
 			.Settings.RecordWalkTrace().WriteStackTrace().SetMaxStepsToDisplay(200));
+		private Parser memoParser = PythonParser.CreateParser(b => b
+			.Settings.UseCaching());
 		private Parser optParser = PythonParser.CreateParser(b => b
 			.Settings.UseFirstCharacterMatch().UseInlining());
+		private Parser optMemoParser = PythonParser.CreateParser(b => b
+			.Settings.UseFirstCharacterMatch().UseInlining().UseCaching());
 
 		[Fact]
 		public void SimpleParsing()
@@ -24,7 +28,9 @@ namespace RCParsing.Tests.Python
 			""";
 
 			parser.Parse(input);
+			memoParser.Parse(input);
 			optParser.Parse(input);
+			optMemoParser.Parse(input);
 		}
 
 		[Fact]
@@ -42,7 +48,9 @@ namespace RCParsing.Tests.Python
 			""";
 
 			parser.Parse(input);
+			memoParser.Parse(input);
 			optParser.Parse(input);
+			optMemoParser.Parse(input);
 		}
 
 		[Fact]
@@ -56,7 +64,9 @@ namespace RCParsing.Tests.Python
 			""";
 
 			parser.Parse(input);
+			memoParser.Parse(input);
 			optParser.Parse(input);
+			optMemoParser.Parse(input);
 		}
 
 		[Fact]
@@ -76,7 +86,9 @@ namespace RCParsing.Tests.Python
 			""";
 
 			parser.Parse(input);
+			memoParser.Parse(input);
 			optParser.Parse(input);
+			optMemoParser.Parse(input);
 		}
 
 		[Fact]
@@ -93,7 +105,9 @@ namespace RCParsing.Tests.Python
 			""";
 
 			parser.Parse(input);
+			memoParser.Parse(input);
 			optParser.Parse(input);
+			optMemoParser.Parse(input);
 		}
 
 		[Fact]
@@ -107,7 +121,9 @@ namespace RCParsing.Tests.Python
 			""";
 
 			parser.Parse(input);
+			memoParser.Parse(input);
 			optParser.Parse(input);
+			optMemoParser.Parse(input);
 		}
 
 		[Fact]
@@ -121,7 +137,9 @@ namespace RCParsing.Tests.Python
 			""";
 
 			parser.Parse(input);
+			memoParser.Parse(input);
 			optParser.Parse(input);
+			optMemoParser.Parse(input);
 		}
 
 		[Fact]
@@ -141,7 +159,9 @@ namespace RCParsing.Tests.Python
 			""";
 
 			parser.Parse(input);
+			memoParser.Parse(input);
 			optParser.Parse(input);
+			optMemoParser.Parse(input);
 		}
 
 		[Fact]
@@ -161,7 +181,9 @@ namespace RCParsing.Tests.Python
 			""";
 
 			parser.Parse(input);
+			memoParser.Parse(input);
 			optParser.Parse(input);
+			optMemoParser.Parse(input);
 		}
 
 		[Fact]
@@ -181,7 +203,9 @@ namespace RCParsing.Tests.Python
 			""";
 
 			parser.Parse(input);
+			memoParser.Parse(input);
 			optParser.Parse(input);
+			optMemoParser.Parse(input);
 		}
 
 		[Fact]
@@ -199,7 +223,9 @@ namespace RCParsing.Tests.Python
 			""";
 
 			parser.Parse(input);
+			memoParser.Parse(input);
 			optParser.Parse(input);
+			optMemoParser.Parse(input);
 		}
 
 		[Fact]
@@ -219,7 +245,9 @@ namespace RCParsing.Tests.Python
 			""";
 
 			parser.Parse(input);
+			memoParser.Parse(input);
 			optParser.Parse(input);
+			optMemoParser.Parse(input);
 		}
 
 		[Fact]
@@ -247,7 +275,9 @@ namespace RCParsing.Tests.Python
 			""";
 
 			parser.Parse(input);
+			memoParser.Parse(input);
 			optParser.Parse(input);
+			optMemoParser.Parse(input);
 		}
 
 		[Fact]
@@ -377,7 +407,9 @@ namespace RCParsing.Tests.Python
 			"""";
 
 			parser.Parse(input);
+			memoParser.Parse(input);
 			optParser.Parse(input);
+			optMemoParser.Parse(input);
 		}
 
 		[Fact]
@@ -818,7 +850,9 @@ namespace RCParsing.Tests.Python
 			"""";
 
 			parser.Parse(input);
+			memoParser.Parse(input);
 			optParser.Parse(input);
+			optMemoParser.Parse(input);
 		}
 	}
 }
