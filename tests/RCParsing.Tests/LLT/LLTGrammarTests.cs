@@ -68,11 +68,13 @@ namespace RCParsing.Tests.LLT
 			builder.CreateRule("constant_array")
 				.Literal("[")
 				.ZeroOrMoreSeparated(b => b.Rule("constant"), b => b.Literal(","), allowTrailingSeparator: true)
+					.ConfigureLast(c => c.SkippingStrategy(ParserSkippingStrategy.SkipBeforeParsingGreedy))
 				.Literal("]");
 
 			builder.CreateRule("constant_object")
 				.Literal("{")
 				.ZeroOrMoreSeparated(b => b.Rule("constant_pair"), b => b.Literal(","), allowTrailingSeparator: true)
+					.ConfigureLast(c => c.SkippingStrategy(ParserSkippingStrategy.SkipBeforeParsingGreedy))
 				.Literal("}");
 
 			// Expression values //
@@ -195,6 +197,7 @@ namespace RCParsing.Tests.LLT
 			builder.CreateRule("message_statements")
 				.ZeroOrMore(b => b
 					.Literal('@')
+						.ConfigureLast(c => c.SkippingStrategy(ParserSkippingStrategy.SkipBeforeParsingGreedy))
 					.Choice(
 						c => c.Rule("message_block"),
 						c => c.Rule("messages_if"),

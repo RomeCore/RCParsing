@@ -32,6 +32,7 @@ namespace RCParsing.TokenPatterns
 		{
 			if (string.IsNullOrEmpty(pattern))
 				throw new ArgumentException("Pattern cannot be null or empty.", nameof(pattern));
+
 			RegexPattern = pattern;
 			Regex = new Regex($"\\G{RegexPattern}", options);
 		}
@@ -50,7 +51,7 @@ namespace RCParsing.TokenPatterns
 
 		protected override HashSet<char> FirstCharsCore => new();
 		protected override bool IsFirstCharDeterministicCore => false;
-		protected override bool IsOptionalCore => false;
+		protected override bool IsOptionalCore => true;
 
 
 
