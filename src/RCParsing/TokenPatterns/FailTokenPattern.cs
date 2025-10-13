@@ -15,8 +15,8 @@ namespace RCParsing.TokenPatterns
 		}
 
 		protected override HashSet<char> FirstCharsCore => new();
-		protected override bool IsFirstCharDeterministicCore => false;
-		protected override bool IsOptionalCore => true;
+		protected override bool IsFirstCharDeterministicCore => true;
+		protected override bool IsOptionalCore => false;
 
 
 
