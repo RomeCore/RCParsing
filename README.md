@@ -69,8 +69,8 @@ Or do it manually by cloning this repository.
 
 # Tutorials, docs and examples
 
-- [Tutorials](https://romecore.github.io/RCParsing/guide/) - The tutorial website, not completely migrated from the markdown version yet.
-- [Tutorials (old)](https://github.com/RomeCore/RCParsing/blob/main/docs_md/tutorials.md) - Detailed tutorials in the Markdown file, explaining features and mechanics of this library.
+- [Tutorials](https://romecore.github.io/RCParsing/guide/) - The tutorial website.
+- [Rules and Tokens library](https://romecore.github.io/RCParsing/elements_library/) - The library of tutorials for primitives that you can build your parser from.
 - [Syntax colorizer](https://github.com/RomeCore/RCParsing/tree/main/samples/SyntaxColorizer) - The syntax colorizer sample that automatically colorizes text based on provided parser.
 - [Math calculator](https://github.com/RomeCore/RCParsing/tree/main/samples/MathCalculator) - Math expression evaluator with support of power, math functions and constants.
 - [ANTLR to RCParsing converter](https://github.com/RomeCore/RCParsing/tree/main/samples/ANTLRToRCParsingConverter) - Simple tool for generating RCParsing API code from ANTLR rules.
