@@ -45,6 +45,27 @@
 		/// Parser will attempt to parse the target rule; if parsing fails, it will greedily skip the skip-rule as many times
 		/// as possible and then retry parsing the target rule.
 		/// </summary>
-		TryParseThenSkipGreedy
+		TryParseThenSkipGreedy,
+
+		/// <summary>
+		/// Parser will first attempt to parse the target rule; if parsing fails or if the match is empty, it will skip the skip-rule once
+		/// and then retry parsing the target rule.
+		/// </summary>
+		/// <remarks>
+		/// Works slower sometimes but allows to use rules that conflict with skip-rules.
+		/// </remarks>
+		TryParseNonEmptyThenSkip,
+
+		/// <summary>
+		/// Parser will attempt to parse the target rule; if parsing fails or if the match is empty, it will alternately try to skip the skip-rule
+		/// and parse the target rule repeatedly until the target rule succeeds or both fail.
+		/// </summary>
+		TryParseNonEmptyThenSkipLazy,
+
+		/// <summary>
+		/// Parser will attempt to parse the target rule; if parsing fails or if the match is empty, it will greedily skip the skip-rule as many times
+		/// as possible and then retry parsing the target rule.
+		/// </summary>
+		TryParseNonEmptyThenSkipGreedy
 	}
 }

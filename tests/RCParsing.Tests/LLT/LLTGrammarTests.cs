@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using RCParsing.Building;
+using RCParsing.ParserRules;
 
 namespace RCParsing.Tests.LLT
 {
@@ -12,7 +13,7 @@ namespace RCParsing.Tests.LLT
 	/// </summary>
 	public class LLTGrammarTests
 	{
-		private static readonly Parser _parser;
+		private static readonly Parser _parser, _optParser;
 
 		public static Parser Parser => _parser;
 
@@ -44,10 +45,10 @@ namespace RCParsing.Tests.LLT
 				.Literal('\'');
 
 			builder.CreateToken("boolean")
-				.LiteralChoice("true", "false");
+				.KeywordChoice("true", "false");
 
 			builder.CreateToken("null")
-				.Literal("null");
+				.Keyword("null");
 
 			// Constants //
 
@@ -68,13 +69,11 @@ namespace RCParsing.Tests.LLT
 			builder.CreateRule("constant_array")
 				.Literal("[")
 				.ZeroOrMoreSeparated(b => b.Rule("constant"), b => b.Literal(","), allowTrailingSeparator: true)
-					.ConfigureLast(c => c.SkippingStrategy(ParserSkippingStrategy.SkipBeforeParsingGreedy))
 				.Literal("]");
 
 			builder.CreateRule("constant_object")
 				.Literal("{")
 				.ZeroOrMoreSeparated(b => b.Rule("constant_pair"), b => b.Literal(","), allowTrailingSeparator: true)
-					.ConfigureLast(c => c.SkippingStrategy(ParserSkippingStrategy.SkipBeforeParsingGreedy))
 				.Literal("}");
 
 			// Expression values //
@@ -178,10 +177,8 @@ namespace RCParsing.Tests.LLT
 		{
 			builder.CreateRule("messages_template")
 				.Literal('@')
-				.Literal("messages")
-				.Whitespaces()
-				.Literal("template")
-				.Whitespaces()
+				.Keyword("messages")
+				.Keyword("template")
 				.Optional(b => b.Token("identifier"))
 				.Literal('{')
 				.Optional(b =>
@@ -197,7 +194,6 @@ namespace RCParsing.Tests.LLT
 			builder.CreateRule("message_statements")
 				.ZeroOrMore(b => b
 					.Literal('@')
-						.ConfigureLast(c => c.SkippingStrategy(ParserSkippingStrategy.SkipBeforeParsingGreedy))
 					.Choice(
 						c => c.Rule("message_block"),
 						c => c.Rule("messages_if"),
@@ -212,58 +208,52 @@ namespace RCParsing.Tests.LLT
 					b => b.Rule("message_block_variable_role"));
 
 			builder.CreateRule("message_block_explicit_role")
-				.LiteralChoice("system", "user", "assistant", "tool")
-				.Whitespaces()
-				.Literal("message")
+				.KeywordChoice("system", "user", "assistant", "tool")
+				.Keyword("message")
 				.Rule("text_template_block");
 
 			builder.CreateRule("message_block_variable_role")
-				.Literal("message")
+				.Keyword("message")
 				.Literal('{')
-				.Literal('@').Literal("role").Whitespaces().Rule("nop_expression")
+				.Literal('@').Keyword("role").Rule("nop_expression")
 				.Rule("text_statements")
 				.Literal('}');
 
 			builder.CreateRule("messages_if")
-				.Literal("if")
-				.Whitespaces()
+				.Keyword("if")
 				.Rule("expression")
 				.Rule("messages_template_block")
 				.Optional(
 					b => b
-						.Literal("else")
+						.Keyword("else")
 						.Choice(
 							b => b.Rule("messages_if"),
 							b => b.Rule("messages_template_block")));
 
 			builder.CreateRule("messages_foreach")
-				.Literal("foreach")
-				.Whitespaces()
+				.Keyword("foreach")
 				.Token("identifier")
-				.Literal("in")
-				.Whitespaces()
+				.Keyword("in")
 				.Rule("expression")
 				.Rule("messages_template_block");
 
 			builder.CreateRule("messages_while")
-				.Literal("while")
+				.Keyword("while")
 				.Rule("expression")
 				.Rule("messages_template_block");
 
 			builder.CreateRule("messages_render")
-				.Literal("render")
-				.Whitespaces()
+				.Keyword("render")
 				.Rule("nop_expression")
 				.Optional(b => b
-					.Literal("with")
+					.Keyword("with")
 					.Rule("nop_expression")
 					.Transform(v => v.GetValue(1)));
 
 			builder.CreateRule("messages_var_assignment")
 				.Choice(
 				b => b
-					.Literal("let")
-					.Whitespaces()
+					.Keyword("let")
 					.Token("identifier")
 					.Literal("=")
 					.Rule("expression"),
@@ -277,8 +267,7 @@ namespace RCParsing.Tests.LLT
 		{
 			builder.CreateRule("text_template")
 				.Literal('@')
-				.Literal("template")
-				.Whitespaces()
+				.Keyword("template")
 				.Optional(b => b.Token("identifier"))
 				.Literal('{')
 				.Optional(b => b.Rule("metadata_block"))
@@ -315,28 +304,25 @@ namespace RCParsing.Tests.LLT
 					.Token("raw_string"));
 
 			builder.CreateRule("text_if")
-				.Literal("if")
-				.Whitespaces()
+				.Keyword("if")
 				.Rule("expression")
 				.Rule("text_template_block")
 				.Optional(
 					b => b
-						.Literal("else")
+						.Keyword("else")
 						.Choice(
 							b => b.Rule("text_if"),
 							b => b.Rule("text_template_block")));
 
 			builder.CreateRule("text_foreach")
-				.Literal("foreach")
-				.Whitespaces()
+				.Keyword("foreach")
 				.Token("identifier")
-				.Literal("in")
-				.Whitespaces()
+				.Keyword("in")
 				.Rule("expression")
 				.Rule("text_template_block");
 
 			builder.CreateRule("text_while")
-				.Literal("while")
+				.Keyword("while")
 				.Rule("expression")
 				.Rule("text_template_block");
 
@@ -371,7 +357,7 @@ namespace RCParsing.Tests.LLT
 					c => c.Literal("@*").TextUntil("*@").Literal("*@")) // @*...*@ comments
 					.ConfigureForSkip(), // Ignore all errors when parsing comments and unnecessary whitespace
 					ParserSkippingStrategy.TryParseThenSkipLazy) // Allows rules to capture skip-rules contents if can, such as whitespaces
-				.UseCaching().UseInlining().DetailedErrors(); // If caching is disabled, prepare to wait for a long time (seconds) when encountering an error :P (you will also get a million of errors, seriously)
+				.UseCaching().DetailedErrors(); // If caching is disabled, prepare to wait for a long time (seconds) when encountering an error :P (you will also get a million of errors, seriously)
 
 			builder.CreateRule("template")
 				.Choice(
@@ -388,10 +374,8 @@ namespace RCParsing.Tests.LLT
 				.EOF();
 		}
 
-		static LLTGrammarTests()
+		private static void FillWithRules(ParserBuilder builder)
 		{
-			var builder = new ParserBuilder();
-
 			// ---- Values ---- //
 			DeclareValues(builder);
 
@@ -406,8 +390,20 @@ namespace RCParsing.Tests.LLT
 
 			// ---- Main rules ---- //
 			DeclareMainRules(builder);
+		}
 
+		static LLTGrammarTests()
+		{
+			var builder = new ParserBuilder();
+			FillWithRules(builder);
+			builder.Settings.RecordWalkTrace().SetMaxStepsToDisplay(200);
 			_parser = builder.Build();
+
+			builder = new ParserBuilder();
+			FillWithRules(builder);
+			builder.Settings.UseInitFlagsOn(ParserInitFlags.InlineRules, e => !e.IsOptional);
+			builder.Settings.RecordWalkTrace().SetMaxStepsToDisplay(200);
+			_optParser = builder.Build();
 		}
 
 		[Fact]
@@ -483,6 +479,7 @@ namespace RCParsing.Tests.LLT
 			""";
 
 			_parser.Parse(templateStr);
+			_optParser.Parse(templateStr);
 		}
 
 		[Fact]
@@ -523,6 +520,7 @@ namespace RCParsing.Tests.LLT
 			""";
 
 			_parser.Parse(templateStr);
+			_optParser.Parse(templateStr);
 		}
 
 		[Fact]

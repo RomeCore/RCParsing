@@ -79,7 +79,6 @@ namespace RCParsing
 				case ParserSkippingStrategy.SkipBeforeParsing:
 
 					TrySkip(ref context, skipRule, ref skipSettings, ref childSkipSettings, record);
-					// context.shared.positionsToAvoidSkipping[context.position] = true;
 					return Parse(rule, ref context, ref settings, ref childSettings, canRecover);
 
 				case ParserSkippingStrategy.SkipBeforeParsingLazy:
@@ -103,7 +102,6 @@ namespace RCParsing
 					while (TrySkip(ref context, skipRule, ref skipSettings, ref childSkipSettings, record))
 					{
 					}
-					// context.shared.positionsToAvoidSkipping[context.position] = true;
 					return Parse(rule, ref context, ref settings, ref childSettings, canRecover);
 
 				case ParserSkippingStrategy.TryParseThenSkip:
@@ -113,7 +111,6 @@ namespace RCParsing
 
 					if (TrySkip(ref context, skipRule, ref skipSettings, ref childSkipSettings, record))
 					{
-						// context.shared.positionsToAvoidSkipping[context.position] = true;
 						return Parse(rule, ref context, ref settings, ref childSettings, canRecover);
 					}
 
@@ -141,7 +138,6 @@ namespace RCParsing
 							continue;
 						}
 
-						// context.shared.positionsToAvoidSkipping[context.position] = true;
 						if (canRecover)
 							return TryRecover(rule, ref context, ref settings, ref childSettings);
 						return ParsedRule.Fail;
@@ -156,7 +152,65 @@ namespace RCParsing
 					while (TrySkip(ref context, skipRule, ref skipSettings, ref childSkipSettings, record))
 					{
 					}
-					// context.shared.positionsToAvoidSkipping[context.position] = true;
+
+					return Parse(rule, ref context, ref settings, ref childSettings, canRecover);
+
+				case ParserSkippingStrategy.TryParseNonEmptyThenSkip:
+
+					var lastResult = ParsedRule.Fail;
+					if (TryParse(rule, ref context, ref settings, ref childSettings, out lastResult) && lastResult.length > 0)
+						return lastResult;
+
+					if (TrySkip(ref context, skipRule, ref skipSettings, ref childSkipSettings, record))
+					{
+						return Parse(rule, ref context, ref settings, ref childSettings, canRecover);
+					}
+
+					if (lastResult.success)
+						return lastResult;
+
+					if (canRecover)
+						return TryRecover(rule, ref context, ref settings, ref childSettings);
+					return ParsedRule.Fail;
+
+				case ParserSkippingStrategy.TryParseNonEmptyThenSkipLazy:
+
+					// First try parse (handled above in TryParseThenSkip pattern),
+					// then alternate Skip -> TryParse -> Skip -> TryParse ... until success or nothing consumes
+					if (TryParse(rule, ref context, ref settings, ref childSettings, out firstResult) && firstResult.length > 0)
+					{
+						return firstResult;
+					}
+
+					while (true)
+					{
+						lastResult = ParsedRule.Fail;
+						if (TrySkip(ref context, skipRule, ref skipSettings, ref childSkipSettings, record))
+						{
+							if (TryParse(rule, ref context, ref settings, ref childSettings, out lastResult) && lastResult.length > 0)
+							{
+								return lastResult;
+							}
+							continue;
+						}
+
+						if (lastResult.success)
+							return lastResult;
+
+						if (canRecover)
+							return TryRecover(rule, ref context, ref settings, ref childSettings);
+						return ParsedRule.Fail;
+					}
+
+				case ParserSkippingStrategy.TryParseNonEmptyThenSkipGreedy:
+
+					// Try parse; if failed, greedily skip then parse once
+					if (TryParse(rule, ref context, ref settings, ref childSettings, out firstResult) && firstResult.length > 0)
+						return firstResult;
+
+					while (TrySkip(ref context, skipRule, ref skipSettings, ref childSkipSettings, record))
+					{
+					}
 
 					return Parse(rule, ref context, ref settings, ref childSettings, canRecover);
 
