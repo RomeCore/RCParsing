@@ -76,7 +76,7 @@ namespace RCParsing.ParserRules
 				}
 			};
 
-			parseFunction = canRuleBeInlined ? Parse : ParseInlined;
+			parseFunction = canRuleBeInlined ? ParseInlined : Parse;
 
 			parseFunction = WrapParseFunction(parseFunction, initFlags);
 		}
