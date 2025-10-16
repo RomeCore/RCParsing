@@ -30,7 +30,7 @@ Tokens are the building blocks of parsing, consuming input and producing interme
 - [Return](./tokens/combinators/return): Return a fixed value for a token.
 - [CaptureText](./tokens/combinators/capture-text): Capture the matched text as the intermediate value.
 - [SkipWhitespaces](./tokens/combinators/skip-whitespaces): Skip whitespace before matching a token.
-- [Lookahead](./tokens/combinators/negative-lookahead): Ensure a token does match/does not match ahead.
+- [Lookahead](./tokens/combinators/lookahead): Ensure a token does match/does not match ahead.
 
 ### Matching Primitives
 - [EOF](./tokens/eof): Match the end of input.

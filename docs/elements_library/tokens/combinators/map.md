@@ -1,4 +1,4 @@
-# Map Token
+# Map
 
 The `Map` token in `RCParsing` matches a single child token and applies a transformation function to its intermediate value. It’s used to convert the matched value into a different type or format, making it a powerful tool for shaping the output of token matches.
 

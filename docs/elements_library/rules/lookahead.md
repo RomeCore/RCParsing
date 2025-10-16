@@ -9,14 +9,14 @@ A `PositiveLookahead` rule checks if the input at the current position matches t
 
 ## Example
 
-Here’s an example of using `Lookahead` to ensure a number is followed by a semicolon and ensure an identifier is not a reserved keyword:
+Here’s an example of using `Lookahead` to ensure a number has '1' as first character and ensure an identifier is not a reserved keyword:
 
 ```csharp
 var builder = new ParserBuilder();
 
-builder.CreateRule("number_with_semicolon")
-    .Number<int>()
-    .PositiveLookahead(b => b.Literal(";"));
+builder.CreateRule("number_with_1")
+    .PositiveLookahead(b => b.Literal("1"))
+    .Number<int>();
 
 builder.CreateRule("non_reserved_identifier")
     .NegativeLookahead(b => b.KeywordChoice("if", "else", "while"))
@@ -24,8 +24,8 @@ builder.CreateRule("non_reserved_identifier")
 
 var parser = builder.Build();
 
-var result1 = parser.ParseRule("number_with_semicolon", "123;"); // Succeeds, matches "123" only
-var result2 = parser.ParseRule("number_with_semicolon", "123"); // Fails
+var result1 = parser.ParseRule("number_with_1", "123"); // Succeeds
+var result2 = parser.ParseRule("number_with_1", "456"); // Fails
 
 var result3 = parser.ParseRule("non_reserved_identifier", "variable"); // Succeeds
 var result4 = parser.ParseRule("non_reserved_identifier", "if"); // Fails
@@ -35,12 +35,11 @@ var result4 = parser.ParseRule("non_reserved_identifier", "if"); // Fails
 
 - **Context Checking**: Ensure specific patterns follow without consuming them.
 - **Reserved Keywords**: Prevent identifiers from matching reserved words.
-- **Syntax Validation**: Verify that a construct is followed by expected tokens.
+- **Syntax Validation**: Verify that a construct is followed or not followed by expected tokens.
 
 ## Notes
 
 - **Zero-Width**: Does not consume input, so the parser position remains unchanged.
-- **Success on Match**: Succeeds if the child rule matches, fails otherwise.
 - **Performance**: Use sparingly in performance-critical grammars.
 
 ## Related Tutorials
