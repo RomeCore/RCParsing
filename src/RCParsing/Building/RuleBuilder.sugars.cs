@@ -36,8 +36,7 @@ namespace RCParsing.Building
 				AllowTrailingSeparator = allowTrailing,
 				IncludeSeparatorsInResult = includeSeparators,
 				Child = prevRule.Value,
-				Separator = builder.BuildingRule.Value,
-				ParsedValueFactory = DefaultFactory_RepeatSeparated
+				Separator = builder.BuildingRule.Value
 			});
 		}
 
@@ -70,8 +69,7 @@ namespace RCParsing.Building
 				AllowTrailingSeparator = allowTrailing,
 				IncludeSeparatorsInResult = includeSeparators,
 				Child = prevRule.Value,
-				Separator = builder.BuildingRule.Value,
-				ParsedValueFactory = DefaultFactory_RepeatSeparated
+				Separator = builder.BuildingRule.Value
 			});
 		}
 

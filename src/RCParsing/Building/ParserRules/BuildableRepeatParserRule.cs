@@ -26,6 +26,11 @@ namespace RCParsing.Building.ParserRules
 		public override IEnumerable<Or<string, BuildableParserRule>>? RuleChildren => Child.WrapIntoEnumerable();
 		public override IEnumerable<Or<string, BuildableTokenPattern>>? TokenChildren => null;
 
+		public BuildableRepeatParserRule()
+		{
+			ParsedValueFactory = v => v.SelectArray();
+		}
+
 		protected override ParserRule BuildRule(List<int>? ruleChildren, List<int>? tokenChildren)
 		{
 			return new RepeatParserRule(ruleChildren[0], MinCount, MaxCount);

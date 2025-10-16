@@ -19,12 +19,6 @@ namespace RCParsing.Building
 	/// </remarks>
 	public partial class RuleBuilder : ParserElementBuilder<RuleBuilder>
 	{
-		private object? DefaultFactory_Sequence(ParsedRuleResultBase r) => r[0].Value;
-		private object? DefaultFactory_Optional(ParsedRuleResultBase r) => r.Count > 0 ? r[0].Value : null;
-		private object? DefaultFactory_Repeat(ParsedRuleResultBase r) => r.SelectArray();
-		private object? DefaultFactory_Choice(ParsedRuleResultBase r) => r[0].Value;
-		private object? DefaultFactory_RepeatSeparated(ParsedRuleResultBase r) => r.SelectArray();
-
 		/// <summary>
 		/// Initializes a new instance of <see cref="RuleBuilder"/> class.
 		/// </summary>
@@ -99,7 +93,6 @@ namespace RCParsing.Building
 			else
 			{
 				var newSequence = new BuildableSequenceParserRule();
-				newSequence.ParsedValueFactory = DefaultFactory_Sequence;
 				newSequence.Elements.Add(BuildingRule.Value);
 				newSequence.Elements.Add(childRule);
 				BuildingRule = newSequence;
@@ -184,7 +177,6 @@ namespace RCParsing.Building
 					BuildingRule.Value.AsT2() is not BuildableSequenceParserRule)
 			{
 				var newSequence = new BuildableSequenceParserRule();
-				newSequence.ParsedValueFactory = DefaultFactory_Sequence;
 				newSequence.Elements.Add(BuildingRule.Value);
 				BuildingRule = newSequence;
 			}
@@ -384,8 +376,7 @@ namespace RCParsing.Building
 
 			return Rule(new BuildableOptionalParserRule
 			{
-				Child = builder.BuildingRule.Value,
-				ParsedValueFactory = DefaultFactory_Optional
+				Child = builder.BuildingRule.Value
 			});
 		}
 
@@ -473,8 +464,7 @@ namespace RCParsing.Building
 			{
 				MinCount = min,
 				MaxCount = max,
-				Child = builder.BuildingRule.Value,
-				ParsedValueFactory = DefaultFactory_Repeat
+				Child = builder.BuildingRule.Value
 			});
 		}
 
@@ -541,7 +531,6 @@ namespace RCParsing.Building
 			var choice = new BuildableChoiceParserRule();
 			choice.Mode = mode;
 			choice.Choices.AddRange(builtValues);
-			choice.ParsedValueFactory = DefaultFactory_Choice;
 			return Rule(choice);
 		}
 
@@ -684,8 +673,7 @@ namespace RCParsing.Building
 				Child = builder.BuildingRule.Value,
 				Separator = separatorBuilder.BuildingRule.Value,
 				AllowTrailingSeparator = allowTrailingSeparator,
-				IncludeSeparatorsInResult = includeSeparatorsInResult,
-				ParsedValueFactory = DefaultFactory_RepeatSeparated
+				IncludeSeparatorsInResult = includeSeparatorsInResult
 			});
 		}
 

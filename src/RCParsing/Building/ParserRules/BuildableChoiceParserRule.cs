@@ -24,6 +24,11 @@ namespace RCParsing.Building.ParserRules
 		public override IEnumerable<Or<string, BuildableParserRule>>? RuleChildren => Choices;
 		public override IEnumerable<Or<string, BuildableTokenPattern>>? TokenChildren => null;
 
+		public BuildableChoiceParserRule()
+		{
+			ParsedValueFactory = v => v[0].Value;
+		}
+
 		protected override ParserRule BuildRule(List<int>? ruleChildren, List<int>? tokenChildren)
 		{
 			return new ChoiceParserRule(Mode, ruleChildren);

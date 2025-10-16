@@ -19,6 +19,11 @@ namespace RCParsing.Building.ParserRules
 		public override IEnumerable<Or<string, BuildableParserRule>>? RuleChildren => Elements;
 		public override IEnumerable<Or<string, BuildableTokenPattern>>? TokenChildren => null;
 
+		public BuildableSequenceParserRule()
+		{
+			ParsedValueFactory = v => v.Count > 0 ? v[0].Value : null;
+		}
+
 		protected override ParserRule BuildRule(List<int>? ruleChildren, List<int>? tokenChildren)
 		{
 			return new SequenceParserRule(ruleChildren);
