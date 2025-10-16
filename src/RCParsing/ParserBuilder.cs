@@ -579,7 +579,7 @@ namespace RCParsing
 				}
 				else if (builtElement is TokenPattern pattern)
 				{
-					pattern.DefaultParsedValueFactory = element.ParsedValueFactory;
+					pattern.DefaultParsedValueFactory = element.ParsedValueFactory ?? (v => v.IntermediateValue);
 					pattern.DefaultSettings = builtSettings;
 					pattern.DefaultErrorRecovery = builtErrorRecovery;
 					resultTokenPatterns[id] = pattern;

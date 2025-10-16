@@ -35,12 +35,7 @@ namespace RCParsing
 		/// A cache to store parsed results for reuse.
 		/// </summary>
 		public readonly ParserCache cache;
-/*
-		/// <summary>
-		/// A set of positions that should be avoided when skipping rules and tokens.
-		/// </summary>
-		public readonly BitArray positionsToAvoidSkipping;
-*/
+
 		/// <summary>
 		/// A list to store any parsing errors encountered during the process.
 		/// </summary>
@@ -83,7 +78,6 @@ namespace RCParsing
 			this.parserParameter = parserParameter;
 			this.parser = parser ?? throw new ArgumentNullException(nameof(parser));
 			this.cache = new ParserCache();
-			// this.positionsToAvoidSkipping = new BitArray(str.Length + 1);
 			this.errors = new List<ParsingError>();
 			this.errorRecoveryIndices = new List<int>();
 			this.skippedRules = new List<ParsedRule>();
@@ -187,12 +181,7 @@ namespace RCParsing
 		/// A cache to store parsed results for reuse.
 		/// </summary>
 		public readonly ParserCache cache => shared.cache;
-/*
-		/// <summary>
-		/// A set of positions that should be avoided when skipping rules and tokens.
-		/// </summary>
-		public readonly BitArray positionsToAvoidSkipping => shared.positionsToAvoidSkipping;
-*/
+
 		/// <summary>
 		/// A list to store any parsing errors encountered during the process.
 		/// </summary>

@@ -14,8 +14,6 @@ namespace RCParsing.Building
 	/// </summary>
 	public abstract partial class ParserElementBuilder<T>
 	{
-		protected static object? DefaultFactory_Token(ParsedRuleResultBase r) => r.IntermediateValue;
-
 		/// <summary>
 		/// Gets the master parser builder associated with this rule builder, if any.
 		/// </summary>
@@ -58,6 +56,13 @@ namespace RCParsing.Building
 		/// <summary>
 		/// Add a child pattern to the current sequence.
 		/// </summary>
+		/// <param name="buildableToken">The child pattern to add.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public abstract T Token(BuildableTokenPattern buildableToken);
+
+		/// <summary>
+		/// Add a child pattern to the current sequence.
+		/// </summary>
 		/// <param name="token">The child pattern to add.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		public abstract T Token(TokenPattern token);
@@ -80,8 +85,18 @@ namespace RCParsing.Building
 		public T Custom(Func<CustomTokenPattern, string, int, int, ParsedElement> matchFunction,
 			string stringRepresentation = "custom")
 		{
-			return Token(new CustomTokenPattern((self, i, s, e, p, c) => matchFunction(self, i, s, e),
-				stringRepresentation));
+			ParsedElement MatchFunction(CustomTokenPattern self, string input,
+				int start, int end, object? parameter, bool calculateIntermediateValue,
+				ref ParsingError furthestError, TokenPattern[] children)
+			{
+				return matchFunction(self, input, start, end);
+			}
+
+			return Token(new BuildableCustomTokenPattern
+			{
+				MatchFunction = MatchFunction,
+				StringRepresentation = stringRepresentation
+			});
 		}
 
 		/// <summary>
@@ -103,8 +118,18 @@ namespace RCParsing.Building
 		public T Custom(Func<CustomTokenPattern, string, int, int, object?, ParsedElement> matchFunction,
 			string stringRepresentation = "custom")
 		{
-			return Token(new CustomTokenPattern((self, i, s, e, p, c) => matchFunction(self, i, s, e, p),
-				stringRepresentation));
+			ParsedElement MatchFunction(CustomTokenPattern self, string input,
+				int start, int end, object? parameter, bool calculateIntermediateValue,
+				ref ParsingError furthestError, TokenPattern[] children)
+			{
+				return matchFunction(self, input, start, end, parameter);
+			}
+
+			return Token(new BuildableCustomTokenPattern
+			{
+				MatchFunction = MatchFunction,
+				StringRepresentation = stringRepresentation
+			});
 		}
 
 		/// <summary>
@@ -127,7 +152,70 @@ namespace RCParsing.Building
 		public T Custom(Func<CustomTokenPattern, string, int, int, object?, bool, ParsedElement> matchFunction,
 			string stringRepresentation = "custom")
 		{
-			return Token(new CustomTokenPattern(matchFunction, stringRepresentation));
+			ParsedElement MatchFunction(CustomTokenPattern self, string input,
+				int start, int end, object? parameter, bool calculateIntermediateValue,
+				ref ParsingError furthestError, TokenPattern[] children)
+			{
+				return matchFunction(self, input, start, end, parameter, calculateIntermediateValue);
+			}
+
+			return Token(new BuildableCustomTokenPattern
+			{
+				MatchFunction = MatchFunction,
+				StringRepresentation = stringRepresentation
+			});
+		}
+
+		/// <summary>
+		/// Adds a custom token pattern to the current sequence.
+		/// </summary>
+		/// <param name="matchFunction">The function to use for matching the token pattern.</param>
+		/// <param name="childTokens">The children token builders actions.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T Custom(CustomTokenMatchFunction matchFunction, params Action<TokenBuilder>[] childTokens)
+		{
+			var token = new BuildableCustomTokenPattern
+			{
+				MatchFunction = matchFunction
+			};
+
+			token.Children.AddRange(childTokens.Select(action =>
+			{
+				var builder = new TokenBuilder(ParserBuilder);
+				action.Invoke(builder);
+				if (!builder.CanBeBuilt)
+					throw new ParserBuildingException("Builder action did not add any tokens.");
+				return builder.BuildingPattern.Value;
+			}));
+
+			return Token(token);
+		}
+
+		/// <summary>
+		/// Adds a custom token pattern to the current sequence.
+		/// </summary>
+		/// <param name="matchFunction">The function to use for matching the token pattern.</param>
+		/// <param name="stringRepresentation">The string representation of custom token pattern.</param>
+		/// <param name="childTokens">The children token builders actions.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T Custom(CustomTokenMatchFunction matchFunction, string stringRepresentation, params Action<TokenBuilder>[] childTokens)
+		{
+			var token = new BuildableCustomTokenPattern
+			{
+				MatchFunction = matchFunction,
+				StringRepresentation = stringRepresentation
+			};
+
+			token.Children.AddRange(childTokens.Select(action =>
+			{
+				var builder = new TokenBuilder(ParserBuilder);
+				action.Invoke(builder);
+				if (!builder.CanBeBuilt)
+					throw new ParserBuildingException("Builder action did not add any tokens.");
+				return builder.BuildingPattern.Value;
+			}));
+
+			return Token(token);
 		}
 
 		/// <summary>

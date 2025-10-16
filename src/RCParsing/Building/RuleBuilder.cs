@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using RCParsing.Building.ParserRules;
 using RCParsing.Building.TokenPatterns;
+using RCParsing.ParserRules;
 using RCParsing.TokenPatterns;
 using RCParsing.Utils;
 
@@ -65,8 +66,7 @@ namespace RCParsing.Building
 		{
 			return Token(new BuildableLeafTokenPattern
 			{
-				TokenPattern = token,
-				ParsedValueFactory = DefaultFactory_Token
+				TokenPattern = token
 			});
 		}
 
@@ -75,7 +75,7 @@ namespace RCParsing.Building
 		/// </summary>
 		/// <param name="token">The child token to add.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public RuleBuilder Token(BuildableTokenPattern token)
+		public override RuleBuilder Token(BuildableTokenPattern token)
 		{
 			return Token(new Or<string, BuildableTokenPattern>(token));
 		}
@@ -313,6 +313,59 @@ namespace RCParsing.Building
 		public RuleBuilder ConfigureForSkip()
 		{
 			return Configure(c => c.NoSkipping().IgnoreErrors());
+		}
+
+		/// <summary>
+		/// Adds a custom rule to the current sequence.
+		/// </summary>
+		/// <param name="parseFunction">The function to use for parsing the rule.</param>
+		/// <param name="childRules">The children rule builders actions.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public RuleBuilder Custom(CustomRuleParseFunction parseFunction, params Action<RuleBuilder>[] childRules)
+		{
+			var rule = new BuildableCustomParserRule
+			{
+				ParseFunction = parseFunction
+			};
+
+			rule.Children.AddRange(childRules.Select(action =>
+			{
+				var builder = new RuleBuilder(ParserBuilder);
+				action.Invoke(builder);
+				if (!builder.CanBeBuilt)
+					throw new ParserBuildingException("Builder action did not add any rules.");
+				return builder.BuildingRule.Value;
+			}));
+
+			return Rule(rule);
+		}
+		
+		/// <summary>
+		/// Adds a custom rule to the current sequence.
+		/// </summary>
+		/// <param name="parseFunction">The function to use for parsing the rule.</param>
+		/// <param name="stringRepresentation">The string representation of custom rule.</param>
+		/// <param name="childRules">The children rule builders actions.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public RuleBuilder Custom(CustomRuleParseFunction parseFunction, string stringRepresentation,
+			params Action<RuleBuilder>[] childRules)
+		{
+			var rule = new BuildableCustomParserRule
+			{
+				ParseFunction = parseFunction,
+				StringRepresentation = stringRepresentation
+			};
+
+			rule.Children.AddRange(childRules.Select(action =>
+			{
+				var builder = new RuleBuilder(ParserBuilder);
+				action.Invoke(builder);
+				if (!builder.CanBeBuilt)
+					throw new ParserBuildingException("Builder action did not add any rules.");
+				return builder.BuildingRule.Value;
+			}));
+
+			return Rule(rule);
 		}
 
 		/// <summary>

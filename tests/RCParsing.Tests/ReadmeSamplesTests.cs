@@ -426,7 +426,9 @@ namespace RCParsing.Tests
 			builder.BarrierTokenizers.AddIndent(indentSize: 2, "INDENT", "DEDENT", "NEWLINE");
 
 			builder.CreateToken("boolean")
-				.LiteralChoice("true", "false").Transform(v => v.Text == "true");
+				.LiteralChoice("true", "false").Transform(
+				v =>  v.Text == "true"
+				);
 
 			builder.CreateToken("number")
 				.Number<double>();

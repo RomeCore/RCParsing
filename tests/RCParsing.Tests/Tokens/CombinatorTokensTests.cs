@@ -207,9 +207,6 @@ namespace RCParsing.Tests.Tokens
 				.EOF()
 				.TransformSelect(index: 0);
 
-			builder.CreateRule("")
-				.KeywordIgnoreCase("var");
-
 			var parser = builder.Build();
 
 			var json =
@@ -226,8 +223,6 @@ namespace RCParsing.Tests.Tokens
 				}
 			}
 			""";
-
-			builder.Settings.RecordTokenErrors();
 
 			var result = parser.Parse<Dictionary<string, object>>(json);
 			Assert.Equal(1, (double)result["id"]);
