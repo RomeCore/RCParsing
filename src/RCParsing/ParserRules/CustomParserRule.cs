@@ -73,7 +73,10 @@ namespace RCParsing.ParserRules
 
 			ParsedRule Parse(ref ParserContext context, ref ParserSettings settings, ref ParserSettings childSettings)
 			{
-				return ParseFunction(this, context, settings, childSettings, _children);
+				var result = ParseFunction(this, context, settings, childSettings, _children);
+				// TODO: Maybe uncomment that?
+				// result.ruleId = Id;
+				return result;
 			}
 
 			parseFunction = WrapParseFunction(Parse, initFlags);
@@ -84,6 +87,35 @@ namespace RCParsing.ParserRules
 			return parseFunction(ref context, ref settings, ref childSettings);
 		}
 
+		/// <summary>
+		/// Tries to parse rule by its ID.
+		/// </summary>
+		/// <remarks>
+		/// Used for custom logic.
+		/// </remarks>
+		/// <param name="ruleId">The rule ID to parse.</param>
+		/// <param name="context">The context used to parse.</param>
+		/// <param name="settings">The settings to provide to rule.</param>
+		/// <returns>The intermediate parsed rule result (AST).</returns>
+		public ParsedRule ParseRule(int ruleId, ParserContext context, ParserSettings settings)
+		{
+			return base.TryParseRule(ruleId, context, settings);
+		}
+
+		/// <summary>
+		/// Tries to parse rule by its alias.
+		/// </summary>
+		/// <remarks>
+		/// Used for custom logic.
+		/// </remarks>
+		/// <param name="ruleAlias">The rule alias to parse.</param>
+		/// <param name="context">The context used to parse.</param>
+		/// <param name="settings">The settings to provide to rule.</param>
+		/// <returns>The intermediate parsed rule result (AST).</returns>
+		public ParsedRule ParseRule(string ruleAlias, ParserContext context, ParserSettings settings)
+		{
+			return base.TryParseRule(ruleAlias, context, settings);
+		}
 
 
 		public override string ToStringOverride(int remainingDepth)
