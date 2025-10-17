@@ -160,7 +160,7 @@ namespace RCParsing.Tests
 				.Literal('=')
 				.Identifier()
 				.Literal(';')
-				.Recovery(r => r.SkipAfter(a => a.Literal(';')));
+				.Recovery(r => r.SkipAfter(a => a.Literal(';'), repeat: true));
 
 			builder.CreateMainRule("program")
 				.OneOrMore(b => b.Rule("statement"))
