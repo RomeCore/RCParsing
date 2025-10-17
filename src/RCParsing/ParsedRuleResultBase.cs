@@ -440,6 +440,17 @@ namespace RCParsing
 		/// <returns>An optimized version of this AST node.</returns>
 		public abstract ParsedRuleResultBase Optimized(ParseTreeOptimization optimization = ParseTreeOptimization.Default);
 
+		/// <summary>
+		/// Creates error groups from stored errors in context. <br/>
+		/// If parsing was successful, last error group will be excluded from relevant error groups.
+		/// </summary>
+		/// <returns>The error groups created from context-stored errors.</returns>
+		public ErrorGroupCollection CreateErrorGroups()
+		{
+			var context = Context;
+			return new ErrorGroupCollection(context, context.errors, context.errorRecoveryIndices, Success);
+		}
+
 
 
 		private static void ValidateReparseContext(ParserContext oldContext, ParserContext newContext)

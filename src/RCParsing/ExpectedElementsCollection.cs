@@ -75,9 +75,16 @@ namespace RCParsing
 		/// <returns>A string that represents the current object with expected elements.</returns>
 		public string ToString(ErrorFormattingFlags flags)
 		{
-			if (flags.HasFlag(ErrorFormattingFlags.DisplayRules))
-				return string.Join(Environment.NewLine, Elements.Select(e => e.Element.ToString()).OrderBy(v => v));
-			return Tokens.ToString();
+			if (flags.HasFlag(ErrorFormattingFlags.OnlyNamedElements))
+			{
+				if (flags.HasFlag(ErrorFormattingFlags.DisplayRules))
+					return string.Join(Environment.NewLine, Elements.Where(e => e.Alias != null)
+						.Select(e => e.Element.ToString()).OrderBy(v => v));
+				else
+					return string.Join(Environment.NewLine, Elements
+						.Select(e => e.Element.ToString()).OrderBy(v => v));
+			}
+			return Tokens.ToString(flags);
 		}
 	}
 }

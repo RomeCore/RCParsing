@@ -37,5 +37,20 @@ namespace RCParsing
 		{
 			return string.Join(Environment.NewLine, Rules.Select(e => e.Element.ToString()).OrderBy(v => v));
 		}
+
+		/// <summary>
+		/// Returns a string that represents the current object.
+		/// </summary>
+		/// <remarks>
+		/// Contains the list of expected parser rules. Each element is represented by its string representation.
+		/// </remarks>
+		/// <returns>A string that represents the current object with expected elements.</returns>
+		public string ToString(ErrorFormattingFlags flags)
+		{
+			if (flags.HasFlag(ErrorFormattingFlags.OnlyNamedElements))
+				return string.Join(Environment.NewLine, Rules.Where(e => e.Alias != null)
+					.Select(e => e.Element.ToString()).OrderBy(v => v));
+			return string.Join(Environment.NewLine, Rules.Select(e => e.Element.ToString()).OrderBy(v => v));
+		}
 	}
 }
