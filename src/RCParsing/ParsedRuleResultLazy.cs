@@ -140,8 +140,8 @@ namespace RCParsing
 		/// <summary>
 		/// Initializes a new instance of the <see cref="ParsedRuleResultLazy"/> class.
 		/// </summary>
-		/// <param name="parent">The parent result of this rule, if any.</param>
 		/// <param name="treeOptimization">The optimization flags that used to optimize the parse tree.</param>
+		/// <param name="parent">The parent result of this rule, if any.</param>
 		/// <param name="context">The parser context used for parsing.</param>
 		/// <param name="result">The parsed rule object containing the result of the parse.</param>
 		public ParsedRuleResultLazy(ParseTreeOptimization treeOptimization,
@@ -156,70 +156,13 @@ namespace RCParsing
 			Optimization = treeOptimization;
 			Parent = parent;
 			_ctx = context;
-			Result = treeOptimization == ParseTreeOptimization.None ? result : Optimized(result, _ctx, Optimization);
+			Result = treeOptimization == ParseTreeOptimization.None ? result
+				: result.Optimized(Context, Optimization);
 		}
 
-		private static ParsedRule Optimized(ParsedRule rule, ParserContextLink link, ParseTreeOptimization optimization)
+		public override ParsedRuleResultBase Optimized(ParseTreeOptimization optimization = ParseTreeOptimization.Default)
 		{
-			if (rule.children == null || rule.children.Count == 0 || optimization == ParseTreeOptimization.None)
-				return rule;
-
-			var context = link.context;
-			IEnumerable<ParsedRule> rawChildren = rule.children;
-
-			if (optimization.HasFlag(ParseTreeOptimization.RemoveEmptyNodes))
-				rawChildren = rawChildren.Where(c => c.length != 0);
-
-			if (optimization.HasFlag(ParseTreeOptimization.RemoveWhitespaceNodes))
-				rawChildren = rawChildren.Where(c => !context.input.AsSpan(c.startIndex, c.length).IsWhiteSpace());
-
-			if (optimization.HasFlag(ParseTreeOptimization.RemovePureLiterals))
-			{
-				rawChildren = rawChildren.Where(c =>
-				{
-					var tokenId = link.context.parser.Rules[c.ruleId] is TokenParserRule trule ? trule.TokenPatternId : -1;
-					bool isToken = tokenId != -1;
-					return !(isToken && (
-						context.parser.TokenPatterns[tokenId] is LiteralTokenPattern ||
-						context.parser.TokenPatterns[tokenId] is LiteralCharTokenPattern));
-				});
-			}
-
-			if (optimization.HasFlag(ParseTreeOptimization.MergeSingleChildRules))
-			{
-				var children = rawChildren.ToList();
-				if (children.Count == 1)
-				{
-					return Optimized(children[0], link, optimization);
-				}
-			}
-
-			if (optimization.HasFlag(ParseTreeOptimization.TrimSpans))
-			{
-				var span = context.input.AsSpan(rule.startIndex, rule.length);
-				
-				int startIndex = 0;
-				int length = span.Length;
-
-				while (startIndex < span.Length && char.IsWhiteSpace(span[startIndex]))
-					startIndex++;
-
-				if (startIndex == span.Length)
-				{
-					rule.length = 0;
-				}
-				else
-				{
-					while (length > startIndex && char.IsWhiteSpace(span[length - 1]))
-						length--;
-
-					rule.startIndex += startIndex;
-					rule.length = length - startIndex;
-				}
-			}
-
-			rule.children = rawChildren.ToList();
-			return rule;
+			return new ParsedRuleResultLazy(optimization, Parent, Context, Result);
 		}
 
 		public override ParsedRuleResultBase Updated(ParserContext newContext, ParsedRule newParsedRule)

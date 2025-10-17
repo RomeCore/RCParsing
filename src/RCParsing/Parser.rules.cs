@@ -298,15 +298,10 @@ namespace RCParsing
 
 		private ParsedRuleResultBase CreateResult(ref ParserContext context, ref ParsedRule parsedRule)
 		{
-			switch (MainSettings.astType)
-			{
-				case ParserASTType.Lazy:
-					return new ParsedRuleResultLazy(ParseTreeOptimization.None, null, context, parsedRule);
-
-				default:
-				case ParserASTType.Lightweight:
-					return new ParsedRuleResult(null, context, parsedRule);
-			}
+			var factory = MainSettings.astFactory;
+			if (factory != null)
+				return factory.Invoke(context, parsedRule);
+			return new ParsedRuleResult(null, context, parsedRule);
 		}
 
 

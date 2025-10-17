@@ -175,7 +175,7 @@ namespace RCParsing.Building
 		}
 
 		/// <summary>
-		/// Sets the creating AST type to <see cref="ParserASTType.Lightweight"/> (the <see cref="ParsedRuleResult"/>).
+		/// Sets the creating AST type to the <see cref="ParsedRuleResult"/>.
 		/// </summary>
 		/// <remarks>
 		/// This type of AST stores minimum amount of data, should not be used when AST nodes is reused.
@@ -183,22 +183,39 @@ namespace RCParsing.Building
 		/// <returns>Current instance for method chaining.</returns>
 		public ParserSettingsBuilder UseLightAST()
 		{
-			_mainSettings.astType = ParserASTType.Lightweight;
+			_mainSettings.astFactory = (ctx, res) => new ParsedRuleResult(null, ctx, res);
+			return this;
+		}
+		
+		/// <summary>
+		/// Sets the creating AST type to the <see cref="ParsedRuleResultOptimized"/>.
+		/// </summary>
+		/// <remarks>
+		/// This type of AST stores minimum amount of data, should not be used when AST nodes is reused.
+		/// </remarks>
+		/// <param name="optimization">The optimization flags to apply to creating parsed rules.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public ParserSettingsBuilder UseLightAST(ParseTreeOptimization optimization)
+		{
+			_mainSettings.astFactory = (ctx, res) => new ParsedRuleResultOptimized(optimization,
+				null, ctx, res);
 			return this;
 		}
 
 		/// <summary>
-		/// Sets the creating AST type to <see cref="ParserASTType.Lazy"/> (the <see cref="ParsedRuleResultLazy"/>).
+		/// Sets the creating AST type to the <see cref="ParsedRuleResultLazy"/>.
 		/// </summary>
 		/// <remarks>
 		/// Prevents from AST recalculations.
 		/// This type of AST can do more allocations, impacting on memory usage and speed,
 		/// but crucial for reusable AST nodes.
 		/// </remarks>
+		/// <param name="optimization">The optimization flags to apply to creating parsed rules.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public ParserSettingsBuilder UseLazyAST()
+		public ParserSettingsBuilder UseLazyAST(ParseTreeOptimization optimization = ParseTreeOptimization.None)
 		{
-			_mainSettings.astType = ParserASTType.Lazy;
+			_mainSettings.astFactory = (ctx, res) => new ParsedRuleResultLazy(optimization,
+				null, ctx, res);
 			return this;
 		}
 
@@ -206,9 +223,9 @@ namespace RCParsing.Building
 		/// Sets the creating AST type to the specified type.
 		/// </summary>
 		/// <returns>Current instance for method chaining.</returns>
-		public ParserSettingsBuilder UseAST(ParserASTType astType)
+		public ParserSettingsBuilder UseASTFactory(Func<ParserContext, ParsedRule, ParsedRuleResultBase>? factory)
 		{
-			_mainSettings.astType = astType;
+			_mainSettings.astFactory = factory;
 			return this;
 		}
 

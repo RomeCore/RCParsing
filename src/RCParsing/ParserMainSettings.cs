@@ -6,22 +6,6 @@ using System.Text;
 namespace RCParsing
 {
 	/// <summary>
-	/// A type of AST that will be returned from parser.
-	/// </summary>
-	public enum ParserASTType
-	{
-		/// <summary>
-		/// The default type, AST that does not store values and calulates them every time when called.
-		/// </summary>
-		Lightweight,
-
-		/// <summary>
-		/// The lazy AST that store calculated values.
-		/// </summary>
-		Lazy
-	}
-
-	/// <summary>
 	/// Represents the main settings used by the parser itself, not related to any specific rule or token pattern.
 	/// </summary>
 	public struct ParserMainSettings
@@ -32,9 +16,9 @@ namespace RCParsing
 		public ErrorFormattingFlags errorFormattingFlags;
 
 		/// <summary>
-		/// The AST type that produces the parser on successful parsing. Can be either lazy or lightweight.
+		/// The AST factory that is used by parser to produce usable AST.
 		/// </summary>
-		public ParserASTType astType;
+		public Func<ParserContext, ParsedRule, ParsedRuleResultBase>? astFactory;
 
 		/// <summary>
 		/// Whether to record skipped rules during parsing. Useful for debugging and syntax highlighting.

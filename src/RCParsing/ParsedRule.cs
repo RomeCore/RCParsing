@@ -283,5 +283,74 @@ namespace RCParsing
 
 			return result;
 		}
+
+		/// <summary>
+		/// Returns an optimized version of <see cref="ParsedRule"/>.
+		/// </summary>
+		/// <param name="context">The context that was used for parsing.</param>
+		/// <param name="optimization">The AST optimization flags to apply.</param>
+		/// <returns>A copy of this element with applied optimization flags.</returns>
+		public readonly ParsedRule Optimized(ParserContext context, ParseTreeOptimization optimization)
+		{
+			if (children == null || children.Count == 0 || optimization == ParseTreeOptimization.None)
+				return this;
+
+			var result = this;
+			IEnumerable<ParsedRule> rawChildren = children;
+
+			if (optimization.HasFlag(ParseTreeOptimization.RemoveEmptyNodes))
+				rawChildren = rawChildren.Where(c => c.length != 0);
+
+			if (optimization.HasFlag(ParseTreeOptimization.RemoveWhitespaceNodes))
+				rawChildren = rawChildren.Where(c => !context.input.AsSpan(c.startIndex, c.length).IsWhiteSpace());
+
+			if (optimization.HasFlag(ParseTreeOptimization.RemovePureLiterals))
+			{
+				rawChildren = rawChildren.Where(c =>
+				{
+					var tokenId = context.parser.Rules[c.ruleId] is TokenParserRule trule ? trule.TokenPatternId : -1;
+					bool isToken = tokenId != -1;
+					return !(isToken && (
+						context.parser.TokenPatterns[tokenId] is LiteralTokenPattern ||
+						context.parser.TokenPatterns[tokenId] is LiteralCharTokenPattern));
+				});
+			}
+
+			if (optimization.HasFlag(ParseTreeOptimization.MergeSingleChildRules))
+			{
+				var children = rawChildren.ToList();
+				if (children.Count == 1)
+				{
+					return children[0].Optimized(context, optimization);
+				}
+			}
+
+			if (optimization.HasFlag(ParseTreeOptimization.TrimSpans))
+			{
+				var span = context.input.AsSpan(result.startIndex, result.length);
+
+				int startIndex = 0;
+				int length = span.Length;
+
+				while (startIndex < span.Length && char.IsWhiteSpace(span[startIndex]))
+					startIndex++;
+
+				if (startIndex == span.Length)
+				{
+					result.length = 0;
+				}
+				else
+				{
+					while (length > startIndex && char.IsWhiteSpace(span[length - 1]))
+						length--;
+
+					result.startIndex += startIndex;
+					result.length = length - startIndex;
+				}
+			}
+
+			result.children = rawChildren.ToList();
+			return result;
+		}
 	}
 }

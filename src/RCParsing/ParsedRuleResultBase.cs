@@ -438,10 +438,7 @@ namespace RCParsing
 		/// </remarks>
 		/// <param name="optimization">The optimization flags to apply.</param>
 		/// <returns>An optimized version of this AST node.</returns>
-		public ParsedRuleResultBase Optimized(ParseTreeOptimization optimization = ParseTreeOptimization.Default)
-		{
-			return new ParsedRuleResultLazy(optimization, Parent, Context, Result);
-		}
+		public abstract ParsedRuleResultBase Optimized(ParseTreeOptimization optimization = ParseTreeOptimization.Default);
 
 
 
@@ -571,7 +568,6 @@ namespace RCParsing
 			if (!Success)
 				throw new ParsingException(Context);
 		}
-
 
 		public string Dump(int maxDepth)
 		{
