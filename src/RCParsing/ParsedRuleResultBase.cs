@@ -93,6 +93,11 @@ namespace RCParsing
 		public int Length => Result.length;
 
 		/// <summary>
+		/// Gets the ending index of the AST node in the input text.
+		/// </summary>
+		public int EndIndex => Result.endIndex;
+
+		/// <summary>
 		/// Gets the occurency index in the parent choice, sequence or any repeat rule. -1 by default.
 		/// </summary>
 		public int Occurency => Result.occurency;

@@ -96,11 +96,8 @@ namespace RCParsing.TokenPatterns.Combinators
 					if (!token.success)
 						return ParsedElement.Fail;
 
-					if (PassageFunction != null)
-					{
-						intermediateValues ??= new object?[_patterns.Length];
-						intermediateValues[i] = token.intermediateValue;
-					}
+					intermediateValues ??= new object?[_patterns.Length];
+					intermediateValues[i] = token.intermediateValue;
 					position = token.startIndex + token.length;
 				}
 

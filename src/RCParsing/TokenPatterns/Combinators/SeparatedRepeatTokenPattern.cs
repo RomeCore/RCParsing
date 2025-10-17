@@ -102,19 +102,21 @@ namespace RCParsing.TokenPatterns.Combinators
 		private ParsedElement MatchWithoutCalculation(string input, int position, int barrierPosition,
 			object? parserParameter, ref ParsingError furthestError)
 		{
+			int minCount = MinCount, maxCount = MaxCount;
+			bool allowTrailing = AllowTrailingSeparator;
+
+			if (maxCount == 0)
+				return new ParsedElement(position, 0, null);
+
 			var initialPosition = position;
 			var firstElement = _token.Match(input, position, barrierPosition, parserParameter,
 				false, ref furthestError);
 			if (!firstElement.success)
 			{
-				if (MinCount == 0)
-				{
+				if (minCount == 0)
 					return new ParsedElement(initialPosition, position - initialPosition);
-				}
 				else
-				{
 					return ParsedElement.Fail;
-				}
 			}
 
 			if (firstElement.length == 0)
@@ -123,7 +125,7 @@ namespace RCParsing.TokenPatterns.Combinators
 			int count = 1;
 			position = firstElement.startIndex + firstElement.length;
 
-			while (MaxCount == -1 || count < MaxCount)
+			while (maxCount == -1 || count < maxCount || (allowTrailing && count == maxCount))
 			{
 				var parsedSep = _separator.Match(input, position, barrierPosition, parserParameter, false, ref furthestError);
 				if (!parsedSep.success || parsedSep.length == 0)
@@ -132,10 +134,13 @@ namespace RCParsing.TokenPatterns.Combinators
 				int postionBeforeSep = position;
 				position = parsedSep.startIndex + parsedSep.length;
 
+				if (count == maxCount)
+					break;
+
 				var nextElement = _token.Match(input, position, barrierPosition, parserParameter, false, ref furthestError);
 				if (!nextElement.success || nextElement.length == 0)
 				{
-					if (!AllowTrailingSeparator)
+					if (!allowTrailing)
 						position = postionBeforeSep;
 					break;
 				}
@@ -144,10 +149,8 @@ namespace RCParsing.TokenPatterns.Combinators
 				position = nextElement.startIndex + nextElement.length;
 			}
 
-			if (count < MinCount)
-			{
+			if (count < minCount)
 				return ParsedElement.Fail;
-			}
 
 			return new ParsedElement(initialPosition, position - initialPosition);
 		}
@@ -155,20 +158,23 @@ namespace RCParsing.TokenPatterns.Combinators
 		private ParsedElement MatchWithCalculation(string input, int position, int barrierPosition,
 			object? parserParameter, ref ParsingError furthestError)
 		{
+			// Put some parameters from heap to stack for max performance
+			int minCount = MinCount, maxCount = MaxCount;
+			bool allowTrailing = AllowTrailingSeparator, includeSeparators = IncludeSeparatorsInResult;
+
+			if (maxCount == 0)
+				return new ParsedElement(position, 0, PassageFunction(Array.Empty<object?>()));
+
 			var initialPosition = position;
 
 			var firstElement = _token.Match(input, position, barrierPosition, parserParameter, true, ref furthestError);
 			if (!firstElement.success)
 			{
-				if (MinCount == 0)
-				{
+				if (minCount == 0)
 					return new ParsedElement(initialPosition, position - initialPosition,
 						PassageFunction(Array.Empty<object>()));
-				}
 				else
-				{
 					return ParsedElement.Fail;
-				}
 			}
 
 			if (firstElement.length == 0)
@@ -179,25 +185,29 @@ namespace RCParsing.TokenPatterns.Combinators
 			elements.Add(firstElement.intermediateValue);
 			position = firstElement.startIndex + firstElement.length;
 
-			while (MaxCount == -1 || count < MaxCount)
+			while (maxCount == -1 || count < maxCount || (allowTrailing && count == maxCount))
 			{
 				var parsedSep = _separator.Match(input, position, barrierPosition, parserParameter,
-					IncludeSeparatorsInResult, ref furthestError);
+					includeSeparators, ref furthestError);
 				if (!parsedSep.success || parsedSep.length == 0)
 					break;
 
-				if (IncludeSeparatorsInResult)
+				if (includeSeparators)
 					elements.Add(parsedSep.intermediateValue);
 
 				int postionBeforeSep = position;
 				position = parsedSep.startIndex + parsedSep.length;
 
+				if (count == maxCount)
+					break;
+
 				var nextElement = _token.Match(input, position, barrierPosition, parserParameter, true, ref furthestError);
 				if (!nextElement.success || nextElement.length == 0)
 				{
-					if (!AllowTrailingSeparator)
+					if (!allowTrailing)
 					{
-						elements.RemoveAt(elements.Count - 1);
+						if (includeSeparators)
+							elements.RemoveAt(elements.Count - 1);
 						position = postionBeforeSep;
 					}
 					break;
@@ -208,7 +218,7 @@ namespace RCParsing.TokenPatterns.Combinators
 				position = nextElement.startIndex + nextElement.length;
 			}
 
-			if (count < MinCount)
+			if (count < minCount)
 				return ParsedElement.Fail;
 
 			return new ParsedElement(initialPosition, position - initialPosition, PassageFunction(elements));
