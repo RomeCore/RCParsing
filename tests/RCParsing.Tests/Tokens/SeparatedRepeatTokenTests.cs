@@ -152,7 +152,7 @@ namespace RCParsing.Tests.Tokens
 			{
 				var result = parser.MatchToken(token, input);
 				Assert.Equal(length, result.Length);
-				Assert.Equal(value, (double)result.IntermediateValue);
+				Assert.Equal(value, (double)result.IntermediateValue!);
 			}
 
 			Assert.Throws<ParsingException>(() => parser.MatchToken("2_3", "5"));
@@ -252,7 +252,7 @@ namespace RCParsing.Tests.Tokens
 					int acc = Convert.ToInt32(seq[0]);
 					for (int i = 1; i < seq.Length; i += 2)
 					{
-						var op = (string)seq[i];
+						var op = (string)seq[i]!;
 						var num = Convert.ToInt32(seq[i + 1]);
 						acc = op switch
 						{
@@ -299,7 +299,7 @@ namespace RCParsing.Tests.Tokens
 					int acc = Convert.ToInt32(seq[0]);
 					for (int i = 1; i < seq.Length - 1; i += 2)
 					{
-						var op = (string)seq[i];
+						var op = (string)seq[i]!;
 						var num = Convert.ToInt32(seq[i + 1]);
 						acc = op == "+" ? acc + num : acc - num;
 					}
