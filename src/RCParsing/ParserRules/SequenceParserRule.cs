@@ -107,7 +107,8 @@ namespace RCParsing.ParserRules
 					context.passedBarriers = parsedRule.passedBarriers;
 				}
 
-				return ParsedRule.Rule(Id, startIndex, context.position - startIndex, context.passedBarriers, rules);
+				return new ParsedRule(Id, startIndex, context.position - startIndex,
+					context.passedBarriers, rules);
 			};
 
 			parseFunction = Parse;

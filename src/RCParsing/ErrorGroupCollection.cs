@@ -73,19 +73,25 @@ namespace RCParsing
 		/// Each group contains a set of errors that occurred at the same position, but in reverse order from the original list.
 		/// </summary>
 		public IReadOnlyList<ErrorGroup> Reversed => _reversed ??= new ReversedList<ErrorGroup>(Groups);
-		
+
 		/// <summary>
 		/// Initializes a new instance of the <see cref="ErrorGroupCollection"/> class.
 		/// </summary>
 		/// <param name="context">The parser context that was used during parsing.</param>
 		/// <param name="errors">The list of parsing errors that occurred during parsing.</param>
 		/// <param name="errorRecoveryIndices">A list of indices pointing to <paramref name="errors"/> when error recovery was triggered.</param>
-		public ErrorGroupCollection(ParserContext context, IEnumerable<ParsingError> errors, IEnumerable<int>? errorRecoveryIndices = null)
+		/// <param name="excludeLastRelevantGroup">
+		/// Whether to exclude last relevant error group.
+		/// Should be <see langword="true"/> when parsing was successful and last error group is not relevant at all.
+		/// </param>
+		public ErrorGroupCollection(ParserContext context, IEnumerable<ParsingError> errors,
+			IEnumerable<int>? errorRecoveryIndices = null, bool excludeLastRelevantGroup = false)
 		{
 			Context = context;
 			Errors = errors?.ToArray().AsReadOnlyList() ?? throw new ArgumentNullException(nameof(errors));
 
-			var (groups, relGroups) = MakeGroups(context, errors, errorRecoveryIndices ?? Array.Empty<int>());
+			var (groups, relGroups) = MakeGroups(context, errors,
+				errorRecoveryIndices ?? Array.Empty<int>(), excludeLastRelevantGroup);
 			Groups = groups;
 			RelevantGroups = relGroups;
 		}
@@ -96,7 +102,7 @@ namespace RCParsing
 		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
 		private static (IReadOnlyList<ErrorGroup>, IReadOnlyList<ErrorGroup>) MakeGroups(ParserContext context,
-			IEnumerable<ParsingError> errors, IEnumerable<int> errorIndices)
+			IEnumerable<ParsingError> errors, IEnumerable<int> errorIndices, bool excludeLastRelevantGroup)
 		{
 			Dictionary<int, List<ParsingError>> groups = new();
 			HashSet<int> relevantGroups = new();
@@ -130,7 +136,10 @@ namespace RCParsing
 
 			var retGroups = groups
 				.OrderBy(g => g.Key)
-				.Select(g => new ErrorGroup(context, g.Key, g.Value, relevantGroups.Contains(g.Key)))
+				.Select(g => new ErrorGroup(context, g.Key, g.Value,
+					excludeLastRelevantGroup
+						? relevantGroups.Contains(g.Key) && g.Key != maxPosBeforeRecovery
+						: relevantGroups.Contains(g.Key)))
 				.AsReadOnlyCollection();
 
 			return (retGroups, retGroups.Where(g => g.IsRelevant).AsReadOnlyCollection());

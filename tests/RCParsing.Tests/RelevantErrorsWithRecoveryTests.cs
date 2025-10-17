@@ -121,7 +121,7 @@ namespace RCParsing.Tests
 				.Literal('{')
 				.OneOrMore(b => b.Rule("statement"))
 				.Literal('}')
-				.RecoveryLast(r => r.SkipUntil(a => a.Literal('}')));
+					.RecoveryLast(r => r.SkipUntil(a => a.Literal('}')));
 
 			builder.CreateMainRule("program")
 				.OneOrMore(b => b.Rule("block"))
@@ -147,6 +147,60 @@ namespace RCParsing.Tests
 			var reversed = groups.ReversedRelevant;
 			Assert.Contains("literal '='", reversed.First().Expected.ToString());
 		}
-	}
 
+		[Fact]
+		public void RelevantGroups_SimpleRecovery_WhenSuccessParsing()
+		{
+			var builder = new ParserBuilder();
+			builder.Settings.SkipWhitespaces();
+
+			builder.CreateRule("statement")
+				.Keyword("var")
+				.Identifier()
+				.Literal('=')
+				.Identifier()
+				.Literal(';')
+				.Recovery(r => r.SkipAfter(a => a.Literal(';')));
+
+			builder.CreateMainRule("program")
+				.OneOrMore(b => b.Rule("statement"))
+				.EOF()
+					.RecoveryLast(r => r.FindNext());
+
+			var parser = builder.Build();
+
+			string input1 = "var a = b; var c = d garbage; var g = j;";
+			string input2 = "var a = b; var c = d garbage; var b = c; var g = j garbage;";
+
+			var result1 = parser.Parse(input1);
+			var groups1 = result1.CreateErrorGroups();
+
+			Assert.NotEmpty(groups1);
+			Assert.NotEmpty(groups1.RelevantGroups);
+
+			var lastRelevant1 = groups1.ReversedRelevant[0];
+
+			Assert.Equal(1, lastRelevant1.Line);
+			Assert.Equal(22, lastRelevant1.Column);
+			Assert.Contains("literal ';'", lastRelevant1.Expected.ToString());
+
+			var result2 = parser.Parse(input2);
+			var groups2 = result2.CreateErrorGroups();
+
+			Assert.NotEmpty(groups2);
+			Assert.NotEmpty(groups2.RelevantGroups);
+			Assert.Equal(2, groups2.RelevantGroups.Count);
+
+			var lastRelevant21 = groups2.ReversedRelevant[0];
+			var lastRelevant22 = groups2.ReversedRelevant[1];
+
+			Assert.Equal(1, lastRelevant21.Line);
+			Assert.Equal(52, lastRelevant21.Column);
+			Assert.Contains("literal ';'", lastRelevant21.Expected.ToString());
+
+			Assert.Equal(1, lastRelevant22.Line);
+			Assert.Equal(22, lastRelevant22.Column);
+			Assert.Contains("literal ';'", lastRelevant22.Expected.ToString());
+		}
+	}
 }

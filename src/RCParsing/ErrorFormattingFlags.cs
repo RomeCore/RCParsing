@@ -27,5 +27,10 @@ namespace RCParsing
 		/// Displays more groups of errors (instead of a single group) when formatting errors for exceptions.
 		/// </summary>
 		MoreGroups = 4,
+
+		/// <summary>
+		/// Displays only named (or aliased) tokens and rules when formatting errors for exceptions.
+		/// </summary>
+		OnlyNamedElements = 8,
 	}
 }

@@ -15,6 +15,11 @@ namespace RCParsing.Building
 	{
 		public sealed override IEnumerable<Or<string, BuildableParserRule>>? RuleChildren => null;
 
+		public BuildableTokenPattern()
+		{
+			ParsedValueFactory = v => v.IntermediateValue;
+		}
+
 		/// <summary>
 		/// Builds the token pattern with the given children.
 		/// </summary>

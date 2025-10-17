@@ -52,7 +52,6 @@ namespace RCParsing.Building
 			else
 			{
 				var newSequence = new BuildableSequenceTokenPattern();
-				newSequence.ParsedValueFactory = DefaultFactory_Token;
 				newSequence.Elements.Add(BuildingPattern.Value);
 				newSequence.Elements.Add(childToken);
 				BuildingPattern = newSequence;
@@ -79,9 +78,8 @@ namespace RCParsing.Building
 		/// </summary>
 		/// <param name="tokenPattern">The child pattern to add.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public TokenBuilder Token(BuildableTokenPattern tokenPattern)
+		public override TokenBuilder Token(BuildableTokenPattern tokenPattern)
 		{
-			tokenPattern.ParsedValueFactory = DefaultFactory_Token;
 			return Token(new Or<string, BuildableTokenPattern>(tokenPattern));
 		}
 
@@ -116,7 +114,6 @@ namespace RCParsing.Building
 					BuildingPattern.Value.AsT2() is not BuildableSequenceTokenPattern)
 			{
 				var newSequence = new BuildableSequenceTokenPattern();
-				newSequence.ParsedValueFactory = DefaultFactory_Token;
 				newSequence.Elements.Add(BuildingPattern.Value);
 				BuildingPattern = newSequence;
 			}

@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using RCParsing.Building.ParserRules;
 using RCParsing.Building.TokenPatterns;
+using RCParsing.ParserRules;
 using RCParsing.TokenPatterns;
 using RCParsing.Utils;
 
@@ -18,12 +19,6 @@ namespace RCParsing.Building
 	/// </remarks>
 	public partial class RuleBuilder : ParserElementBuilder<RuleBuilder>
 	{
-		private object? DefaultFactory_Sequence(ParsedRuleResultBase r) => r[0].Value;
-		private object? DefaultFactory_Optional(ParsedRuleResultBase r) => r.Count > 0 ? r[0].Value : null;
-		private object? DefaultFactory_Repeat(ParsedRuleResultBase r) => r.SelectArray();
-		private object? DefaultFactory_Choice(ParsedRuleResultBase r) => r[0].Value;
-		private object? DefaultFactory_RepeatSeparated(ParsedRuleResultBase r) => r.SelectArray();
-
 		/// <summary>
 		/// Initializes a new instance of <see cref="RuleBuilder"/> class.
 		/// </summary>
@@ -65,8 +60,7 @@ namespace RCParsing.Building
 		{
 			return Token(new BuildableLeafTokenPattern
 			{
-				TokenPattern = token,
-				ParsedValueFactory = DefaultFactory_Token
+				TokenPattern = token
 			});
 		}
 
@@ -75,7 +69,7 @@ namespace RCParsing.Building
 		/// </summary>
 		/// <param name="token">The child token to add.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public RuleBuilder Token(BuildableTokenPattern token)
+		public override RuleBuilder Token(BuildableTokenPattern token)
 		{
 			return Token(new Or<string, BuildableTokenPattern>(token));
 		}
@@ -99,7 +93,6 @@ namespace RCParsing.Building
 			else
 			{
 				var newSequence = new BuildableSequenceParserRule();
-				newSequence.ParsedValueFactory = DefaultFactory_Sequence;
 				newSequence.Elements.Add(BuildingRule.Value);
 				newSequence.Elements.Add(childRule);
 				BuildingRule = newSequence;
@@ -184,7 +177,6 @@ namespace RCParsing.Building
 					BuildingRule.Value.AsT2() is not BuildableSequenceParserRule)
 			{
 				var newSequence = new BuildableSequenceParserRule();
-				newSequence.ParsedValueFactory = DefaultFactory_Sequence;
 				newSequence.Elements.Add(BuildingRule.Value);
 				BuildingRule = newSequence;
 			}
@@ -316,6 +308,84 @@ namespace RCParsing.Building
 		}
 
 		/// <summary>
+		/// Adds a custom rule to the current sequence.
+		/// </summary>
+		/// <param name="parseFunction">The function to use for parsing the rule.</param>
+		/// <param name="childRules">The children rule builders actions.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public RuleBuilder Custom(CustomRuleParseFunction parseFunction, params Action<RuleBuilder>[] childRules)
+		{
+			var rule = new BuildableCustomParserRule
+			{
+				ParseFunction = parseFunction
+			};
+
+			rule.Children.AddRange(childRules.Select(action =>
+			{
+				var builder = new RuleBuilder(ParserBuilder);
+				action.Invoke(builder);
+				if (!builder.CanBeBuilt)
+					throw new ParserBuildingException("Builder action did not add any rules.");
+				return builder.BuildingRule.Value;
+			}));
+
+			return Rule(rule);
+		}
+		
+		/// <summary>
+		/// Adds a custom rule to the current sequence.
+		/// </summary>
+		/// <param name="parseFunction">The function to use for parsing the rule.</param>
+		/// <param name="stringRepresentation">The string representation of custom rule.</param>
+		/// <param name="childRules">The children rule builders actions.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public RuleBuilder Custom(CustomRuleParseFunction parseFunction, string stringRepresentation,
+			params Action<RuleBuilder>[] childRules)
+		{
+			var rule = new BuildableCustomParserRule
+			{
+				ParseFunction = parseFunction,
+				StringRepresentation = stringRepresentation
+			};
+
+			rule.Children.AddRange(childRules.Select(action =>
+			{
+				var builder = new RuleBuilder(ParserBuilder);
+				action.Invoke(builder);
+				if (!builder.CanBeBuilt)
+					throw new ParserBuildingException("Builder action did not add any rules.");
+				return builder.BuildingRule.Value;
+			}));
+
+			return Rule(rule);
+		}
+
+		/// <summary>
+		/// Adds a rule to the current sequence.
+		/// </summary>
+		/// <param name="factory">The function to create the rule from children IDs.</param>
+		/// <param name="childRules">The children rule builders actions.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public RuleBuilder Rule(Func<List<int>, ParserRule> factory, params Action<RuleBuilder>[] childRules)
+		{
+			var rule = new BuildableFactoryParserRule
+			{
+				Factory = factory
+			};
+
+			rule.Children.AddRange(childRules.Select(action =>
+			{
+				var builder = new RuleBuilder(ParserBuilder);
+				action.Invoke(builder);
+				if (!builder.CanBeBuilt)
+					throw new ParserBuildingException("Builder action did not add any rules.");
+				return builder.BuildingRule.Value;
+			}));
+
+			return Rule(rule);
+		}
+
+		/// <summary>
 		/// Adds an optional rule to the current sequence.
 		/// </summary>
 		/// <param name="builderAction">The rule builder action to build the child rule.</param>
@@ -331,8 +401,7 @@ namespace RCParsing.Building
 
 			return Rule(new BuildableOptionalParserRule
 			{
-				Child = builder.BuildingRule.Value,
-				ParsedValueFactory = DefaultFactory_Optional
+				Child = builder.BuildingRule.Value
 			});
 		}
 
@@ -420,8 +489,7 @@ namespace RCParsing.Building
 			{
 				MinCount = min,
 				MaxCount = max,
-				Child = builder.BuildingRule.Value,
-				ParsedValueFactory = DefaultFactory_Repeat
+				Child = builder.BuildingRule.Value
 			});
 		}
 
@@ -488,7 +556,6 @@ namespace RCParsing.Building
 			var choice = new BuildableChoiceParserRule();
 			choice.Mode = mode;
 			choice.Choices.AddRange(builtValues);
-			choice.ParsedValueFactory = DefaultFactory_Choice;
 			return Rule(choice);
 		}
 
@@ -631,8 +698,7 @@ namespace RCParsing.Building
 				Child = builder.BuildingRule.Value,
 				Separator = separatorBuilder.BuildingRule.Value,
 				AllowTrailingSeparator = allowTrailingSeparator,
-				IncludeSeparatorsInResult = includeSeparatorsInResult,
-				ParsedValueFactory = DefaultFactory_RepeatSeparated
+				IncludeSeparatorsInResult = includeSeparatorsInResult
 			});
 		}
 

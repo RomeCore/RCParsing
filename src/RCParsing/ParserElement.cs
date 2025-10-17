@@ -271,6 +271,18 @@ namespace RCParsing
 		}
 
 		/// <summary>
+		/// Tries to parse a rule with the given alias using the specified parsing context.
+		/// </summary>
+		/// <param name="ruleAlias">The ID of the rule to parse.</param>
+		/// <param name="context">The parsing context to use for the parse operation.</param>
+		/// <param name="settings">The settings to use for parsing.</param>
+		/// <returns>The results of rule parsing operation if parsing was successful; otherwise, <see cref="ParsedRule.Fail"/> if parsing failed.</returns>
+		protected ParsedRule TryParseRule(string ruleAlias, ParserContext context, ParserSettings settings)
+		{
+			return Parser.TryParseRule(Parser.GetRule(ruleAlias).Id, context, settings);
+		}
+
+		/// <summary>
 		/// Tries to find all matches in the given input using the specified rule identifier and parser context.
 		/// </summary>
 		/// <param name="ruleId">The ID of the rule to parse.</param>

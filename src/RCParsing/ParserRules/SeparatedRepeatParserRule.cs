@@ -95,6 +95,10 @@ namespace RCParsing.ParserRules
 			{
 				var initialPosition = context.position;
 
+				// Put some parameters from heap to stack for max performance
+				int minCount = MinCount, maxCount = MaxCount;
+				bool allowTrailing = AllowTrailingSeparator, includeSeparators = IncludeSeparatorsInResult;
+
 				// Try to parse the first element (if required - error if not found; if optional - may return empty result)
 				ParsedRule firstElement;
 				if (canRuleBeInlined)
@@ -106,14 +110,14 @@ namespace RCParsing.ParserRules
 				{
 					// No first element found
 					// If minCount == 0 — OK: empty sequence
-					if (MinCount == 0)
+					if (minCount == 0)
 					{
-						return ParsedRule.Rule(Id, initialPosition, 0, context.passedBarriers, Array.Empty<ParsedRule>());
+						return new ParsedRule(Id, initialPosition, 0, context.passedBarriers, Array.Empty<ParsedRule>());
 					}
 					else
 					{
 						// Minimum count > 0, but first element not found — explicit error
-						RecordError(ref context, ref settings, $"Expected at least {MinCount} repetitions of child rule, but found 0.");
+						RecordError(ref context, ref settings, $"Expected at least {minCount} repetitions of child rule, but found 0.");
 						return ParsedRule.Fail;
 					}
 				}
@@ -133,7 +137,7 @@ namespace RCParsing.ParserRules
 				context.passedBarriers = firstElement.passedBarriers;
 
 				// Parse "separator + element" until limit reached
-				while (MaxCount == -1 || count < MaxCount)
+				while (maxCount == -1 || count < maxCount || (allowTrailing && count == maxCount))
 				{
 					var beforeSepPos = context.position;
 
@@ -142,40 +146,33 @@ namespace RCParsing.ParserRules
 					if (!parsedSep.success || parsedSep.length == 0)
 						break; // no separator — end of sequence
 
-					/*if (parsedSep.length == 0)
-					{
-						RecordError(ref context, ref settings, "Parsed separator has zero length, which is not allowed.");
-						return ParsedRule.Fail;
-					}*/
-
 					// Separator successfully parsed — position already updated inside TryParseRule, but update again for safety:
 					parsedSep.occurency = count;
-					int postionBeforeSep = context.position;
+					int positionBeforeSep = context.position;
 					context.position = parsedSep.startIndex + parsedSep.length;
 					context.passedBarriers = parsedSep.passedBarriers;
 
 					// Include separator in result if requested
-					if (IncludeSeparatorsInResult)
+					if (includeSeparators)
 						elements.Add(parsedSep);
+
+					// Parsed separator but reached limit -> break
+					if (count == maxCount)
+						break;
 
 					// Try to parse the next element
 					var nextElement = TryParseRule(Rule, context, childSettings);
 					if (!nextElement.success || nextElement.length == 0)
 					{
 						// If element parse was not success, finish the parsing and (optionally) remove separator
-						if (!AllowTrailingSeparator)
+						if (!allowTrailing)
 						{
-							context.position = postionBeforeSep;
-							elements.RemoveAt(elements.Count - 1);
+							if (includeSeparators)
+								elements.RemoveAt(elements.Count - 1);
+							context.position = positionBeforeSep;
 						}
 						break;
 					}
-
-					/*if (nextElement.length == 0)
-					{
-						RecordError(ref context, ref settings, "Parsed child element has zero length, which is not allowed.");
-						return ParsedRule.Fail;
-					}*/
 
 					nextElement.occurency = count;
 					count++;
@@ -187,16 +184,22 @@ namespace RCParsing.ParserRules
 				}
 
 				// Check minimum count
-				if (count < MinCount)
+				if (count < minCount)
 				{
-					RecordError(ref context, ref settings, $"Expected at least {MinCount} repetitions of child rule, but found {elements.Count}.");
+					RecordError(ref context, ref settings, $"Expected at least {minCount} repetitions of child rule, but found {elements.Count}.");
 					return ParsedRule.Fail;
 				}
 
-				return ParsedRule.Rule(Id, initialPosition, context.position - initialPosition, context.passedBarriers, elements);
+				return new ParsedRule(Id, initialPosition, context.position - initialPosition,
+					context.passedBarriers, elements);
 			};
 
-			parseFunction = Parse;
+			ParsedRule NoParse(ref ParserContext context, ref ParserSettings settings, ref ParserSettings childSettings)
+			{
+				return new ParsedRule(Id, context.position, 0, context.passedBarriers, Array.Empty<ParsedRule>());
+			}
+
+			parseFunction = MaxCount == 0 ? NoParse : Parse;
 
 			parseFunction = WrapParseFunction(parseFunction, initFlags);
 		}

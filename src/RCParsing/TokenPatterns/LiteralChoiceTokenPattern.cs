@@ -54,7 +54,8 @@ namespace RCParsing.TokenPatterns
 				throw new ArgumentException("One of literals is null or empty.", nameof(literals));
 
 			_comparerWasSet = comparer != null;
-			_root = new Trie(Literals.Select(l => new KeyValuePair<string, object?>(l, l)), _comparerWasSet ? CharComparer : null);
+			_root = new Trie(Literals.Select(l => new KeyValuePair<string, object?>(l, l)),
+				comparer.IsDefaultIgnoreCase() ? CharComparer : null);
 		}
 
 		protected override HashSet<char> FirstCharsCore => Comparer.IsDefaultCaseSensitive() ?

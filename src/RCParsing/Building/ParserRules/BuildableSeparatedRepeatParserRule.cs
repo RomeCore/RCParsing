@@ -44,6 +44,11 @@ namespace RCParsing.Building.ParserRules
 
 		public override IEnumerable<Or<string, BuildableTokenPattern>>? TokenChildren => null;
 
+		public BuildableSeparatedRepeatParserRule()
+		{
+			ParsedValueFactory = v => v.SelectArray();
+		}
+
 		protected override ParserRule BuildRule(List<int>? ruleChildren, List<int>? tokenChildren)
 		{
 			return new SeparatedRepeatParserRule(

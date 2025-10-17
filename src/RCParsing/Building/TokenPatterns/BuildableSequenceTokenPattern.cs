@@ -8,12 +8,12 @@ using RCParsing.Utils;
 namespace RCParsing.Building.TokenPatterns
 {
 	/// <summary>
-	/// Represents a buildable sequence parser rule.
+	/// Represents a buildable sequence token pattern.
 	/// </summary>
 	public class BuildableSequenceTokenPattern : BuildableTokenPattern, IPassageFunctionHolder
 	{
 		/// <summary>
-		/// The elements of the sequence parser rule.
+		/// The elements of the sequence token pattern.
 		/// </summary>
 		public List<Or<string, BuildableTokenPattern>> Elements { get; } = new List<Or<string, BuildableTokenPattern>>();
 		public override IEnumerable<Or<string, BuildableTokenPattern>>? TokenChildren => Elements;

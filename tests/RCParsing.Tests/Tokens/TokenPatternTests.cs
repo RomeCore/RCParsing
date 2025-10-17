@@ -207,5 +207,335 @@ namespace RCParsing.Tests.Tokens
 			// specifically check final transformed Value equals inner content
 			Assert.Equal("hello", (res.IntermediateValue as Match)!.Value);
 		}
+
+		[Fact(DisplayName = "Literal token supports different StringComparison options")]
+		public void LiteralToken_StringComparison()
+		{
+			var builder = new ParserBuilder();
+			builder.CreateToken("kw").Literal("hello", StringComparison.OrdinalIgnoreCase);
+
+			var parser = builder.Build();
+			var tokenResult = parser.TryMatchToken("kw", "HELLO world");
+			Assert.True(tokenResult.Success);
+			Assert.Equal("HELLO", tokenResult.Text);
+		}
+
+		[Fact(DisplayName = "Literal token fails on non-match")]
+		public void LiteralToken_FailsOnNonMatch()
+		{
+			var builder = new ParserBuilder();
+			builder.CreateToken("kw").Literal("hello");
+
+			var parser = builder.Build();
+			var tokenResult = parser.TryMatchToken("kw", "world");
+			Assert.False(tokenResult.Success);
+		}
+
+		[Fact(DisplayName = "LiteralChoice fails on empty input")]
+		public void LiteralChoice_FailsOnEmptyInput()
+		{
+			var builder = new ParserBuilder();
+			builder.CreateToken("kw").LiteralChoice(new[] { "a", "b", "c" });
+
+			var parser = builder.Build();
+			var tokenResult = parser.TryMatchToken("kw", "");
+			Assert.False(tokenResult.Success);
+		}
+
+		[Fact(DisplayName = "LiteralChoice fails when no keyword matches")]
+		public void LiteralChoice_FailsOnNoMatch()
+		{
+			var builder = new ParserBuilder();
+			builder.CreateToken("kw").LiteralChoice(new[] { "a", "b", "c" });
+
+			var parser = builder.Build();
+			var tokenResult = parser.TryMatchToken("kw", "d");
+			Assert.False(tokenResult.Success);
+		}
+
+		[Fact(DisplayName = "Keyword token matches successfully")]
+		public void KeywordToken_MatchesSuccessfully()
+		{
+			var builder = new ParserBuilder();
+			builder.CreateToken("kw").Keyword("hello", c => char.IsLetterOrDigit(c) || c == '_');
+
+			var parser = builder.Build();
+			var tokenResult = parser.TryMatchToken("kw", "hello world");
+			Assert.True(tokenResult.Success);
+			Assert.Equal("hello", tokenResult.Text);
+		}
+
+		[Fact(DisplayName = "Keyword token fails if followed by prohibited character")]
+		public void KeywordToken_FailsOnProhibitedChar()
+		{
+			var builder = new ParserBuilder();
+			builder.CreateToken("kw").Keyword("hello", c => char.IsLetterOrDigit(c) || c == '_');
+
+			var parser = builder.Build();
+			var tokenResult = parser.TryMatchToken("kw", "helloworld");
+			Assert.False(tokenResult.Success);
+		}
+
+		[Fact(DisplayName = "Keyword token supports case-insensitive matching")]
+		public void KeywordToken_CaseInsensitive()
+		{
+			var builder = new ParserBuilder();
+			builder.CreateToken("kw").Keyword("hello", c => char.IsLetterOrDigit(c) || c == '_', StringComparison.OrdinalIgnoreCase);
+
+			var parser = builder.Build();
+			var tokenResult = parser.TryMatchToken("kw", "HELLO world");
+			Assert.True(tokenResult.Success);
+			Assert.Equal("HELLO", tokenResult.Text);
+		}
+
+		[Fact(DisplayName = "Keyword token matches at end of input")]
+		public void KeywordToken_MatchesAtEndOfInput()
+		{
+			var builder = new ParserBuilder();
+			builder.CreateToken("kw").Keyword("hello", c => char.IsLetterOrDigit(c) || c == '_');
+
+			var parser = builder.Build();
+			var tokenResult = parser.TryMatchToken("kw", "hello");
+			Assert.True(tokenResult.Success);
+			Assert.Equal("hello", tokenResult.Text);
+		}
+
+		[Fact(DisplayName = "KeywordChoice token matches one of several keywords")]
+		public void KeywordChoiceToken_MatchesOneOfSeveral()
+		{
+			var builder = new ParserBuilder();
+			builder.CreateToken("kw").KeywordChoice(new[] { "if", "else", "while" }, c => char.IsLetterOrDigit(c) || c == '_');
+
+			var parser = builder.Build();
+			var tokenResult = parser.TryMatchToken("kw", "if (condition)");
+			Assert.True(tokenResult.Success);
+			Assert.Equal("if", tokenResult.Text);
+		}
+
+		[Fact(DisplayName = "KeywordChoice token picks longest match")]
+		public void KeywordChoiceToken_PicksLongestMatch()
+		{
+			var builder = new ParserBuilder();
+			builder.CreateToken("kw").KeywordChoice(new[] { "a", "ab", "abc" }, c => char.IsLetterOrDigit(c) || c == '_');
+
+			var parser = builder.Build();
+			var tokenResult = parser.TryMatchToken("kw", "abc");
+			Assert.True(tokenResult.Success);
+			Assert.Equal("abc", tokenResult.Text);
+		}
+
+		[Fact(DisplayName = "KeywordChoice token fails if followed by prohibited character")]
+		public void KeywordChoiceToken_FailsOnProhibitedChar()
+		{
+			var builder = new ParserBuilder();
+			builder.CreateToken("kw").KeywordChoice(new[] { "if", "else", "while" }, c => char.IsLetterOrDigit(c) || c == '_');
+
+			var parser = builder.Build();
+			var tokenResult = parser.TryMatchToken("kw", "ifA");
+			Assert.False(tokenResult.Success);
+		}
+
+		[Fact(DisplayName = "KeywordChoice token supports case-insensitive matching")]
+		public void KeywordChoiceToken_CaseInsensitive()
+		{
+			var builder = new ParserBuilder();
+			builder.CreateToken("kw").KeywordChoice(new[] { "if", "else", "while" }, c => char.IsLetterOrDigit(c) || c == '_', StringComparer.OrdinalIgnoreCase);
+
+			var parser = builder.Build();
+			var tokenResult = parser.TryMatchToken("kw", "IF (condition)");
+			Assert.True(tokenResult.Success);
+			Assert.Equal("IF", tokenResult.Text);
+		}
+
+		[Fact(DisplayName = "Identifier token matches valid identifier")]
+		public void IdentifierToken_MatchesValid()
+		{
+			var builder = new ParserBuilder();
+			builder.CreateToken("id").Identifier(c => char.IsLetter(c) || c == '_', c => char.IsLetterOrDigit(c) || c == '_');
+
+			var parser = builder.Build();
+			var tokenResult = parser.TryMatchToken("id", "my_var123");
+			Assert.True(tokenResult.Success);
+			Assert.Equal("my_var123", tokenResult.Text);
+		}
+
+		[Fact(DisplayName = "Identifier token fails on invalid identifier")]
+		public void IdentifierToken_FailsOnInvalid()
+		{
+			var builder = new ParserBuilder();
+			builder.CreateToken("id").Identifier(c => char.IsLetter(c) || c == '_', c => char.IsLetterOrDigit(c) || c == '_');
+
+			var parser = builder.Build();
+			var tokenResult = parser.TryMatchToken("id", "123var");
+			Assert.False(tokenResult.Success);
+		}
+
+		[Fact(DisplayName = "Identifier token respects min and max length")]
+		public void IdentifierToken_RespectsMinMaxLength()
+		{
+			var builder = new ParserBuilder();
+			builder.CreateToken("id").Identifier(c => char.IsLetter(c) || c == '_', c => char.IsLetterOrDigit(c) || c == '_', 3, 5);
+
+			var parser = builder.Build();
+
+			// Too short
+			var r1 = parser.TryMatchToken("id", "ab");
+			Assert.False(r1.Success);
+
+			// Valid
+			var r2 = parser.TryMatchToken("id", "abc");
+			Assert.True(r2.Success);
+			Assert.Equal("abc", r2.Text);
+
+			// Valid
+			var r3 = parser.TryMatchToken("id", "abcde");
+			Assert.True(r3.Success);
+			Assert.Equal("abcde", r3.Text);
+
+			// Too long
+			var r4 = parser.TryMatchToken("id", "abcdef");
+			Assert.True(r4.Success);
+			Assert.Equal("abcde", r4.Text);
+		}
+
+		[Fact(DisplayName = "Identifier token handles unicode")]
+		public void IdentifierToken_HandlesUnicode()
+		{
+			var builder = new ParserBuilder();
+			builder.CreateToken("id").Identifier(c => char.IsLetter(c), c => char.IsLetterOrDigit(c));
+
+			var parser = builder.Build();
+			var tokenResult = parser.TryMatchToken("id", "переменная1");
+			Assert.True(tokenResult.Success);
+			Assert.Equal("переменная1", tokenResult.Text);
+		}
+
+		[Fact(DisplayName = "LiteralChar token matches single character")]
+		public void LiteralCharToken_MatchesSingleChar()
+		{
+			var builder = new ParserBuilder();
+			builder.CreateToken("char").Literal('a');
+
+			var parser = builder.Build();
+			var tokenResult = parser.TryMatchToken("char", "abc");
+			Assert.True(tokenResult.Success);
+			Assert.Equal("a", tokenResult.Text);
+		}
+
+		[Fact(DisplayName = "LiteralChar token supports case-insensitive matching")]
+		public void LiteralCharToken_CaseInsensitive()
+		{
+			var builder = new ParserBuilder();
+			builder.CreateToken("char").Literal('a', StringComparison.OrdinalIgnoreCase);
+
+			var parser = builder.Build();
+			var tokenResult = parser.TryMatchToken("char", "Abc");
+			Assert.True(tokenResult.Success);
+			Assert.Equal("A", tokenResult.Text);
+		}
+
+		[Fact(DisplayName = "LiteralChar token matches at end of input")]
+		public void LiteralCharToken_MatchesAtEndOfInput()
+		{
+			var builder = new ParserBuilder();
+			builder.CreateToken("char").Literal('a');
+
+			var parser = builder.Build();
+			var tokenResult = parser.TryMatchToken("char", "a");
+			Assert.True(tokenResult.Success);
+			Assert.Equal("a", tokenResult.Text);
+		}
+
+		[Fact(DisplayName = "LiteralChar token fails on non-match")]
+		public void LiteralCharToken_FailsOnNonMatch()
+		{
+			var builder = new ParserBuilder();
+			builder.CreateToken("char").Literal('a');
+
+			var parser = builder.Build();
+			var tokenResult = parser.TryMatchToken("char", "b");
+			Assert.False(tokenResult.Success);
+		}
+
+		[Fact(DisplayName = "Newline token matches LF")]
+		public void NewlineToken_MatchesLF()
+		{
+			var builder = new ParserBuilder();
+			builder.CreateToken("nl").Newline();
+
+			var parser = builder.Build();
+			var tokenResult = parser.TryMatchToken("nl", "\n");
+			Assert.True(tokenResult.Success);
+			Assert.Equal("\n", tokenResult.Text);
+		}
+
+		[Fact(DisplayName = "Newline token matches CRLF")]
+		public void NewlineToken_MatchesCRLF()
+		{
+			var builder = new ParserBuilder();
+			builder.CreateToken("nl").Newline();
+
+			var parser = builder.Build();
+			var tokenResult = parser.TryMatchToken("nl", "\r\n");
+			Assert.True(tokenResult.Success);
+			Assert.Equal("\r\n", tokenResult.Text);
+		}
+
+		[Fact(DisplayName = "Newline token does not match in middle of line")]
+		public void NewlineToken_NoMatchInMiddle()
+		{
+			var builder = new ParserBuilder();
+			builder.CreateToken("nl").Newline();
+
+			var parser = builder.Build();
+			var tokenResult = parser.TryMatchToken("nl", "a\nb");
+			Assert.False(tokenResult.Success);
+		}
+
+		[Fact(DisplayName = "Empty token always matches with zero length")]
+		public void EmptyToken_AlwaysMatchesZeroLength()
+		{
+			var builder = new ParserBuilder();
+			builder.CreateToken("empty").Empty();
+
+			var parser = builder.Build();
+			var tokenResult = parser.TryMatchToken("empty", "abc");
+			Assert.True(tokenResult.Success);
+			Assert.Equal(0, tokenResult.Length);
+		}
+
+		[Fact(DisplayName = "Fail token always fails")]
+		public void FailToken_AlwaysFails()
+		{
+			var builder = new ParserBuilder();
+			builder.CreateToken("fail").Fail();
+
+			var parser = builder.Build();
+			var tokenResult = parser.TryMatchToken("fail", "abc");
+			Assert.False(tokenResult.Success);
+		}
+
+		[Fact(DisplayName = "Regex token handles more complex regex")]
+		public void RegexToken_HandlesComplexRegex()
+		{
+			var builder = new ParserBuilder();
+			builder.CreateToken("email").Regex(@"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+");
+
+			var parser = builder.Build();
+			var tokenResult = parser.TryMatchToken("email", "test@example.com");
+			Assert.True(tokenResult.Success);
+			Assert.Equal("test@example.com", tokenResult.Text);
+		}
+
+		[Fact(DisplayName = "Regex token fails on non-match")]
+		public void RegexToken_FailsOnNonMatch()
+		{
+			var builder = new ParserBuilder();
+			builder.CreateToken("num").Regex(@"\d+");
+
+			var parser = builder.Build();
+			var tokenResult = parser.TryMatchToken("num", "abc");
+			Assert.False(tokenResult.Success);
+		}
 	}
 }

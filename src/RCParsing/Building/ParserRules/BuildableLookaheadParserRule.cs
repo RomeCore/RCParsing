@@ -22,6 +22,11 @@ namespace RCParsing.Building.ParserRules
 		public override IEnumerable<Or<string, BuildableParserRule>>? RuleChildren => Child.WrapIntoEnumerable();
 		public override IEnumerable<Or<string, BuildableTokenPattern>>? TokenChildren => null;
 
+		public BuildableLookaheadParserRule()
+		{
+			ParsedValueFactory = v => v.Count > 0 ? v[0].Value : null;
+		}
+
 		protected override ParserRule BuildRule(List<int>? ruleChildren, List<int>? tokenChildren)
 		{
 			return new LookaheadParserRule(ruleChildren[0], IsPositive);

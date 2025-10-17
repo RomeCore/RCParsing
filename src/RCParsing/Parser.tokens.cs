@@ -161,7 +161,7 @@ namespace RCParsing
 
 			if (error.position >= 0)
 				context.errors.Add(error);
-			throw new ParsingException(context, error);
+			throw new ParsingException(context);
 		}
 
 		/// <summary>

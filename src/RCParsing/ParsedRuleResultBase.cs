@@ -93,6 +93,11 @@ namespace RCParsing
 		public int Length => Result.length;
 
 		/// <summary>
+		/// Gets the ending index of the AST node in the input text.
+		/// </summary>
+		public int EndIndex => Result.endIndex;
+
+		/// <summary>
 		/// Gets the occurency index in the parent choice, sequence or any repeat rule. -1 by default.
 		/// </summary>
 		public int Occurency => Result.occurency;
@@ -438,9 +443,17 @@ namespace RCParsing
 		/// </remarks>
 		/// <param name="optimization">The optimization flags to apply.</param>
 		/// <returns>An optimized version of this AST node.</returns>
-		public ParsedRuleResultBase Optimized(ParseTreeOptimization optimization = ParseTreeOptimization.Default)
+		public abstract ParsedRuleResultBase Optimized(ParseTreeOptimization optimization = ParseTreeOptimization.Default);
+
+		/// <summary>
+		/// Creates error groups from stored errors in context. <br/>
+		/// If parsing was successful, last error group will be excluded from relevant error groups.
+		/// </summary>
+		/// <returns>The error groups created from context-stored errors.</returns>
+		public ErrorGroupCollection CreateErrorGroups()
 		{
-			return new ParsedRuleResultLazy(optimization, Parent, Context, Result);
+			var context = Context;
+			return new ErrorGroupCollection(context, context.errors, context.errorRecoveryIndices, Success);
 		}
 
 
@@ -571,7 +584,6 @@ namespace RCParsing
 			if (!Success)
 				throw new ParsingException(Context);
 		}
-
 
 		public string Dump(int maxDepth)
 		{

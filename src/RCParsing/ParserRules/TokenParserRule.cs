@@ -79,7 +79,7 @@ namespace RCParsing.ParserRules
 					return ParsedRule.Fail;
 				}
 
-				return ParsedRule.Token(Id, match.startIndex, match.length, ctx.passedBarriers, match.intermediateValue);
+				return new ParsedRule(Id, match.startIndex, match.length, ctx.passedBarriers, match.intermediateValue);
 			}
 
 			ParsedRule ParseUsingBarriers(ref ParserContext ctx, ref ParserSettings stng, ref ParserSettings chStng)
@@ -93,7 +93,7 @@ namespace RCParsing.ParserRules
 				{
 					if (barrierToken.tokenId == TokenPatternId)
 					{
-						return ParsedRule.Token(Id, ctx.position, barrierToken.length,
+						return new ParsedRule(Id, ctx.position, barrierToken.length,
 							barrierToken.index + 1, null);
 					}
 					else
@@ -128,7 +128,7 @@ namespace RCParsing.ParserRules
 					return ParsedRule.Fail;
 				}
 
-				return ParsedRule.Token(Id, match.startIndex, match.length,
+				return new ParsedRule(Id, match.startIndex, match.length,
 					ctx.passedBarriers, match.intermediateValue);
 			}
 

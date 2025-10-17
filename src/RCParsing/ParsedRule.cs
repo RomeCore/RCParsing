@@ -21,7 +21,7 @@ namespace RCParsing
 		public readonly bool success => element.success;
 
 		/// <summary>
-		/// The ID of the child token pattern that was parsed.
+		/// The ID of the rule that was parsed.
 		/// </summary>
 		public int ruleId;
 
@@ -34,6 +34,11 @@ namespace RCParsing
 		/// The length of the rule in the input text.
 		/// </summary>
 		public int length { readonly get => element.length; set => element.length = value; }
+
+		/// <summary>
+		/// The end index of the rule in the input text.
+		/// </summary>
+		public readonly int endIndex => element.endIndex;
 
 		/// <summary>
 		/// The count of passed barrier tokens.
@@ -68,50 +73,177 @@ namespace RCParsing
 		/// <summary>
 		/// Gets a parsed rule that represents failure.
 		/// </summary>
-		public static readonly ParsedRule Fail = new()
-		{
-			element = ParsedElement.Fail,
-			ruleId = -1
-		};
+		public static readonly ParsedRule Fail = new ParsedRule(
+			ruleId: -1,
+			element: ParsedElement.Fail
+		);
 
 		/// <summary>
-		/// Creates a parsed rule that represents success token.
+		/// Initializes a <see cref="ParsedRule"/> struct with children.
+		/// </summary>
+		/// <param name="ruleId">The ID of the rule that was parsed.</param>
+		/// <param name="children">The sequence of child rules.</param>
+		public ParsedRule(int ruleId, params ParsedRule[] children)
+		{
+			int startIndex = int.MaxValue;
+			int endIndex = int.MinValue;
+			int passedBarriers = 0;
+
+			for (int i = 0; i < children.Length; i++)
+			{
+				var child = children[i];
+				if (!child.success)
+					continue;
+				if (startIndex > child.startIndex)
+					startIndex = child.startIndex;
+				var _endIndex = child.startIndex + child.length;
+				if (endIndex < _endIndex)
+					endIndex = _endIndex;
+				if (passedBarriers < child.passedBarriers)
+					passedBarriers = child.passedBarriers;
+			}
+
+			if (startIndex < 0 || startIndex == int.MaxValue)
+			{
+				this.ruleId = -1;
+				this.element = ParsedElement.Fail;
+				this.passedBarriers = 0;
+				this.occurency = -1;
+				this.version = 0;
+				this.children = null;
+				return;
+			}
+
+			this.ruleId = ruleId;
+			this.element = new ParsedElement(startIndex, endIndex);
+			this.passedBarriers = passedBarriers;
+			this.occurency = -1;
+			this.version = 0;
+			this.children = children;
+		}
+
+		/// <summary>
+		/// Initializes a <see cref="ParsedRule"/> struct as successful parse with no child.
+		/// </summary>
+		/// <param name="ruleId">The ID of the rule that was parsed.</param>
+		/// <param name="startIndex">The starting index of the token in the input text.</param>
+		/// <param name="length">The length of the token in the input text.</param>
+		/// <param name="passedBarriers">The count of passed barrier tokens.</param>
+		public ParsedRule(int ruleId, int startIndex, int length, int passedBarriers)
+		{
+			this.ruleId = ruleId;
+			this.element = new ParsedElement(startIndex, length);
+			this.passedBarriers = passedBarriers;
+			this.occurency = -1;
+			this.version = 0;
+			this.children = null;
+		}
+		
+		/// <summary>
+		/// Initializes a <see cref="ParsedRule"/> struct as successful parse with no child.
 		/// </summary>
 		/// <param name="ruleId">The ID of the rule that was parsed.</param>
 		/// <param name="startIndex">The starting index of the token in the input text.</param>
 		/// <param name="length">The length of the token in the input text.</param>
 		/// <param name="passedBarriers">The count of passed barrier tokens.</param>
 		/// <param name="intermediateValue">The intermediate value associated with this token.</param>
-		/// <returns>A parsed rule that represents success token.</returns>
-		public static ParsedRule Token(int ruleId, int startIndex, int length, int passedBarriers, object? intermediateValue)
+		public ParsedRule(int ruleId, int startIndex, int length, int passedBarriers, object? intermediateValue)
 		{
-			return new ParsedRule
-			{
-				ruleId = ruleId,
-				element = new ParsedElement(startIndex, length, intermediateValue),
-				passedBarriers = passedBarriers
-			};
+			this.ruleId = ruleId;
+			this.element = new ParsedElement(startIndex, length, intermediateValue);
+			this.passedBarriers = passedBarriers;
+			this.occurency = -1;
+			this.version = 0;
+			this.children = null;
 		}
 
 		/// <summary>
-		/// Creates a parsed rule.
+		/// Initializes a <see cref="ParsedRule"/> struct with children.
 		/// </summary>
 		/// <param name="ruleId">The ID of the rule that was parsed.</param>
 		/// <param name="startIndex">The starting index of the rule in the input text.</param>
 		/// <param name="length">The length of the rule in the input text.</param>
 		/// <param name="passedBarriers">The count of passed barrier tokens.</param>
-		/// <param name="children">The array of child rules.</param>
-		/// <param name="intermediateValue">The intermediate value associated with this rule.</param>
-		/// <returns>A parsed rule.</returns>
-		public static ParsedRule Rule(int ruleId, int startIndex, int length, int passedBarriers, IReadOnlyList<ParsedRule> children, object? intermediateValue = null)
+		/// <param name="children">The collection of child rules.</param>
+		public ParsedRule(int ruleId, int startIndex, int length, int passedBarriers, IReadOnlyList<ParsedRule> children)
 		{
-			return new ParsedRule
-			{
-				ruleId = ruleId,
-				element = new ParsedElement(startIndex, length, intermediateValue),
-				passedBarriers = passedBarriers,
-				children = children
-			};
+			this.ruleId = ruleId;
+			this.element = new ParsedElement(startIndex, length);
+			this.passedBarriers = passedBarriers;
+			this.occurency = -1;
+			this.version = 0;
+			this.children = children;
+		}
+		
+		/// <summary>
+		/// Initializes a <see cref="ParsedRule"/> struct with children.
+		/// </summary>
+		/// <param name="ruleId">The ID of the rule that was parsed.</param>
+		/// <param name="startIndex">The starting index of the rule in the input text.</param>
+		/// <param name="length">The length of the rule in the input text.</param>
+		/// <param name="passedBarriers">The count of passed barrier tokens.</param>
+		/// <param name="intermediateValue">The intermediate value associated with this rule (optional).</param>
+		/// <param name="children">The collection of child rules.</param>
+		public ParsedRule(int ruleId, int startIndex, int length, int passedBarriers, object? intermediateValue, IReadOnlyList<ParsedRule> children)
+		{
+			this.ruleId = ruleId;
+			this.element = new ParsedElement(startIndex, length, intermediateValue);
+			this.passedBarriers = passedBarriers;
+			this.occurency = -1;
+			this.version = 0;
+			this.children = children;
+		}
+
+		/// <summary>
+		/// Initializes a <see cref="ParsedRule"/> struct with children.
+		/// </summary>
+		/// <param name="ruleId">The ID of the rule that was parsed.</param>
+		/// <param name="startIndex">The starting index of the rule in the input text.</param>
+		/// <param name="length">The length of the rule in the input text.</param>
+		/// <param name="passedBarriers">The count of passed barrier tokens.</param>
+		/// <param name="children">The sequence of child rules.</param>
+		public ParsedRule(int ruleId, int startIndex, int length, int passedBarriers, params ParsedRule[] children)
+		{
+			this.ruleId = ruleId;
+			this.element = new ParsedElement(startIndex, length);
+			this.passedBarriers = passedBarriers;
+			this.occurency = -1;
+			this.version = 0;
+			this.children = children;
+		}
+
+		/// <summary>
+		/// Initializes a <see cref="ParsedRule"/> struct with children.
+		/// </summary>
+		/// <param name="ruleId">The ID of the rule that was parsed.</param>
+		/// <param name="startIndex">The starting index of the rule in the input text.</param>
+		/// <param name="length">The length of the rule in the input text.</param>
+		/// <param name="passedBarriers">The count of passed barrier tokens.</param>
+		/// <param name="intermediateValue">The intermediate value associated with this rule (optional).</param>
+		/// <param name="children">The sequence of child rules.</param>
+		public ParsedRule(int ruleId, int startIndex, int length, int passedBarriers, object? intermediateValue, params ParsedRule[] children)
+		{
+			this.ruleId = ruleId;
+			this.element = new ParsedElement(startIndex, length, intermediateValue);
+			this.passedBarriers = passedBarriers;
+			this.occurency = -1;
+			this.version = 0;
+			this.children = children;
+		}
+
+		/// <summary>
+		/// Initializes a parsed rule with custom element and ruleId.
+		/// </summary>
+		/// <param name="ruleId">The rule ID.</param>
+		/// <param name="element">The parsed element information.</param>
+		public ParsedRule(int ruleId, ParsedElement element)
+		{
+			this.ruleId = ruleId;
+			this.element = element;
+			this.passedBarriers = 0;
+			this.occurency = -1;
+			this.version = 0;
+			this.children = null;
 		}
 
 		/// <summary>
@@ -155,6 +287,123 @@ namespace RCParsing
 			}
 
 			return result;
+		}
+
+		/// <summary>
+		/// Returns an optimized version of <see cref="ParsedRule"/>.
+		/// </summary>
+		/// <param name="context">The context that was used for parsing.</param>
+		/// <param name="optimization">The AST optimization flags to apply.</param>
+		/// <returns>A copy of this element with applied optimization flags.</returns>
+		public readonly ParsedRule Optimized(ParserContext context, ParseTreeOptimization optimization)
+		{
+			if (children == null || children.Count == 0 || optimization == ParseTreeOptimization.None)
+				return this;
+
+			var result = this;
+			IEnumerable<ParsedRule> rawChildren = children;
+
+			if (optimization.HasFlag(ParseTreeOptimization.RemoveEmptyNodes))
+				rawChildren = rawChildren.Where(c => c.length != 0);
+
+			if (optimization.HasFlag(ParseTreeOptimization.RemoveWhitespaceNodes))
+				rawChildren = rawChildren.Where(c => !context.input.AsSpan(c.startIndex, c.length).IsWhiteSpace());
+
+			if (optimization.HasFlag(ParseTreeOptimization.RemovePureLiterals))
+			{
+				rawChildren = rawChildren.Where(c =>
+				{
+					var tokenId = context.parser.Rules[c.ruleId] is TokenParserRule trule ? trule.TokenPatternId : -1;
+					bool isToken = tokenId != -1;
+					return !(isToken && (
+						context.parser.TokenPatterns[tokenId] is LiteralTokenPattern ||
+						context.parser.TokenPatterns[tokenId] is LiteralCharTokenPattern));
+				});
+			}
+
+			if (optimization.HasFlag(ParseTreeOptimization.MergeSingleChildRules))
+			{
+				var children = rawChildren.ToList();
+				if (children.Count == 1)
+				{
+					return children[0].Optimized(context, optimization);
+				}
+			}
+
+			if (optimization.HasFlag(ParseTreeOptimization.TrimSpans))
+			{
+				var span = context.input.AsSpan(result.startIndex, result.length);
+
+				int startIndex = 0;
+				int length = span.Length;
+
+				while (startIndex < span.Length && char.IsWhiteSpace(span[startIndex]))
+					startIndex++;
+
+				if (startIndex == span.Length)
+				{
+					result.length = 0;
+				}
+				else
+				{
+					while (length > startIndex && char.IsWhiteSpace(span[length - 1]))
+						length--;
+
+					result.startIndex += startIndex;
+					result.length = length - startIndex;
+				}
+			}
+
+			result.children = rawChildren.ToList();
+			return result;
+		}
+
+		/// <summary>
+		/// Gets the captured text as substring of input.
+		/// </summary>
+		/// <param name="input">The input string to extract text from.</param>
+		/// <returns>The substring if match successful; <see langword="null"/> otherwise.</returns>
+		public readonly string? GetText(string input)
+		{
+			if (!success)
+				return null;
+			return input.Substring(startIndex, length);
+		}
+
+		/// <summary>
+		/// Gets the captured text as substring of input.
+		/// </summary>
+		/// <param name="context">The parser context to extract text from.</param>
+		/// <returns>The substring if match successful; <see langword="null"/> otherwise.</returns>
+		public readonly string? GetText(ParserContext context)
+		{
+			if (!success)
+				return null;
+			return context.input.Substring(startIndex, length);
+		}
+
+		/// <summary>
+		/// Gets the captured text as span slice of input.
+		/// </summary>
+		/// <param name="input">The input string to extract text from.</param>
+		/// <returns>The <see cref="ReadOnlySpan{T}"/> if match successful; empty span otherwise.</returns>
+		public readonly ReadOnlySpan<char> GetSpan(string input)
+		{
+			if (!success)
+				return ReadOnlySpan<char>.Empty;
+			return input.AsSpan(startIndex, length);
+		}
+
+		/// <summary>
+		/// Gets the captured text as span slice of input.
+		/// </summary>
+		/// <param name="context">The parser context to extract text from.</param>
+		/// <returns>The <see cref="ReadOnlySpan{T}"/> if match successful; empty span otherwise.</returns>
+		public readonly ReadOnlySpan<char> GetSpan(ParserContext context)
+		{
+			if (!success)
+				return ReadOnlySpan<char>.Empty;
+			return context.input.AsSpan(startIndex, length);
 		}
 	}
 }

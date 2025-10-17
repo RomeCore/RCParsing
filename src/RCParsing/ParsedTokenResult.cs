@@ -114,6 +114,17 @@ namespace RCParsing
 		public T? TryGetIntermediateValue<T>() where T : class => IntermediateValue as T;
 
 		/// <summary>
+		/// Creates error groups from stored errors in context. <br/>
+		/// If parsing was successful, last error group will be excluded from relevant error groups.
+		/// </summary>
+		/// <returns>The error groups created from context-stored errors.</returns>
+		public ErrorGroupCollection CreateErrorGroups()
+		{
+			var context = Context;
+			return new ErrorGroupCollection(context, context.errors, context.errorRecoveryIndices, Success);
+		}
+
+		/// <summary>
 		/// Dumps the parsed token result to a string representation.
 		/// </summary>
 		/// <returns>A string representation of the parsed token result.</returns>

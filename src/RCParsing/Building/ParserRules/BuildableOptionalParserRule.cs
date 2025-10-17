@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using RCParsing.ParserRules;
 using RCParsing.Utils;
 
@@ -16,6 +17,11 @@ namespace RCParsing.Building.ParserRules
 		public Or<string, BuildableParserRule> Child { get; set; } = string.Empty;
 		public override IEnumerable<Or<string, BuildableParserRule>>? RuleChildren => Child.WrapIntoEnumerable();
 		public override IEnumerable<Or<string, BuildableTokenPattern>>? TokenChildren => null;
+
+		public BuildableOptionalParserRule()
+		{
+			ParsedValueFactory = v => v.Count > 0 ? v[0].Value : null;
+		}
 
 		protected override ParserRule BuildRule(List<int>? ruleChildren, List<int>? tokenChildren)
 		{
