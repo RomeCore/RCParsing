@@ -56,7 +56,7 @@ namespace RCParsing.ParserRules
 					result = TryParseRule(Rule, context, childSettings);
 
 				if (result.success)
-					return ParsedRule.Rule(Id, context.position, 0, context.passedBarriers, ParsedRuleChildUtils.empty, null);
+					return new ParsedRule(Id, context.position, 0, context.passedBarriers, result);
 				else
 					return ParsedRule.Fail;
 			}
@@ -70,7 +70,7 @@ namespace RCParsing.ParserRules
 					result = TryParseRule(Rule, context, childSettings);
 
 				if (!result.success)
-					return ParsedRule.Rule(Id, context.position, 0, context.passedBarriers, ParsedRuleChildUtils.empty, null);
+					return new ParsedRule(Id, context.position, 0, context.passedBarriers, result);
 				else
 					return ParsedRule.Fail;
 			}

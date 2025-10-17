@@ -51,13 +51,13 @@ namespace RCParsing.ParserRules
 				var result = TryParseRule(Rule, context, childSettings);
 				if (result.success)
 				{
-					return ParsedRule.Rule(Id, result.startIndex, result.length, result.passedBarriers,
-						ParsedRuleChildUtils.Single(ref result), result.intermediateValue);
+					return new ParsedRule(Id, result.startIndex, result.length, result.passedBarriers,
+						result.intermediateValue, result);
 				}
 				else
 				{
-					return ParsedRule.Rule(Id, context.position, 0, context.passedBarriers,
-						ParsedRuleChildUtils.empty, null);
+					return new ParsedRule(Id, context.position, 0, context.passedBarriers,
+						Array.Empty<ParsedRule>());
 				}
 			};
 
@@ -66,13 +66,13 @@ namespace RCParsing.ParserRules
 				var result = rule.Parse(context, childSettings, childSettings);
 				if (result.success)
 				{
-					return ParsedRule.Rule(Id, result.startIndex, result.length, result.passedBarriers,
-						ParsedRuleChildUtils.Single(ref result), result.intermediateValue);
+					return new ParsedRule(Id, result.startIndex, result.length, result.passedBarriers,
+						result.intermediateValue, result);
 				}
 				else
 				{
-					return ParsedRule.Rule(Id, context.position, 0, context.passedBarriers,
-						ParsedRuleChildUtils.empty, null);
+					return new ParsedRule(Id, context.position, 0, context.passedBarriers,
+						Array.Empty<ParsedRule>());
 				}
 			};
 

@@ -68,50 +68,177 @@ namespace RCParsing
 		/// <summary>
 		/// Gets a parsed rule that represents failure.
 		/// </summary>
-		public static readonly ParsedRule Fail = new()
-		{
-			element = ParsedElement.Fail,
-			ruleId = -1
-		};
+		public static readonly ParsedRule Fail = new ParsedRule(
+			ruleId: -1,
+			element: ParsedElement.Fail
+		);
 
 		/// <summary>
-		/// Creates a parsed rule that represents success token.
+		/// Initializes a <see cref="ParsedRule"/> struct with children.
+		/// </summary>
+		/// <param name="ruleId">The ID of the rule that was parsed.</param>
+		/// <param name="children">The sequence of child rules.</param>
+		public ParsedRule(int ruleId, params ParsedRule[] children)
+		{
+			int startIndex = int.MaxValue;
+			int endIndex = int.MinValue;
+			int passedBarriers = 0;
+
+			for (int i = 0; i < children.Length; i++)
+			{
+				var child = children[i];
+				if (!child.success)
+					continue;
+				if (startIndex > child.startIndex)
+					startIndex = child.startIndex;
+				var _endIndex = child.startIndex + child.length;
+				if (endIndex < _endIndex)
+					endIndex = _endIndex;
+				if (passedBarriers < child.passedBarriers)
+					passedBarriers = child.passedBarriers;
+			}
+
+			if (startIndex < 0 || startIndex == int.MaxValue)
+			{
+				this.ruleId = -1;
+				this.element = ParsedElement.Fail;
+				this.passedBarriers = 0;
+				this.occurency = -1;
+				this.version = 0;
+				this.children = null;
+				return;
+			}
+
+			this.ruleId = ruleId;
+			this.element = new ParsedElement(startIndex, endIndex);
+			this.passedBarriers = passedBarriers;
+			this.occurency = -1;
+			this.version = 0;
+			this.children = children;
+		}
+
+		/// <summary>
+		/// Initializes a <see cref="ParsedRule"/> struct as successful parse with no child.
+		/// </summary>
+		/// <param name="ruleId">The ID of the rule that was parsed.</param>
+		/// <param name="startIndex">The starting index of the token in the input text.</param>
+		/// <param name="length">The length of the token in the input text.</param>
+		/// <param name="passedBarriers">The count of passed barrier tokens.</param>
+		public ParsedRule(int ruleId, int startIndex, int length, int passedBarriers)
+		{
+			this.ruleId = ruleId;
+			this.element = new ParsedElement(startIndex, length);
+			this.passedBarriers = passedBarriers;
+			this.occurency = -1;
+			this.version = 0;
+			this.children = null;
+		}
+		
+		/// <summary>
+		/// Initializes a <see cref="ParsedRule"/> struct as successful parse with no child.
 		/// </summary>
 		/// <param name="ruleId">The ID of the rule that was parsed.</param>
 		/// <param name="startIndex">The starting index of the token in the input text.</param>
 		/// <param name="length">The length of the token in the input text.</param>
 		/// <param name="passedBarriers">The count of passed barrier tokens.</param>
 		/// <param name="intermediateValue">The intermediate value associated with this token.</param>
-		/// <returns>A parsed rule that represents success token.</returns>
-		public static ParsedRule Token(int ruleId, int startIndex, int length, int passedBarriers, object? intermediateValue)
+		public ParsedRule(int ruleId, int startIndex, int length, int passedBarriers, object? intermediateValue)
 		{
-			return new ParsedRule
-			{
-				ruleId = ruleId,
-				element = new ParsedElement(startIndex, length, intermediateValue),
-				passedBarriers = passedBarriers
-			};
+			this.ruleId = ruleId;
+			this.element = new ParsedElement(startIndex, length, intermediateValue);
+			this.passedBarriers = passedBarriers;
+			this.occurency = -1;
+			this.version = 0;
+			this.children = null;
 		}
 
 		/// <summary>
-		/// Creates a parsed rule.
+		/// Initializes a <see cref="ParsedRule"/> struct with children.
 		/// </summary>
 		/// <param name="ruleId">The ID of the rule that was parsed.</param>
 		/// <param name="startIndex">The starting index of the rule in the input text.</param>
 		/// <param name="length">The length of the rule in the input text.</param>
 		/// <param name="passedBarriers">The count of passed barrier tokens.</param>
-		/// <param name="children">The array of child rules.</param>
-		/// <param name="intermediateValue">The intermediate value associated with this rule.</param>
-		/// <returns>A parsed rule.</returns>
-		public static ParsedRule Rule(int ruleId, int startIndex, int length, int passedBarriers, IReadOnlyList<ParsedRule> children, object? intermediateValue = null)
+		/// <param name="children">The collection of child rules.</param>
+		public ParsedRule(int ruleId, int startIndex, int length, int passedBarriers, IReadOnlyList<ParsedRule> children)
 		{
-			return new ParsedRule
-			{
-				ruleId = ruleId,
-				element = new ParsedElement(startIndex, length, intermediateValue),
-				passedBarriers = passedBarriers,
-				children = children
-			};
+			this.ruleId = ruleId;
+			this.element = new ParsedElement(startIndex, length);
+			this.passedBarriers = passedBarriers;
+			this.occurency = -1;
+			this.version = 0;
+			this.children = children;
+		}
+		
+		/// <summary>
+		/// Initializes a <see cref="ParsedRule"/> struct with children.
+		/// </summary>
+		/// <param name="ruleId">The ID of the rule that was parsed.</param>
+		/// <param name="startIndex">The starting index of the rule in the input text.</param>
+		/// <param name="length">The length of the rule in the input text.</param>
+		/// <param name="passedBarriers">The count of passed barrier tokens.</param>
+		/// <param name="intermediateValue">The intermediate value associated with this rule (optional).</param>
+		/// <param name="children">The collection of child rules.</param>
+		public ParsedRule(int ruleId, int startIndex, int length, int passedBarriers, object? intermediateValue, IReadOnlyList<ParsedRule> children)
+		{
+			this.ruleId = ruleId;
+			this.element = new ParsedElement(startIndex, length, intermediateValue);
+			this.passedBarriers = passedBarriers;
+			this.occurency = -1;
+			this.version = 0;
+			this.children = children;
+		}
+
+		/// <summary>
+		/// Initializes a <see cref="ParsedRule"/> struct with children.
+		/// </summary>
+		/// <param name="ruleId">The ID of the rule that was parsed.</param>
+		/// <param name="startIndex">The starting index of the rule in the input text.</param>
+		/// <param name="length">The length of the rule in the input text.</param>
+		/// <param name="passedBarriers">The count of passed barrier tokens.</param>
+		/// <param name="children">The sequence of child rules.</param>
+		public ParsedRule(int ruleId, int startIndex, int length, int passedBarriers, params ParsedRule[] children)
+		{
+			this.ruleId = ruleId;
+			this.element = new ParsedElement(startIndex, length);
+			this.passedBarriers = passedBarriers;
+			this.occurency = -1;
+			this.version = 0;
+			this.children = children;
+		}
+
+		/// <summary>
+		/// Initializes a <see cref="ParsedRule"/> struct with children.
+		/// </summary>
+		/// <param name="ruleId">The ID of the rule that was parsed.</param>
+		/// <param name="startIndex">The starting index of the rule in the input text.</param>
+		/// <param name="length">The length of the rule in the input text.</param>
+		/// <param name="passedBarriers">The count of passed barrier tokens.</param>
+		/// <param name="intermediateValue">The intermediate value associated with this rule (optional).</param>
+		/// <param name="children">The sequence of child rules.</param>
+		public ParsedRule(int ruleId, int startIndex, int length, int passedBarriers, object? intermediateValue, params ParsedRule[] children)
+		{
+			this.ruleId = ruleId;
+			this.element = new ParsedElement(startIndex, length, intermediateValue);
+			this.passedBarriers = passedBarriers;
+			this.occurency = -1;
+			this.version = 0;
+			this.children = children;
+		}
+
+		/// <summary>
+		/// Initializes a parsed rule with custom element and ruleId.
+		/// </summary>
+		/// <param name="ruleId">The rule ID.</param>
+		/// <param name="element">The parsed element information.</param>
+		public ParsedRule(int ruleId, ParsedElement element)
+		{
+			this.ruleId = ruleId;
+			this.element = element;
+			this.passedBarriers = 0;
+			this.occurency = -1;
+			this.version = 0;
+			this.children = null;
 		}
 
 		/// <summary>

@@ -101,12 +101,12 @@ namespace RCParsing.ParserRules
 					if (parsedRule.success)
 					{
 						parsedRule.occurency = i;
-						return ParsedRule.Rule(Id,
+						return new ParsedRule(Id,
 							parsedRule.startIndex,
 							parsedRule.length,
 							parsedRule.passedBarriers,
-							ParsedRuleChildUtils.Single(ref parsedRule),
-							parsedRule.intermediateValue);
+							parsedRule.intermediateValue,
+							parsedRule);
 					}
 				}
 
@@ -133,12 +133,12 @@ namespace RCParsing.ParserRules
 
 				if (shortest.success)
 				{
-					return ParsedRule.Rule(Id,
+					return new ParsedRule(Id,
 						shortest.startIndex,
 						shortest.length,
 						shortest.passedBarriers,
-						ParsedRuleChildUtils.Single(ref shortest),
-						shortest.intermediateValue);
+						shortest.intermediateValue,
+						shortest);
 				}
 
 				RecordError(ref context, ref settings, "Found no matching choice.");
@@ -164,12 +164,12 @@ namespace RCParsing.ParserRules
 
 				if (longest.success)
 				{
-					return ParsedRule.Rule(Id,
+					return new ParsedRule(Id,
 						longest.startIndex,
 						longest.length,
 						longest.passedBarriers,
-						ParsedRuleChildUtils.Single(ref longest),
-						longest.intermediateValue);
+						longest.intermediateValue,
+						longest);
 				}
 
 				RecordError(ref context, ref settings, "Found no matching choice.");
@@ -242,12 +242,12 @@ namespace RCParsing.ParserRules
 						if (parsedRule.success)
 						{
 							parsedRule.occurency = i;
-							return ParsedRule.Rule(Id,
+							return new ParsedRule(Id,
 								parsedRule.startIndex,
 								parsedRule.length,
 								parsedRule.passedBarriers,
-								ParsedRuleChildUtils.Single(ref parsedRule),
-								parsedRule.intermediateValue);
+								parsedRule.intermediateValue,
+								parsedRule);
 						}
 					}
 
@@ -278,12 +278,12 @@ namespace RCParsing.ParserRules
 
 					if (shortest.success)
 					{
-						return ParsedRule.Rule(Id,
+						return new ParsedRule(Id,
 							shortest.startIndex,
 							shortest.length,
 							shortest.passedBarriers,
-							ParsedRuleChildUtils.Single(ref shortest),
-							shortest.intermediateValue);
+							shortest.intermediateValue,
+							shortest);
 					}
 
 					RecordError(ref context, ref settings, "Found no matching choice.");
@@ -313,12 +313,12 @@ namespace RCParsing.ParserRules
 
 					if (longest.success)
 					{
-						return ParsedRule.Rule(Id,
+						return new ParsedRule(Id,
 							longest.startIndex,
 							longest.length,
 							longest.passedBarriers,
-							ParsedRuleChildUtils.Single(ref longest),
-							longest.intermediateValue);
+							longest.intermediateValue,
+							longest);
 					}
 
 					RecordError(ref context, ref settings, "Found no matching choice.");

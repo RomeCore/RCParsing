@@ -90,7 +90,8 @@ namespace RCParsing.ParserRules
 					return ParsedRule.Fail;
 				}
 
-				return ParsedRule.Rule(Id, initialPosition, context.position - initialPosition, context.passedBarriers, rules, null);
+				return new ParsedRule(Id, initialPosition, context.position - initialPosition,
+					context.passedBarriers, null, rules);
 			};
 
 			parseFunction = Parse;

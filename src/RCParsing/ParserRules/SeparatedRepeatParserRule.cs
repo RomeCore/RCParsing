@@ -108,7 +108,7 @@ namespace RCParsing.ParserRules
 					// If minCount == 0 — OK: empty sequence
 					if (MinCount == 0)
 					{
-						return ParsedRule.Rule(Id, initialPosition, 0, context.passedBarriers, Array.Empty<ParsedRule>());
+						return new ParsedRule(Id, initialPosition, 0, context.passedBarriers, Array.Empty<ParsedRule>());
 					}
 					else
 					{
@@ -193,7 +193,8 @@ namespace RCParsing.ParserRules
 					return ParsedRule.Fail;
 				}
 
-				return ParsedRule.Rule(Id, initialPosition, context.position - initialPosition, context.passedBarriers, elements);
+				return new ParsedRule(Id, initialPosition, context.position - initialPosition,
+					context.passedBarriers, elements);
 			};
 
 			parseFunction = Parse;

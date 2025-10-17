@@ -19,7 +19,7 @@ namespace RCParsing.Tests.Rules
 			{
 				var res = self.ParseRule(childrenIds[0], ctx, childSettings);
 				res.length -= (int)ctx.parserParameter!;
-				return res;
+				return new ParsedRule(self.Id, res);
 			}
 
 			builder.CreateRule("custom")
@@ -33,6 +33,7 @@ namespace RCParsing.Tests.Rules
 			var result = parser.ParseRule("custom", "IDD", parameter: 1);
 
 			Assert.Equal(2, result.Length);
+			Assert.Equal("ID", result.Text);
 		}
 	}
 }
