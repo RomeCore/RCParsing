@@ -62,7 +62,7 @@ namespace RCParsing.TokenPatterns
 			CharComparer = new CharComparer(Comparer);
 
 			_root = new Trie(Keywords.Select(k => new KeyValuePair<string, object?>(k, k)),
-				comparer.IsNullOrDefault() ? CharComparer : null);
+				comparer.IsDefaultIgnoreCase() ? CharComparer : null);
 		}
 
 		protected override HashSet<char> FirstCharsCore => Comparer.IsDefaultCaseSensitive() ?
