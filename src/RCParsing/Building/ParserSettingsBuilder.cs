@@ -25,6 +25,14 @@ namespace RCParsing.Building
 			new Or<string, BuildableParserRule>?[] { _skipRule };
 
 		/// <summary>
+		/// Initializes a new instance of <see cref="ParserSettingsBuilder"/> class.
+		/// </summary>
+		public ParserSettingsBuilder()
+		{
+			_mainSettings.maxWalkStepsDisplay = -1;
+		}
+
+		/// <summary>
 		/// Builds the settings for parser.
 		/// </summary>
 		/// <param name="ruleChildren">The list of child elements.</param>

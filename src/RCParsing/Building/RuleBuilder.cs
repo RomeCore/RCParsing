@@ -361,6 +361,31 @@ namespace RCParsing.Building
 		}
 
 		/// <summary>
+		/// Adds a rule to the current sequence.
+		/// </summary>
+		/// <param name="factory">The function to create the rule from children IDs.</param>
+		/// <param name="childRules">The children rule builders actions.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public RuleBuilder Rule(Func<List<int>, ParserRule> factory, params Action<RuleBuilder>[] childRules)
+		{
+			var rule = new BuildableFactoryParserRule
+			{
+				Factory = factory
+			};
+
+			rule.Children.AddRange(childRules.Select(action =>
+			{
+				var builder = new RuleBuilder(ParserBuilder);
+				action.Invoke(builder);
+				if (!builder.CanBeBuilt)
+					throw new ParserBuildingException("Builder action did not add any rules.");
+				return builder.BuildingRule.Value;
+			}));
+
+			return Rule(rule);
+		}
+
+		/// <summary>
 		/// Adds an optional rule to the current sequence.
 		/// </summary>
 		/// <param name="builderAction">The rule builder action to build the child rule.</param>

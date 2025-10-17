@@ -30,6 +30,11 @@ namespace RCParsing
 		public int length;
 
 		/// <summary>
+		/// The end index of the element in the input text.
+		/// </summary>
+		public readonly int endIndex => startIndex + length;
+
+		/// <summary>
 		/// Gets the intermediate value associated with this element.
 		/// </summary>
 		/// <remarks>
@@ -63,5 +68,29 @@ namespace RCParsing
 		{
 			startIndex = -1
 		};
+
+		/// <summary>
+		/// Gets the captured text as substring of input.
+		/// </summary>
+		/// <param name="input">The input string to extract text from.</param>
+		/// <returns>The substring if match successful; <see langword="null"/> otherwise.</returns>
+		public readonly string? GetText(string input)
+		{
+			if (!success)
+				return null;
+			return input.Substring(startIndex, length);
+		}
+
+		/// <summary>
+		/// Gets the captured text as span slice of input.
+		/// </summary>
+		/// <param name="input">The input string to extract text from.</param>
+		/// <returns>The <see cref="ReadOnlySpan{T}"/> if match successful; empty span otherwise.</returns>
+		public readonly ReadOnlySpan<char> GetSpan(string input)
+		{
+			if (!success)
+				return ReadOnlySpan<char>.Empty;
+			return input.AsSpan(startIndex, length);
+		}
 	}
 }

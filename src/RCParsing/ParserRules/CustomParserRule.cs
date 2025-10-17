@@ -13,13 +13,15 @@ namespace RCParsing.ParserRules
 	/// <param name="settings">The current parser settings.</param>
 	/// <param name="childSettings">Parser settings for child rules.</param>
 	/// <param name="children">The child parser rules specified during rule construction.</param>
+	/// <param name="childrenIds">The child parser rules IDs specified during rule construction.</param>
 	/// <returns>The <see cref="ParsedRule"/> result of matching rule.</returns>
 	public delegate ParsedRule CustomRuleParseFunction(
 		CustomParserRule self,
 		ParserContext context,
 		ParserSettings settings,
 		ParserSettings childSettings,
-		int[] children
+		ParserRule[] children,
+		int[] childrenIds
 	);
 
 	/// <summary>
@@ -62,20 +64,20 @@ namespace RCParsing.ParserRules
 
 
 
-		private int[] _children;
+		private ParserRule[] _children;
+		private int[] _childrenIds;
 		private ParseDelegate parseFunction;
 
 		protected override void Initialize(ParserInitFlags initFlags)
 		{
 			base.Initialize(initFlags);
 
-			_children = Children.ToArray();
+			_children = Children.Select(i => GetRule(i)).ToArray();
+			_childrenIds = Children.ToArray();
 
 			ParsedRule Parse(ref ParserContext context, ref ParserSettings settings, ref ParserSettings childSettings)
 			{
-				var result = ParseFunction(this, context, settings, childSettings, _children);
-				// TODO: Maybe uncomment that?
-				// result.ruleId = Id;
+				var result = ParseFunction(this, context, settings, childSettings, _children, _childrenIds);
 				return result;
 			}
 

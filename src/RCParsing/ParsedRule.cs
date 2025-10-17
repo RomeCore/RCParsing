@@ -21,7 +21,7 @@ namespace RCParsing
 		public readonly bool success => element.success;
 
 		/// <summary>
-		/// The ID of the child token pattern that was parsed.
+		/// The ID of the rule that was parsed.
 		/// </summary>
 		public int ruleId;
 
@@ -34,6 +34,11 @@ namespace RCParsing
 		/// The length of the rule in the input text.
 		/// </summary>
 		public int length { readonly get => element.length; set => element.length = value; }
+
+		/// <summary>
+		/// The end index of the rule in the input text.
+		/// </summary>
+		public readonly int endIndex => element.endIndex;
 
 		/// <summary>
 		/// The count of passed barrier tokens.
@@ -351,6 +356,54 @@ namespace RCParsing
 
 			result.children = rawChildren.ToList();
 			return result;
+		}
+
+		/// <summary>
+		/// Gets the captured text as substring of input.
+		/// </summary>
+		/// <param name="input">The input string to extract text from.</param>
+		/// <returns>The substring if match successful; <see langword="null"/> otherwise.</returns>
+		public readonly string? GetText(string input)
+		{
+			if (!success)
+				return null;
+			return input.Substring(startIndex, length);
+		}
+
+		/// <summary>
+		/// Gets the captured text as substring of input.
+		/// </summary>
+		/// <param name="context">The parser context to extract text from.</param>
+		/// <returns>The substring if match successful; <see langword="null"/> otherwise.</returns>
+		public readonly string? GetText(ParserContext context)
+		{
+			if (!success)
+				return null;
+			return context.input.Substring(startIndex, length);
+		}
+
+		/// <summary>
+		/// Gets the captured text as span slice of input.
+		/// </summary>
+		/// <param name="input">The input string to extract text from.</param>
+		/// <returns>The <see cref="ReadOnlySpan{T}"/> if match successful; empty span otherwise.</returns>
+		public readonly ReadOnlySpan<char> GetSpan(string input)
+		{
+			if (!success)
+				return ReadOnlySpan<char>.Empty;
+			return input.AsSpan(startIndex, length);
+		}
+
+		/// <summary>
+		/// Gets the captured text as span slice of input.
+		/// </summary>
+		/// <param name="context">The parser context to extract text from.</param>
+		/// <returns>The <see cref="ReadOnlySpan{T}"/> if match successful; empty span otherwise.</returns>
+		public readonly ReadOnlySpan<char> GetSpan(ParserContext context)
+		{
+			if (!success)
+				return ReadOnlySpan<char>.Empty;
+			return context.input.AsSpan(startIndex, length);
 		}
 	}
 }

@@ -51,5 +51,4 @@ namespace RCParsing.Building.ParserRules
 			return hashCode;
 		}
 	}
-
 }

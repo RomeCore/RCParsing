@@ -347,24 +347,16 @@ namespace RCParsing
 		}
 
 		/// <summary>
-		/// Returns the most relevant parsing error encountered during the process.
-		/// </summary>
-		/// <remarks>
-		/// Returns the last error with furthest position.
-		/// </remarks>
-		/// <returns>The most relevant parsing error or <see langword="default"/>.</returns>
-		public readonly ParsingError GetMostRelevantError()
-		{
-			return errors.OrderByDescending(e => e.position).FirstOrDefault();
-		}
-
-		/// <summary>
 		/// Creates error groups from stored parsing errors.
 		/// </summary>
+		/// <param name="excludeLastRelevantGroup">
+		/// Whether to exclude last relevant error group.
+		/// Should be <see langword="true"/> when parsing was successful and last error group is not relevant at all.
+		/// </param>
 		/// <returns>A collection of error groups.</returns>
-		public readonly ErrorGroupCollection CreateErrorGroups()
+		public readonly ErrorGroupCollection CreateErrorGroups(bool excludeLastRelevantGroup = false)
 		{
-			return new ErrorGroupCollection(this, errors, errorRecoveryIndices);
+			return new ErrorGroupCollection(this, errors, errorRecoveryIndices, excludeLastRelevantGroup);
 		}
 	}
 }

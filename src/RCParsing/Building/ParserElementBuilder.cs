@@ -219,6 +219,31 @@ namespace RCParsing.Building
 		}
 
 		/// <summary>
+		/// Adds a token pattern to the current sequence.
+		/// </summary>
+		/// <param name="factory">The function to create the token pattern from children IDs.</param>
+		/// <param name="childTokens">The children token builders actions.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T Token(Func<List<int>, TokenPattern> factory, params Action<TokenBuilder>[] childTokens)
+		{
+			var token = new BuildableFactoryTokenPattern
+			{
+				Factory = factory
+			};
+
+			token.Children.AddRange(childTokens.Select(action =>
+			{
+				var builder = new TokenBuilder(ParserBuilder);
+				action.Invoke(builder);
+				if (!builder.CanBeBuilt)
+					throw new ParserBuildingException("Builder action did not add any tokens.");
+				return builder.BuildingPattern.Value;
+			}));
+
+			return Token(token);
+		}
+
+		/// <summary>
 		/// Adds a literal char token to the current sequence.
 		/// </summary>
 		/// <param name="literal">The literal character.</param>

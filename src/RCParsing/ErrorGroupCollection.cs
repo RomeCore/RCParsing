@@ -109,7 +109,6 @@ namespace RCParsing
 			var sortedRecovery = errorIndices.OrderBy(i => i)
 				.Append(context.errors.Count).Distinct().ToList();
 			int maxPosBeforeRecovery = -1;
-			int maxPos = 0;
 			int index = 0;
 			int recoveryPointer = 0;
 
@@ -129,8 +128,6 @@ namespace RCParsing
 
 				if (error.position > maxPosBeforeRecovery)
 					maxPosBeforeRecovery = error.position;
-				if (error.position > maxPos)
-					maxPos = error.position;
 
 				groups[error.position].Add(error);
 
@@ -141,7 +138,7 @@ namespace RCParsing
 				.OrderBy(g => g.Key)
 				.Select(g => new ErrorGroup(context, g.Key, g.Value,
 					excludeLastRelevantGroup
-						? relevantGroups.Contains(g.Key) && g.Key != maxPos
+						? relevantGroups.Contains(g.Key) && g.Key != maxPosBeforeRecovery
 						: relevantGroups.Contains(g.Key)))
 				.AsReadOnlyCollection();
 
