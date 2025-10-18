@@ -828,7 +828,7 @@ Notes:
 
 # Projects using RCParsing
 
-- [RCLargeLangugeModels](https://github.com/RomeCore/RCLargeLanguageModels): Used for `LLT`, the template Razor-like language.
+- [LLTSharp](https://github.com/RomeCore/LLTSharp): Used for `LLT`, the template Razor-like language.
 
 *Using RCParsing in your project? We'd love to feature it here! Submit a pull request to add your project to the list.*
 
