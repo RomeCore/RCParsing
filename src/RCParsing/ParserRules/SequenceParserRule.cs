@@ -11,7 +11,12 @@ namespace RCParsing.ParserRules
 	public class SequenceParserRule : ParserRule
 	{
 		private readonly int[] _rules;
-		
+
+		/// <summary>
+		/// The mode that affects the sequence advance behavior.
+		/// </summary>
+		public AdvanceMode AdvanceMode { get; }
+
 		/// <summary>
 		/// The rules ids that make up the sequence.
 		/// </summary>
@@ -20,9 +25,11 @@ namespace RCParsing.ParserRules
 		/// <summary>
 		/// Initializes a new instance of the <see cref="SequenceParserRule"/> class.
 		/// </summary>
+		/// <param name="advanceMode">The mode that affects the advance behavior.</param>
 		/// <param name="parserRules">The rules ids that make up the sequence.</param>
-		public SequenceParserRule(IEnumerable<int> parserRules)
+		public SequenceParserRule(AdvanceMode advanceMode, IEnumerable<int> parserRules)
 		{
+			AdvanceMode = Enum.IsDefined(typeof(AdvanceMode), advanceMode) ? advanceMode : throw new ArgumentOutOfRangeException(nameof(advanceMode));
 			_rules = parserRules?.ToArray() ?? throw new ArgumentNullException(nameof(parserRules));
 			Rules = _rules.AsReadOnlyList();
 			if (_rules.Length == 0)
@@ -90,6 +97,7 @@ namespace RCParsing.ParserRules
 			{
 				var startIndex = context.position;
 				ParsedRule[]? rules = null;
+				bool advanceEmpty = AdvanceMode == AdvanceMode.AdvanceEmpty;
 
 				for (int i = 0; i < parseFunctions.Length; i++)
 				{
@@ -103,7 +111,9 @@ namespace RCParsing.ParserRules
 					rules ??= new ParsedRule[_rules.Length];
 					parsedRule.occurency = i;
 					rules[i] = parsedRule;
-					context.position = parsedRule.startIndex + parsedRule.length;
+
+					if (advanceEmpty || parsedRule.length > 0)
+						context.position = parsedRule.startIndex + parsedRule.length;
 					context.passedBarriers = parsedRule.passedBarriers;
 				}
 
