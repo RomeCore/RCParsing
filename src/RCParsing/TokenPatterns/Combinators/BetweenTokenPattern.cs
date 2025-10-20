@@ -12,11 +12,6 @@ namespace RCParsing.TokenPatterns.Combinators
 	public class BetweenTokenPattern : TokenPattern
 	{
 		/// <summary>
-		/// The mode that affects the sequence advance behavior.
-		/// </summary>
-		public AdvanceMode AdvanceMode { get; }
-
-		/// <summary>
 		/// Gets the token pattern ID that should be parsed first.
 		/// </summary>
 		public int First { get; }
@@ -35,14 +30,13 @@ namespace RCParsing.TokenPatterns.Combinators
 		/// <summary>
 		/// Initializes a new instance of <see cref="BetweenTokenPattern"/> class.
 		/// </summary>
-		/// <param name="advanceMode">The mode that affects the advance behavior.</param>
 		/// <param name="first">The token pattern ID that should be parsed first.</param>
 		/// <param name="middle">
 		/// The middle token pattern ID that will be parsed second,
 		/// intermediate value of this element will be passed up.
 		/// </param>
 		/// <param name="last">The token pattern ID that should be parsed last.</param>
-		public BetweenTokenPattern(AdvanceMode advanceMode, int first, int middle, int last)
+		public BetweenTokenPattern(int first, int middle, int last)
 		{
 			First = first;
 			Middle = middle;
@@ -103,24 +97,19 @@ namespace RCParsing.TokenPatterns.Combinators
 				calculateIntermediateValue: false, ref furthestError);
 			if (!first.success)
 				return ParsedElement.Fail;
-
-			bool advanceEmpty = AdvanceMode == AdvanceMode.AdvanceEmpty;
-			if (advanceEmpty || first.length > 0)
-				position = first.startIndex + first.length;
+			position = first.startIndex + first.length;
 
 			var middle = _middle.Match(input, position, barrierPosition, parserParameter,
 				calculateIntermediateValue, ref furthestError);
 			if (!middle.success)
 				return ParsedElement.Fail;
-			if (advanceEmpty || middle.length > 0)
-				position = middle.startIndex + middle.length;
+			position = middle.startIndex + middle.length;
 
 			var last = _last.Match(input, position, barrierPosition, parserParameter,
 				calculateIntermediateValue: false, ref furthestError);
 			if (!last.success)
 				return ParsedElement.Fail;
-			if (advanceEmpty || last.length > 0)
-				position = last.startIndex + last.length;
+			position = last.startIndex + last.length;
 
 			return new ParsedElement(initialPosition, position - initialPosition, middle.intermediateValue);
 		}
