@@ -17,13 +17,20 @@ namespace RCParsing.Tests.Rules
 				.ZeroOrMoreSeparated(b => b.Number<int>(), b => b.Literal(','));
 			var parser = builder.Build();
 
-			Assert.Equal(0, parser.Parse("").Length); // Empty input
-			Assert.Equal(0, parser.Parse(",").Length); // Just a separator
-			Assert.Equal(2, parser.Parse("10").Length); // Just one element
-			Assert.Equal(2, parser.Parse("10,").Length); // Do not catch trailing separator
-			Assert.Equal(4, parser.Parse("10,1").Length); // Two elements
-			Assert.Equal(4, parser.Parse("10,1,").Length); // Two elements, without trailing
-			Assert.Equal(8, parser.Parse("10,1,999").Length); // Three elements
+			void Check(string input, int length, int childCount)
+			{
+				var ast = parser.Parse(input);
+				Assert.Equal(length, ast.Length);
+				Assert.Equal(childCount, ast.Count);
+			}
+
+			Check("", 0, 0); // Empty input
+			Check(",", 0, 0); // Just a separator
+			Check("10", 2, 1); // Just one element
+			Check("10,", 2, 1); // Do not catch trailing separator
+			Check("10,1", 4, 2); // Two elements
+			Check("10,1,", 4, 2); // Two elements, without trailing
+			Check("10,1,999", 8, 3); // Three elements
 		}
 
 		[Fact]
@@ -35,13 +42,131 @@ namespace RCParsing.Tests.Rules
 				.OneOrMoreSeparated(b => b.Number<int>(), b => b.Literal(','));
 			var parser = builder.Build();
 
+			void Check(string input, int length, int childCount)
+			{
+				var ast = parser.Parse(input);
+				Assert.Equal(length, ast.Length);
+				Assert.Equal(childCount, ast.Count);
+			}
+
 			Assert.Throws<ParsingException>(() => parser.Parse("")); // Empty input
 			Assert.Throws<ParsingException>(() => parser.Parse(",")); // Just a separator
-			Assert.Equal(2, parser.Parse("10").Length); // Just one element
-			Assert.Equal(2, parser.Parse("10,").Length); // Do not catch trailing separator
-			Assert.Equal(4, parser.Parse("10,1").Length); // Two elements
-			Assert.Equal(4, parser.Parse("10,1,").Length); // Two elements, without trailing
-			Assert.Equal(8, parser.Parse("10,1,999").Length); // Three elements
+
+			Check("10", 2, 1); // Just one element
+			Check("10,", 2, 1); // Do not catch trailing separator
+			Check("10,1", 4, 2); // Two elements
+			Check("10,1,", 4, 2); // Two elements, without trailing
+			Check("10,1,999", 8, 3); // Three elements
+		}
+
+		[Fact]
+		public void OneOrMore_NewlineSeparators()
+		{
+			var builder = new ParserBuilder();
+			builder.Settings.Skip(b => b.Spaces().ConfigureForSkip());
+			builder.CreateMainRule()
+				.OneOrMoreSeparated(b => b.Number<int>(), b => b.OneOrMore(b => b.Newline()));
+			var parser = builder.Build();
+
+			void Check(string input, int length, int childCount)
+			{
+				var ast = parser.Parse(input);
+				Assert.Equal(length, ast.Length);
+				Assert.Equal(childCount, ast.Count);
+			}
+
+			Assert.Throws<ParsingException>(() => parser.Parse("")); // Empty input
+			Assert.Throws<ParsingException>(() => parser.Parse("\n")); // Just a separator
+
+			Check(
+			"""
+			90
+			""", 2, 1); // Just one element
+			Check(
+			"""
+			90
+
+
+			""", 2, 1); // Do not catch trailing separators
+			Check(
+			"""
+			90
+
+			1
+			""", 7, 2); // Two elements
+			Check(
+			"""
+			90
+
+			1
+
+
+
+			""", 7, 2); // Two elements, without trailing
+			Check(
+			"""
+			90
+			1
+			999
+
+
+			""", 10, 3); // Three elements
+		}
+
+		[Fact]
+		public void OneOrMore_NewlineSeparators_WithinSequence()
+		{
+			var builder = new ParserBuilder();
+			builder.Settings.Skip(b => b.Spaces().ConfigureForSkip());
+			builder.CreateMainRule()
+				.OneOrMoreSeparated(b => b.Number<int>(), b => b.OneOrMore(b => b.Newline()))
+				.Optional(b => b.Whitespaces())
+				.EOF();
+			var parser = builder.Build();
+
+			void Check(string input, int length, int childCount)
+			{
+				var ast = parser.Parse(input)[0];
+				Assert.Equal(length, ast.Length);
+				Assert.Equal(childCount, ast.Count);
+			}
+
+			Assert.Throws<ParsingException>(() => parser.Parse("")); // Empty input
+			Assert.Throws<ParsingException>(() => parser.Parse("\n")); // Just a separator
+
+			Check(
+			"""
+			90
+			""", 2, 1); // Just one element
+			Check(
+			"""
+			90
+
+
+			""", 2, 1); // Do not catch trailing separators
+			Check(
+			"""
+			90
+
+			1
+			""", 7, 2); // Two elements
+			Check(
+			"""
+			90
+
+			1
+
+
+
+			""", 7, 2); // Two elements, without trailing
+			Check(
+			"""
+			90
+			1
+			999
+
+
+			""", 10, 3); // Three elements
 		}
 
 		[Fact]
