@@ -410,6 +410,108 @@ namespace RCParsing.Building
 		}
 
 		/// <summary>
+		/// Adds a literal choice token to the current sequence.
+		/// </summary>
+		/// <param name="literals">The literal strings set mapped with intermediate values.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T LiteralChoice(params KeyValuePair<string, object?>[] literals)
+		{
+			return Token(new LiteralChoiceTokenPattern(literals));
+		}
+
+		/// <summary>
+		/// Adds a literal choice token to the current sequence.
+		/// </summary>
+		/// <param name="literals">The literal strings set mapped with intermediate values.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T LiteralChoice(IEnumerable<KeyValuePair<string, object?>> literals)
+		{
+			return Token(new LiteralChoiceTokenPattern(literals));
+		}
+
+		/// <summary>
+		/// Adds a literal choice token to the current sequence.
+		/// </summary>
+		/// <param name="literals">The literal strings set mapped with intermediate values.</param>
+		/// <param name="comparer">The optional string comparer to use.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T LiteralChoice(IEnumerable<KeyValuePair<string, object?>> literals, StringComparer? comparer)
+		{
+			return Token(new LiteralChoiceTokenPattern(literals, comparer));
+		}
+
+		/// <summary>
+		/// Adds a literal choice token to the current sequence. Ignores case when comparing literals.
+		/// </summary>
+		/// <param name="literals">The literal strings set mapped with intermediate values.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T LiteralChoiceIgnoreCase(params KeyValuePair<string, object?>[] literals)
+		{
+			return Token(new LiteralChoiceTokenPattern(literals, StringComparer.OrdinalIgnoreCase));
+		}
+
+		/// <summary>
+		/// Adds a literal choice token to the current sequence. Ignores case when comparing literals.
+		/// </summary>
+		/// <param name="literals">The literal strings set mapped with intermediate values.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T LiteralChoiceIgnoreCase(IEnumerable<KeyValuePair<string, object?>> literals)
+		{
+			return Token(new LiteralChoiceTokenPattern(literals, StringComparer.OrdinalIgnoreCase));
+		}
+
+		/// <summary>
+		/// Adds a literal choice token to the current sequence.
+		/// </summary>
+		/// <param name="literals">The literal strings set mapped with intermediate values.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T LiteralChoice(params (string, object?)[] literals)
+		{
+			return Token(new LiteralChoiceTokenPattern(literals.Select(x => new KeyValuePair<string, object?>(x.Item1, x.Item2))));
+		}
+
+		/// <summary>
+		/// Adds a literal choice token to the current sequence.
+		/// </summary>
+		/// <param name="literals">The literal strings set mapped with intermediate values.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T LiteralChoice(IEnumerable<(string, object?)> literals)
+		{
+			return Token(new LiteralChoiceTokenPattern(literals.Select(x => new KeyValuePair<string, object?>(x.Item1, x.Item2))));
+		}
+
+		/// <summary>
+		/// Adds a literal choice token to the current sequence.
+		/// </summary>
+		/// <param name="literals">The literal strings set mapped with intermediate values.</param>
+		/// <param name="comparer">The optional string comparer to use.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T LiteralChoice(IEnumerable<(string, object?)> literals, StringComparer? comparer)
+		{
+			return Token(new LiteralChoiceTokenPattern(literals.Select(x => new KeyValuePair<string, object?>(x.Item1, x.Item2)), comparer));
+		}
+
+		/// <summary>
+		/// Adds a literal choice token to the current sequence. Ignores case when comparing literals.
+		/// </summary>
+		/// <param name="literals">The literal strings set mapped with intermediate values.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T LiteralChoiceIgnoreCase(params (string, object?)[] literals)
+		{
+			return Token(new LiteralChoiceTokenPattern(literals.Select(x => new KeyValuePair<string, object?>(x.Item1, x.Item2)), StringComparer.OrdinalIgnoreCase));
+		}
+
+		/// <summary>
+		/// Adds a literal choice token to the current sequence. Ignores case when comparing literals.
+		/// </summary>
+		/// <param name="literals">The literal strings set mapped with intermediate values.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T LiteralChoiceIgnoreCase(IEnumerable<(string, object?)> literals)
+		{
+			return Token(new LiteralChoiceTokenPattern(literals.Select(x => new KeyValuePair<string, object?>(x.Item1, x.Item2)), StringComparer.OrdinalIgnoreCase));
+		}
+
+		/// <summary>
 		/// Adds an identifier token to the current sequence.
 		/// </summary>
 		/// <param name="startPredicate">The predicate to use for the first character of the identifier.</param>
@@ -569,6 +671,29 @@ namespace RCParsing.Building
 		}
 
 		/// <summary>
+		/// Adds a keyword token to the current sequence with custom prohibited character checking.
+		/// </summary>
+		/// <param name="keyword">The keyword string to match.</param>
+		/// <param name="prohibitedCharacterPredicate">Predicate to identify characters that should not follow the keyword.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T Keyword(string keyword, Func<char, bool> prohibitedCharacterPredicate)
+		{
+			return Token(new KeywordTokenPattern(keyword, prohibitedCharacterPredicate));
+		}
+
+		/// <summary>
+		/// Adds a keyword token to the current sequence with custom prohibited character checking.
+		/// </summary>
+		/// <param name="keyword">The keyword string to match.</param>
+		/// <param name="prohibitedCharacterPredicate">Predicate to identify characters that should not follow the keyword.</param>
+		/// <param name="comparison">The string comparison type to use for keyword matching.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T Keyword(string keyword, Func<char, bool> prohibitedCharacterPredicate, StringComparison comparison)
+		{
+			return Token(new KeywordTokenPattern(keyword, prohibitedCharacterPredicate, comparison));
+		}
+
+		/// <summary>
 		/// Adds a keyword choice token to the current sequence with ASCII identifier character checking.
 		/// </summary>
 		/// <param name="keywords">The collection of keywords to match.</param>
@@ -671,29 +796,6 @@ namespace RCParsing.Building
 		}
 
 		/// <summary>
-		/// Adds a keyword token to the current sequence with custom prohibited character checking.
-		/// </summary>
-		/// <param name="keyword">The keyword string to match.</param>
-		/// <param name="prohibitedCharacterPredicate">Predicate to identify characters that should not follow the keyword.</param>
-		/// <returns>Current instance for method chaining.</returns>
-		public T Keyword(string keyword, Func<char, bool> prohibitedCharacterPredicate)
-		{
-			return Token(new KeywordTokenPattern(keyword, prohibitedCharacterPredicate));
-		}
-
-		/// <summary>
-		/// Adds a keyword token to the current sequence with custom prohibited character checking.
-		/// </summary>
-		/// <param name="keyword">The keyword string to match.</param>
-		/// <param name="prohibitedCharacterPredicate">Predicate to identify characters that should not follow the keyword.</param>
-		/// <param name="comparison">The string comparison type to use for keyword matching.</param>
-		/// <returns>Current instance for method chaining.</returns>
-		public T Keyword(string keyword, Func<char, bool> prohibitedCharacterPredicate, StringComparison comparison)
-		{
-			return Token(new KeywordTokenPattern(keyword, prohibitedCharacterPredicate, comparison));
-		}
-
-		/// <summary>
 		/// Adds a keyword choice token to the current sequence with custom prohibited character checking.
 		/// </summary>
 		/// <param name="keywords">The collection of keywords to match.</param>
@@ -750,6 +852,322 @@ namespace RCParsing.Building
 		}
 
 		/// <summary>
+		/// Adds a keyword choice token to the current sequence with ASCII identifier character checking.
+		/// </summary>
+		/// <param name="keywords">The collection of keywords to match mapped with intermediate values.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T KeywordChoice(params KeyValuePair<string, object?>[] keywords)
+		{
+			return Token(KeywordChoiceTokenPattern.AsciiKeywordChoice(keywords));
+		}
+
+		/// <summary>
+		/// Adds a keyword choice token to the current sequence with ASCII identifier character checking.
+		/// </summary>
+		/// <param name="keywords">The collection of keywords to match mapped with intermediate values.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T KeywordChoice(IEnumerable<KeyValuePair<string, object?>> keywords)
+		{
+			return Token(KeywordChoiceTokenPattern.AsciiKeywordChoice(keywords));
+		}
+
+		/// <summary>
+		/// Adds a keyword choice token to the current sequence with ASCII identifier character checking.
+		/// </summary>
+		/// <param name="keywords">The collection of keywords to match mapped with intermediate values.</param>
+		/// <param name="comparer">The comparer to use for keyword matching.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T KeywordChoice(IEnumerable<KeyValuePair<string, object?>> keywords, StringComparer comparer)
+		{
+			return Token(KeywordChoiceTokenPattern.AsciiKeywordChoice(keywords, comparer));
+		}
+
+		/// <summary>
+		/// Adds a keyword choice token to the current sequence with Unicode identifier character checking.
+		/// </summary>
+		/// <param name="keywords">The collection of keywords to match mapped with intermediate values.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T UnicodeKeywordChoice(params KeyValuePair<string, object?>[] keywords)
+		{
+			return Token(KeywordChoiceTokenPattern.UnicodeKeywordChoice(keywords));
+		}
+
+		/// <summary>
+		/// Adds a keyword choice token to the current sequence with Unicode identifier character checking.
+		/// </summary>
+		/// <param name="keywords">The collection of keywords to match mapped with intermediate values.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T UnicodeKeywordChoice(IEnumerable<KeyValuePair<string, object?>> keywords)
+		{
+			return Token(KeywordChoiceTokenPattern.UnicodeKeywordChoice(keywords));
+		}
+
+		/// <summary>
+		/// Adds a keyword choice token to the current sequence with Unicode identifier character checking.
+		/// </summary>
+		/// <param name="keywords">The collection of keywords to match mapped with intermediate values.</param>
+		/// <param name="comparer">The comparer to use for keyword matching.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T UnicodeKeywordChoice(IEnumerable<KeyValuePair<string, object?>> keywords, StringComparer comparer)
+		{
+			return Token(KeywordChoiceTokenPattern.UnicodeKeywordChoice(keywords, comparer));
+		}
+
+		/// <summary>
+		/// Adds a case-insensitive keyword choice token to the current sequence with ASCII identifier character checking.
+		/// </summary>
+		/// <param name="keywords">The collection of keywords to match mapped with intermediate values.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T KeywordChoiceIgnoreCase(params KeyValuePair<string, object?>[] keywords)
+		{
+			return Token(KeywordChoiceTokenPattern.AsciiKeywordChoice(keywords, StringComparer.OrdinalIgnoreCase));
+		}
+
+		/// <summary>
+		/// Adds a case-insensitive keyword choice token to the current sequence with ASCII identifier character checking.
+		/// </summary>
+		/// <param name="keywords">The collection of keywords to match mapped with intermediate values.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T KeywordChoiceIgnoreCase(IEnumerable<KeyValuePair<string, object?>> keywords)
+		{
+			return Token(KeywordChoiceTokenPattern.AsciiKeywordChoice(keywords, StringComparer.OrdinalIgnoreCase));
+		}
+
+		/// <summary>
+		/// Adds a case-insensitive keyword choice token to the current sequence with Unicode identifier character checking.
+		/// </summary>
+		/// <param name="keywords">The collection of keywords to match mapped with intermediate values.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T UnicodeKeywordChoiceIgnoreCase(params KeyValuePair<string, object?>[] keywords)
+		{
+			return Token(KeywordChoiceTokenPattern.UnicodeKeywordChoice(keywords, StringComparer.OrdinalIgnoreCase));
+		}
+
+		/// <summary>
+		/// Adds a case-insensitive keyword choice token to the current sequence with Unicode identifier character checking.
+		/// </summary>
+		/// <param name="keywords">The collection of keywords to match mapped with intermediate values.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T UnicodeKeywordChoiceIgnoreCase(IEnumerable<KeyValuePair<string, object?>> keywords)
+		{
+			return Token(KeywordChoiceTokenPattern.UnicodeKeywordChoice(keywords, StringComparer.OrdinalIgnoreCase));
+		}
+
+		/// <summary>
+		/// Adds a keyword choice token to the current sequence with custom prohibited character checking.
+		/// </summary>
+		/// <param name="keywords">The collection of keywords to match mapped with intermediate values.</param>
+		/// <param name="prohibitedCharacterPredicate">Predicate to identify characters that should not follow the keyword.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T KeywordChoice(IEnumerable<KeyValuePair<string, object?>> keywords, Func<char, bool> prohibitedCharacterPredicate)
+		{
+			return Token(new KeywordChoiceTokenPattern(keywords, prohibitedCharacterPredicate));
+		}
+
+		/// <summary>
+		/// Adds a keyword choice token to the current sequence with custom prohibited character checking.
+		/// </summary>
+		/// <param name="keywords">The collection of keywords to match mapped with intermediate values.</param>
+		/// <param name="prohibitedCharacterPredicate">Predicate to identify characters that should not follow the keyword.</param>
+		/// <param name="comparer">The comparer to use for keyword matching.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T KeywordChoice(IEnumerable<KeyValuePair<string, object?>> keywords, Func<char, bool> prohibitedCharacterPredicate, StringComparer comparer)
+		{
+			return Token(new KeywordChoiceTokenPattern(keywords, prohibitedCharacterPredicate, comparer));
+		}
+
+		/// <summary>
+		/// Adds a keyword choice token to the current sequence with custom prohibited character checking.
+		/// </summary>
+		/// <param name="keywords">The collection of keywords to match mapped with intermediate values.</param>
+		/// <param name="prohibitedCharacterPredicate">Predicate to identify characters that should not follow the keyword.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T KeywordChoice(Func<char, bool> prohibitedCharacterPredicate, params KeyValuePair<string, object?>[] keywords)
+		{
+			return Token(new KeywordChoiceTokenPattern(keywords, prohibitedCharacterPredicate));
+		}
+
+		/// <summary>
+		/// Adds a case-insensitive keyword choice token to the current sequence with custom prohibited character checking.
+		/// </summary>
+		/// <param name="keywords">The collection of keywords to match mapped with intermediate values.</param>
+		/// <param name="prohibitedCharacterPredicate">Predicate to identify characters that should not follow the keyword.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T KeywordChoiceIgnoreCase(IEnumerable<KeyValuePair<string, object?>> keywords, Func<char, bool> prohibitedCharacterPredicate)
+		{
+			return Token(new KeywordChoiceTokenPattern(keywords, prohibitedCharacterPredicate, StringComparer.OrdinalIgnoreCase));
+		}
+
+		/// <summary>
+		/// Adds a case-insensitive keyword choice token to the current sequence with custom prohibited character checking.
+		/// </summary>
+		/// <param name="keywords">The collection of keywords to match mapped with intermediate values.</param>
+		/// <param name="prohibitedCharacterPredicate">Predicate to identify characters that should not follow the keyword.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T KeywordChoiceIgnoreCase(Func<char, bool> prohibitedCharacterPredicate, params KeyValuePair<string, object?>[] keywords)
+		{
+			return Token(new KeywordChoiceTokenPattern(keywords, prohibitedCharacterPredicate, StringComparer.OrdinalIgnoreCase));
+		}
+
+		/// <summary>
+		/// Adds a keyword choice token to the current sequence with ASCII identifier character checking.
+		/// </summary>
+		/// <param name="keywords">The collection of keywords to match mapped with intermediate values.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T KeywordChoice(params (string, object?)[] keywords)
+		{
+			return Token(KeywordChoiceTokenPattern.AsciiKeywordChoice(keywords.Select(x => new KeyValuePair<string, object?>(x.Item1, x.Item2))));
+		}
+
+		/// <summary>
+		/// Adds a keyword choice token to the current sequence with ASCII identifier character checking.
+		/// </summary>
+		/// <param name="keywords">The collection of keywords to match mapped with intermediate values.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T KeywordChoice(IEnumerable<(string, object?)> keywords)
+		{
+			return Token(KeywordChoiceTokenPattern.AsciiKeywordChoice(keywords.Select(x => new KeyValuePair<string, object?>(x.Item1, x.Item2))));
+		}
+
+		/// <summary>
+		/// Adds a keyword choice token to the current sequence with ASCII identifier character checking.
+		/// </summary>
+		/// <param name="keywords">The collection of keywords to match mapped with intermediate values.</param>
+		/// <param name="comparer">The comparer to use for keyword matching.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T KeywordChoice(IEnumerable<(string, object?)> keywords, StringComparer comparer)
+		{
+			return Token(KeywordChoiceTokenPattern.AsciiKeywordChoice(keywords.Select(x => new KeyValuePair<string, object?>(x.Item1, x.Item2)), comparer));
+		}
+
+		/// <summary>
+		/// Adds a keyword choice token to the current sequence with Unicode identifier character checking.
+		/// </summary>
+		/// <param name="keywords">The collection of keywords to match mapped with intermediate values.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T UnicodeKeywordChoice(params (string, object?)[] keywords)
+		{
+			return Token(KeywordChoiceTokenPattern.UnicodeKeywordChoice(keywords.Select(x => new KeyValuePair<string, object?>(x.Item1, x.Item2))));
+		}
+
+		/// <summary>
+		/// Adds a keyword choice token to the current sequence with Unicode identifier character checking.
+		/// </summary>
+		/// <param name="keywords">The collection of keywords to match mapped with intermediate values.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T UnicodeKeywordChoice(IEnumerable<(string, object?)> keywords)
+		{
+			return Token(KeywordChoiceTokenPattern.UnicodeKeywordChoice(keywords.Select(x => new KeyValuePair<string, object?>(x.Item1, x.Item2))));
+		}
+
+		/// <summary>
+		/// Adds a keyword choice token to the current sequence with Unicode identifier character checking.
+		/// </summary>
+		/// <param name="keywords">The collection of keywords to match mapped with intermediate values.</param>
+		/// <param name="comparer">The comparer to use for keyword matching.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T UnicodeKeywordChoice(IEnumerable<(string, object?)> keywords, StringComparer comparer)
+		{
+			return Token(KeywordChoiceTokenPattern.UnicodeKeywordChoice(keywords.Select(x => new KeyValuePair<string, object?>(x.Item1, x.Item2)), comparer));
+		}
+
+		/// <summary>
+		/// Adds a case-insensitive keyword choice token to the current sequence with ASCII identifier character checking.
+		/// </summary>
+		/// <param name="keywords">The collection of keywords to match mapped with intermediate values.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T KeywordChoiceIgnoreCase(params (string, object?)[] keywords)
+		{
+			return Token(KeywordChoiceTokenPattern.AsciiKeywordChoice(keywords.Select(x => new KeyValuePair<string, object?>(x.Item1, x.Item2)), StringComparer.OrdinalIgnoreCase));
+		}
+
+		/// <summary>
+		/// Adds a case-insensitive keyword choice token to the current sequence with ASCII identifier character checking.
+		/// </summary>
+		/// <param name="keywords">The collection of keywords to match mapped with intermediate values.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T KeywordChoiceIgnoreCase(IEnumerable<(string, object?)> keywords)
+		{
+			return Token(KeywordChoiceTokenPattern.AsciiKeywordChoice(keywords.Select(x => new KeyValuePair<string, object?>(x.Item1, x.Item2)), StringComparer.OrdinalIgnoreCase));
+		}
+
+		/// <summary>
+		/// Adds a case-insensitive keyword choice token to the current sequence with Unicode identifier character checking.
+		/// </summary>
+		/// <param name="keywords">The collection of keywords to match mapped with intermediate values.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T UnicodeKeywordChoiceIgnoreCase(params (string, object?)[] keywords)
+		{
+			return Token(KeywordChoiceTokenPattern.UnicodeKeywordChoice(keywords.Select(x => new KeyValuePair<string, object?>(x.Item1, x.Item2)), StringComparer.OrdinalIgnoreCase));
+		}
+
+		/// <summary>
+		/// Adds a case-insensitive keyword choice token to the current sequence with Unicode identifier character checking.
+		/// </summary>
+		/// <param name="keywords">The collection of keywords to match mapped with intermediate values.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T UnicodeKeywordChoiceIgnoreCase(IEnumerable<(string, object?)> keywords)
+		{
+			return Token(KeywordChoiceTokenPattern.UnicodeKeywordChoice(keywords.Select(x => new KeyValuePair<string, object?>(x.Item1, x.Item2)), StringComparer.OrdinalIgnoreCase));
+		}
+
+		/// <summary>
+		/// Adds a keyword choice token to the current sequence with custom prohibited character checking.
+		/// </summary>
+		/// <param name="keywords">The collection of keywords to match mapped with intermediate values.</param>
+		/// <param name="prohibitedCharacterPredicate">Predicate to identify characters that should not follow the keyword.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T KeywordChoice(IEnumerable<(string, object?)> keywords, Func<char, bool> prohibitedCharacterPredicate)
+		{
+			return Token(new KeywordChoiceTokenPattern(keywords.Select(x => new KeyValuePair<string, object?>(x.Item1, x.Item2)), prohibitedCharacterPredicate));
+		}
+
+		/// <summary>
+		/// Adds a keyword choice token to the current sequence with custom prohibited character checking.
+		/// </summary>
+		/// <param name="keywords">The collection of keywords to match mapped with intermediate values.</param>
+		/// <param name="prohibitedCharacterPredicate">Predicate to identify characters that should not follow the keyword.</param>
+		/// <param name="comparer">The comparer to use for keyword matching.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T KeywordChoice(IEnumerable<(string, object?)> keywords, Func<char, bool> prohibitedCharacterPredicate, StringComparer comparer)
+		{
+			return Token(new KeywordChoiceTokenPattern(keywords.Select(x => new KeyValuePair<string, object?>(x.Item1, x.Item2)), prohibitedCharacterPredicate, comparer));
+		}
+
+		/// <summary>
+		/// Adds a keyword choice token to the current sequence with custom prohibited character checking.
+		/// </summary>
+		/// <param name="keywords">The collection of keywords to match mapped with intermediate values.</param>
+		/// <param name="prohibitedCharacterPredicate">Predicate to identify characters that should not follow the keyword.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T KeywordChoice(Func<char, bool> prohibitedCharacterPredicate, params (string, object?)[] keywords)
+		{
+			return Token(new KeywordChoiceTokenPattern(keywords.Select(x => new KeyValuePair<string, object?>(x.Item1, x.Item2)), prohibitedCharacterPredicate));
+		}
+
+		/// <summary>
+		/// Adds a case-insensitive keyword choice token to the current sequence with custom prohibited character checking.
+		/// </summary>
+		/// <param name="keywords">The collection of keywords to match mapped with intermediate values.</param>
+		/// <param name="prohibitedCharacterPredicate">Predicate to identify characters that should not follow the keyword.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T KeywordChoiceIgnoreCase(IEnumerable<(string, object?)> keywords, Func<char, bool> prohibitedCharacterPredicate)
+		{
+			return Token(new KeywordChoiceTokenPattern(keywords.Select(x => new KeyValuePair<string, object?>(x.Item1, x.Item2)), prohibitedCharacterPredicate, StringComparer.OrdinalIgnoreCase));
+		}
+
+		/// <summary>
+		/// Adds a case-insensitive keyword choice token to the current sequence with custom prohibited character checking.
+		/// </summary>
+		/// <param name="keywords">The collection of keywords to match mapped with intermediate values.</param>
+		/// <param name="prohibitedCharacterPredicate">Predicate to identify characters that should not follow the keyword.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T KeywordChoiceIgnoreCase(Func<char, bool> prohibitedCharacterPredicate, params (string, object?)[] keywords)
+		{
+			return Token(new KeywordChoiceTokenPattern(keywords.Select(x => new KeyValuePair<string, object?>(x.Item1, x.Item2)), prohibitedCharacterPredicate, StringComparer.OrdinalIgnoreCase));
+		}
+
+		/// <summary>
 		/// Adds a regular expression token to the current sequence.
 		/// </summary>
 		/// <param name="regex">The constructed regular expression, it's recommended to prepend the '\G' into a pattern.</param>
@@ -763,21 +1181,12 @@ namespace RCParsing.Building
 		/// Adds a regular expression token to the current sequence.
 		/// </summary>
 		/// <param name="regex">The regular expression.</param>
+		/// <param name="useStartAnchor">If true, the pattern will only match from the current position using \G anchor.</param>
 		/// <param name="options">The regular expression options. <see cref="RegexOptions.Compiled"/> by default.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public T Regex(string regex, RegexOptions options = RegexOptions.Compiled)
+		public T Regex(string regex, bool useStartAnchor = true, RegexOptions options = RegexOptions.Compiled)
 		{
-			return Token(new RegexTokenPattern(regex, options));
-		}
-
-		/// <summary>
-		/// Adds a regular expression token to the current sequence.
-		/// </summary>
-		/// <param name="regex">The regular expression.</param>
-		/// <returns>Current instance for method chaining.</returns>
-		public T Regex(string regex)
-		{
-			return Token(new RegexTokenPattern(regex));
+			return Token(new RegexTokenPattern(regex, useStartAnchor, options: options));
 		}
 
 		/// <summary>

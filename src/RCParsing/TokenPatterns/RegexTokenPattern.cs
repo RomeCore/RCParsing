@@ -17,6 +17,11 @@ namespace RCParsing.TokenPatterns
 		/// The regular expression pattern string to match. If this token is constructed directly (without providing a pattern), returns <see langword="null"/>.
 		/// </summary>
 		public string? RegexPattern { get; }
+
+		/// <summary>
+		/// The value indicating whether 
+		/// </summary>
+		public bool? UsesStartAnchor { get; }
 		
 		/// <summary>
 		/// The regular expression to match.
@@ -27,14 +32,19 @@ namespace RCParsing.TokenPatterns
 		/// Initializes a new instance of the <see cref="RegexTokenPattern"/> class.
 		/// </summary>
 		/// <param name="pattern">The regular expression pattern.</param>
+		/// <param name="useStartAnchor">If true, the pattern will only match from the current position using \G anchor.</param>
 		/// <param name="options">The regex options (default is None).</param>
-		public RegexTokenPattern(string pattern, RegexOptions options = RegexOptions.Compiled)
+		public RegexTokenPattern(string pattern, bool useStartAnchor = true, RegexOptions options = RegexOptions.Compiled)
 		{
 			if (string.IsNullOrEmpty(pattern))
 				throw new ArgumentException("Pattern cannot be null or empty.", nameof(pattern));
 
 			RegexPattern = pattern;
-			Regex = new Regex($"\\G{RegexPattern}", options);
+			UsesStartAnchor = useStartAnchor;
+			if (useStartAnchor)
+				Regex = new Regex($"\\G{RegexPattern}", options);
+			else
+				Regex = new Regex(RegexPattern, options);
 		}
 
 		/// <summary>
@@ -46,6 +56,7 @@ namespace RCParsing.TokenPatterns
 			if (regex == null)
 				throw new ArgumentNullException(nameof(regex));
 			RegexPattern = null;
+			UsesStartAnchor = null;
 			Regex = regex;
 		}
 
@@ -86,7 +97,13 @@ namespace RCParsing.TokenPatterns
 		public override int GetHashCode()
 		{
 			int hashCode = base.GetHashCode();
-			hashCode = hashCode * -1521134295 + RegexPattern.GetHashCode();
+			if (UsesStartAnchor == null)
+				hashCode = hashCode * 397 ^ Regex.GetHashCode();
+			else
+			{
+				hashCode = hashCode * 397 ^ RegexPattern.GetHashCode();
+				hashCode = hashCode * 397 ^ UsesStartAnchor.GetHashCode();
+			}
 			return hashCode;
 		}
 	}
