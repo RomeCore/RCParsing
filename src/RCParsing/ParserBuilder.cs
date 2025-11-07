@@ -259,14 +259,14 @@ namespace RCParsing
 			Dictionary<string, BuildableTokenPattern> namedTokenPatterns = new();
 
 			// Maps for buildable rules and tokens to their assigned integer IDs
-			Dictionary<BuildableParserElement, int> elements = new();
+			Dictionary<BuildableParserElementBase, int> elements = new();
 
 			// Maps for rules and tokens to their children dependencies
-			Dictionary<BuildableParserElement, (List<BuildableParserRule>?,
-				List<BuildableTokenPattern>?, List<BuildableParserRule?>, List<BuildableParserRule?>)> argMap = new();
+			Dictionary<BuildableParserElementBase, (List<BuildableParserRule>?,
+				List<BuildableTokenPattern>?, List<BuildableParserElementBase?>)> argMap = new();
 
 			// Queues to process rules and tokens breadth-first
-			Queue<BuildableParserElement> elementsToProcess = new();
+			Queue<BuildableParserElementBase> elementsToProcess = new();
 
 			// Pre-process the tokenizers
 			var tokenizers = BarrierTokenizers.Build();
@@ -406,10 +406,12 @@ namespace RCParsing
 				{
 					if (Equals(element, mainRule))
 						mainRuleId = ruleCounter;
-					elements.Add(element, ruleCounter++);
+					elements.Add(rule, ruleCounter++);
 				}
 				else if (element is BuildableTokenPattern pattern)
-					elements.Add(element, tokenCounter++);
+				{
+					elements.Add(pattern, tokenCounter++);
+				}
 
 				// Queue child rules for processing
 				List<BuildableParserRule>? ruleChildrenToArgs = null;
@@ -419,7 +421,7 @@ namespace RCParsing
 					ruleChildrenToArgs = new();
 					foreach (var ruleChild in children)
 					{
-						ruleChild.Switch(name =>
+						ruleChild?.Switch(name =>
 						{
 							if (namedRules.TryGetValue(name, out var namedRule))
 								ruleChildrenToArgs.Add(namedRule);
@@ -441,7 +443,7 @@ namespace RCParsing
 					tokenChildrenToArgs = new();
 					foreach (var tokenChild in tokenChildren)
 					{
-						tokenChild.Switch(name =>
+						tokenChild?.Switch(name =>
 						{
 							if (namedTokenPatterns.TryGetValue(name, out var namedPattern))
 								tokenChildrenToArgs.Add(namedPattern);
@@ -456,54 +458,19 @@ namespace RCParsing
 				}
 
 				// Queue child settings rules for processing
-				List<BuildableParserRule?> settingsRuleChildrenToArgs = new();
-				foreach (var ruleChild in element.Settings.RuleChildren)
+				List<BuildableParserElementBase?> elementChildrenToArgs = new();
+				foreach (var elementChild in element.ElementChildren)
 				{
-					if (!ruleChild.HasValue)
+					if (elementChild != null)
 					{
-						settingsRuleChildrenToArgs.Add(null);
-						continue;
+						elementChildrenToArgs.Add(elementChild);
+						elementsToProcess.Enqueue(elementChild);
 					}
-
-					ruleChild.Value.Switch(name =>
-					{
-						if (namedRules.TryGetValue(name, out var namedRule))
-							settingsRuleChildrenToArgs.Add(namedRule);
-						else
-							throw new ParserBuildingException($"Unknown rule reference '{name}'.");
-					}, brule =>
-					{
-						settingsRuleChildrenToArgs.Add(brule);
-						elementsToProcess.Enqueue(brule);
-					});
-				}
-
-				// Queue child error recovery rules for processing
-				List<BuildableParserRule?> errorRecoveryRuleChildrenToArgs = new();
-				foreach (var ruleChild in element.ErrorRecovery.RuleChildren)
-				{
-					if (!ruleChild.HasValue)
-					{
-						errorRecoveryRuleChildrenToArgs.Add(null);
-						continue;
-					}
-
-					ruleChild.Value.Switch(name =>
-					{
-						if (namedRules.TryGetValue(name, out var namedRule))
-							errorRecoveryRuleChildrenToArgs.Add(namedRule);
-						else
-							throw new ParserBuildingException($"Unknown rule reference '{name}'.");
-					}, brule =>
-					{
-						errorRecoveryRuleChildrenToArgs.Add(brule);
-						elementsToProcess.Enqueue(brule);
-					});
 				}
 
 				// Register dependencies for building
 				argMap[element] = (ruleChildrenToArgs, tokenChildrenToArgs,
-					settingsRuleChildrenToArgs, errorRecoveryRuleChildrenToArgs);
+					elementChildrenToArgs);
 			}
 
 			// Prepare the names map for quick lookup of elements to names
@@ -513,13 +480,19 @@ namespace RCParsing
 
 			// Prepare the final map for snapshot of dependencies IDs
 			List<(
-				BuildableParserElement element,
+				BuildableParserElementBase element,
 				int id,
-				List<int>? ruleChildren,
-				List<int>? tokenChildren,
-				List<int> settingsRuleChildren,
-				List<int> errorRecoveryRuleChildren,
+				List<(int, ParserRule)>? ruleChildren,
+				List<(int, TokenPattern)>? tokenChildren,
+				List<object?>? elementChildren,
 				List<string> aliases)> finalMap = new();
+
+			Dictionary<BuildableParserElementBase, object?> elementBases = new();
+
+			object? BuildElementBase(BuildableParserElementBase element)
+			{
+
+			}
 
 			// Fill the final map
 			foreach (var elem in elements)
@@ -527,18 +500,17 @@ namespace RCParsing
 				var element = elem.Key;
 				var id = elem.Value;
 
-				var (_ruleChildren, _tokenChildren, _settingsRuleChildren, _errorRecoveryRuleChildren) = argMap[element];
+				var (_ruleChildren, _tokenChildren, _elementChildren) = argMap[element];
 
 				var ruleChildren = _ruleChildren?.Select(r => elements[r]).ToList();
 				var tokenChildren = _tokenChildren?.Select(p => elements[p]).ToList();
-				var settingsRuleChildren = _settingsRuleChildren.Select(r => r == null ? -1 : elements[r]).ToList();
-				var errorRecoveryRuleChildren = _errorRecoveryRuleChildren.Select(r => r == null ? -1 : elements[r]).ToList();
+				var elementChildren = _elementChildren.;
 				var aliases = new List<string>();
 
 				if (names.TryGetValue(element, out var _aliases))
 					aliases.AddRange(_aliases);
 
-				finalMap.Add((element, id, ruleChildren, tokenChildren, settingsRuleChildren, errorRecoveryRuleChildren, aliases));
+				finalMap.Add((element, id, ruleChildren, tokenChildren, elementChildren, aliases));
 			}
 
 			ParserRule[] resultRules = new ParserRule[elements.Count(e => e.Key is BuildableParserRule)];
