@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using RCParsing.Utils;
 
@@ -8,7 +9,7 @@ namespace RCParsing.Building
 	/// <summary>
 	/// Represents a buildable error recovery mechanism for parsing rules.
 	/// </summary>
-	public class ErrorRecoveryBuilder
+	public class ErrorRecoveryBuilder : BuildableParserElementBase
 	{
 		private ErrorRecovery _recovery = new();
 		private Or<string, BuildableParserRule>? _anchorRule = null;
@@ -17,7 +18,7 @@ namespace RCParsing.Building
 		/// <summary>
 		/// Gets the children of the settings builder.
 		/// </summary>
-		public IEnumerable<Or<string, BuildableParserRule>?> RuleChildren =>
+		public override IEnumerable<Or<string, BuildableParserRule>?> RuleChildren =>
 			new Or<string, BuildableParserRule>?[] { _anchorRule, _stopRule };
 
 		/// <summary>
@@ -32,6 +33,12 @@ namespace RCParsing.Building
 			result.stopRule = ruleChildren[1];
 
 			return result;
+		}
+
+		public override object? Build(List<(int, ParserRule?)>? ruleChildren,
+			List<(int, TokenPattern?)>? tokenChildren, List<object?>? elementChildren)
+		{
+			return Build(ruleChildren.Select(r => r.Item1).ToList());
 		}
 
 		public override bool Equals(object? obj)

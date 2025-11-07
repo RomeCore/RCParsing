@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime;
 using System.Text;
 using RCParsing.Utils;
@@ -10,7 +11,7 @@ namespace RCParsing.Building
 	/// <summary>
 	/// The local settings builder for the parser elements.
 	/// </summary>
-	public class ParserLocalSettingsBuilder
+	public class ParserLocalSettingsBuilder : BuildableParserElementBase
 	{
 		private ParserLocalSettings _settings = new();
 		private Or<string, BuildableParserRule>? _skipRule = null;
@@ -18,8 +19,8 @@ namespace RCParsing.Building
 		/// <summary>
 		/// Gets the children of the settings builder.
 		/// </summary>
-		public IEnumerable<Or<string, BuildableParserRule>?> RuleChildren =>
-			new Or<string, BuildableParserRule>?[] { _skipRule };
+		public override IEnumerable<Or<string, BuildableParserRule>?>? RuleChildren =>
+			new[] { _skipRule };
 
 		/// <summary>
 		/// Builds the settings for parser.
@@ -38,6 +39,12 @@ namespace RCParsing.Building
 				result.ignoreBarriersUseMode == ParserSettingMode.InheritForSelfAndChildren;
 
 			return result;
+		}
+
+		public override object? Build(List<(int, ParserRule?)>? ruleChildren,
+			List<(int, TokenPattern?)>? tokenChildren, List<object?>? elementChildren)
+		{
+			return Build(ruleChildren.Select(r => r.Item1).ToList());
 		}
 
 		public override bool Equals(object? obj)
