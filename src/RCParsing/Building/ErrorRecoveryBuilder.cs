@@ -12,14 +12,14 @@ namespace RCParsing.Building
 	public class ErrorRecoveryBuilder : BuildableParserElementBase
 	{
 		private ErrorRecovery _recovery = new();
-		private Or<string, BuildableParserRule>? _anchorRule = null;
-		private Or<string, BuildableParserRule>? _stopRule = null;
+		private Or<string, BuildableParserRule>? _anchorRule = (string)null;
+		private Or<string, BuildableParserRule>? _stopRule = (string)null;
 
 		/// <summary>
 		/// Gets the children of the settings builder.
 		/// </summary>
-		public override IEnumerable<Or<string, BuildableParserRule>?> RuleChildren =>
-			new Or<string, BuildableParserRule>?[] { _anchorRule, _stopRule };
+		public override IEnumerable<Or<string, BuildableParserRule>> RuleChildren =>
+			new [] { _anchorRule ?? default, _stopRule ?? default };
 
 		/// <summary>
 		/// Builds the error recovery for parser.
@@ -35,10 +35,10 @@ namespace RCParsing.Building
 			return result;
 		}
 
-		public override object? Build(List<(int, ParserRule?)>? ruleChildren,
-			List<(int, TokenPattern?)>? tokenChildren, List<object?>? elementChildren)
+		public override object? Build(List<int>? ruleChildren,
+			List<int>? tokenChildren, List<object?>? elementChildren)
 		{
-			return Build(ruleChildren.Select(r => r.Item1).ToList());
+			return Build(ruleChildren);
 		}
 
 		public override bool Equals(object? obj)

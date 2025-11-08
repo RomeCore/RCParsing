@@ -40,11 +40,10 @@ namespace RCParsing.Building
 		/// <param name="ruleChildren">The rule children IDs to build the parser element with.</param>
 		/// <param name="tokenChildren">The token children IDs to build the parser element with.</param>
 		/// <returns>The built parser element.</returns>
-		public abstract ParserElement Build(List<(int, ParserRule?)>? ruleChildren,
-			List<(int, TokenPattern?)>? tokenChildren);
+		public abstract ParserElement Build(List<int>? ruleChildren, List<int>? tokenChildren);
 
-		public override object? Build(List<(int, ParserRule?)>? ruleChildren,
-			List<(int, TokenPattern?)>? tokenChildren, List<object?>? elementChildren)
+		public override object? Build(List<int>? ruleChildren,
+			List<int>? tokenChildren, List<object?>? elementChildren)
 		{
 			var element = Build(ruleChildren, tokenChildren);
 

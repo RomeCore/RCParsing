@@ -10,7 +10,7 @@ namespace RCParsing.Building
 	/// <summary>
 	/// The settings builder for the parser itself.
 	/// </summary>
-	public class ParserSettingsBuilder
+	public class ParserSettingsBuilder : BuildableParserElementBase
 	{
 		private ParserMainSettings _mainSettings = default;
 		private ParserSettings _settings = default;
@@ -21,8 +21,8 @@ namespace RCParsing.Building
 		/// <summary>
 		/// Gets the children of the settings builder.
 		/// </summary>
-		public IEnumerable<Or<string, BuildableParserRule>?> RuleChildren =>
-			new Or<string, BuildableParserRule>?[] { _skipRule };
+		public override IEnumerable<Or<string, BuildableParserRule>> RuleChildren =>
+			new [] { _skipRule ?? default };
 
 		/// <summary>
 		/// Initializes a new instance of <see cref="ParserSettingsBuilder"/> class.
@@ -42,6 +42,11 @@ namespace RCParsing.Building
 			var result = _settings;
 			result.skipRule = ruleChildren[0];
 			return (_mainSettings, result, _initFlagsFactory);
+		}
+
+		public override object? Build(List<int>? ruleChildren, List<int>? tokenChildren, List<object?>? elementChildren)
+		{
+			return Build(ruleChildren);
 		}
 
 

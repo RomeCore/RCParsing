@@ -19,8 +19,8 @@ namespace RCParsing.Building
 		/// <summary>
 		/// Gets the children of the settings builder.
 		/// </summary>
-		public override IEnumerable<Or<string, BuildableParserRule>?>? RuleChildren =>
-			new[] { _skipRule };
+		public override IEnumerable<Or<string, BuildableParserRule>>? RuleChildren =>
+			new[] { _skipRule ?? default };
 
 		/// <summary>
 		/// Builds the settings for parser.
@@ -41,10 +41,10 @@ namespace RCParsing.Building
 			return result;
 		}
 
-		public override object? Build(List<(int, ParserRule?)>? ruleChildren,
-			List<(int, TokenPattern?)>? tokenChildren, List<object?>? elementChildren)
+		public override object? Build(List<int>? ruleChildren,
+			List<int>? tokenChildren, List<object?>? elementChildren)
 		{
-			return Build(ruleChildren.Select(r => r.Item1).ToList());
+			return Build(ruleChildren);
 		}
 
 		public override bool Equals(object? obj)

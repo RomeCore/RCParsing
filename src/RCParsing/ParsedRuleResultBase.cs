@@ -256,7 +256,8 @@ namespace RCParsing
 		/// </summary>
 		/// <typeparam name="T">The type of value to retrieve.</typeparam>
 		/// <returns>The value associated with this AST node.</returns>
-		public T? TryGetValue<T>() => Value is T result ? result : default;
+		public T? TryGetValue<T>()
+			=> Value is T result ? result : default;
 
 		/// <summary>
 		/// Tries to get the value associated with child AST node at the specific index as an instance of type <typeparamref name="T"/> or <see langword="default"/> value.
@@ -265,6 +266,22 @@ namespace RCParsing
 		/// <returns>The value associated with child AST node.</returns>
 		public T? TryGetValue<T>(int index)
 			=> Count > index ? this[index].Value is T result ? result : default : default;
+
+		/// <summary>
+		/// Tries to get the value associated with this AST node as an instance of type <typeparamref name="T"/> or <see langword="default"/> value.
+		/// </summary>
+		/// <typeparam name="T">The type of value to retrieve.</typeparam>
+		/// <returns>The value associated with this AST node.</returns>
+		public T? TryGetNullableValue<T>() where T : struct
+			=> Value is T result ? result : null;
+
+		/// <summary>
+		/// Tries to get the value associated with child AST node at the specific index as an instance of type <typeparamref name="T"/> or <see langword="default"/> value.
+		/// </summary>
+		/// <typeparam name="T">The type of value to retrieve.</typeparam>
+		/// <returns>The value associated with child AST node.</returns>
+		public T? TryGetNullableValue<T>(int index) where T : struct
+			=> Count > index ? this[index].Value is T result ? result : null : null;
 
 		/// <summary>
 		/// Gets the value associated with this AST node converted to type <typeparamref name="T"/>.

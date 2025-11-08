@@ -8,7 +8,7 @@ namespace RCParsing.Building
 	/// <summary>
 	/// Represents a builder for constructing tokenizers collection for a parser.
 	/// </summary>
-	public class ParserTokenizersBuilder
+	public class ParserTokenizersBuilder : BuildableParserElementBase
 	{
 		private readonly List<BarrierTokenizer> _tokenizers = new();
 
@@ -19,6 +19,11 @@ namespace RCParsing.Building
 		public BarrierTokenizer[] Build()
 		{
 			return _tokenizers.ToArray();
+		}
+
+		public override object? Build(List<int>? ruleChildren, List<int>? tokenChildren, List<object?>? elementChildren)
+		{
+			return Build();
 		}
 
 		/// <summary>
