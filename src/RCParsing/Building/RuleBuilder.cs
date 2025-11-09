@@ -265,7 +265,7 @@ namespace RCParsing.Building
 		/// <param name="recoveryConfigAction">The error recovery configuration action.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		/// <exception cref="ParserBuildingException">Thrown if the parser rule is not set or it is a direct reference to a named rule.</exception>
-		public RuleBuilder Recovery(Action<ErrorRecoveryBuilder> recoveryConfigAction)
+		public RuleBuilder Recovery(Action<ErrorRecoveryStrategyBuilder> recoveryConfigAction)
 		{
 			if (BuildingRule?.AsT2() is BuildableParserRule rule)
 				recoveryConfigAction(rule.ErrorRecovery);
@@ -280,7 +280,7 @@ namespace RCParsing.Building
 		/// <param name="recoveryConfigAction">The error recovery configuration action.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		/// <exception cref="ParserBuildingException">Thrown if the parser rule is not set or it is a direct reference to a named rule.</exception>
-		public RuleBuilder RecoveryLast(Action<ErrorRecoveryBuilder> recoveryConfigAction)
+		public RuleBuilder RecoveryLast(Action<ErrorRecoveryStrategyBuilder> recoveryConfigAction)
 		{
 			if (BuildingRule?.AsT2() is BuildableSequenceParserRule sequenceRule)
 			{

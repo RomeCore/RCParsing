@@ -99,13 +99,13 @@ namespace RCParsing.Benchmarks.JSON
 			parser = builder.Build();
 			
 			builder = new ParserBuilder();
+			FillWithRules(builder);
 			builder.Settings
 				.UseInlining() // Reduces abstraction level, redirecting calls from Parser directly to rule
 				.UseFirstCharacterMatch() // Enables lookahead based on first-character sets
 				.IgnoreErrors() // Disables error recording
 				.UseLightAST() // Enables a more lightweight version of AST, reducing allocations
 				.SkipWhitespacesOptimized(); // Enables direct whitespace skipping in Parser
-			FillWithRules(builder);
 			optimizedParser = builder.Build();
 		}
 

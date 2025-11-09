@@ -22,7 +22,7 @@ namespace RCParsing
 		/// <summary>
 		/// Gets the error recovery strategy that will be applied to parent rule.
 		/// </summary>
-		public ErrorRecovery DefaultErrorRecovery { get; internal set; } = default;
+		public ErrorRecoveryStrategy DefaultErrorRecovery { get; internal set; } = default;
 
 		/// <summary>
 		/// Tries to match the given context with this pattern.

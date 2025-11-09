@@ -18,88 +18,13 @@ namespace RCParsing
 		internal IEnumerable<ParsedRule> FindAllMatches(int ruleId, ParserContext context, ParserSettings settings, bool overlap = false)
 		{
 			var rule = _rules[ruleId];
-			rule.AdvanceContext(ref context, ref settings, out var childSettings);
+			var ruleSettings = settings;
+			var ruleContext = context;
+			rule.AdvanceContext(ref ruleContext, ref ruleSettings, out var ruleChildSettings);
 
-			if (MainSettings.useOptimizedWhitespaceSkip)
-			{
-				while (context.position < context.maxPosition)
-				{
-					if (char.IsWhiteSpace(context.input[context.position]))
-					{
-						context.position++;
-						continue;
-					}
-
-					var parsed = Parse(rule, ref context, ref settings, ref childSettings, true);
-
-					if (parsed.success)
-					{
-						yield return parsed;
-						if (overlap)
-							context.position++;
-						else
-							context.position = parsed.startIndex + parsed.length;
-					}
-					else
-					{
-						context.position++;
-					}
-				}
-				yield break;
-			}
-
-			if (settings.skipRule == -1 ||
-				settings.skippingStrategy == ParserSkippingStrategy.Default
-				// || context.positionsToAvoidSkipping[context.position]
-				)
-			{
-				while (context.position < context.maxPosition)
-				{
-					var parsed = Parse(rule, ref context, ref settings, ref childSettings, true);
-
-					if (parsed.success)
-					{
-						yield return parsed;
-						if (overlap)
-							context.position++;
-						else
-							context.position = parsed.startIndex + parsed.length;
-					}
-					else
-					{
-						context.position++;
-					}
-				}
-				yield break;
-			}
-
-			var skipRule = _rules[settings.skipRule];
-			var skipSettings = settings;
-			var skipContext = context;
-			skipRule.AdvanceContext(ref skipContext, ref skipSettings, out var childSkipSettings);
-			skipSettings.skipRule = -1;
-			childSkipSettings.skipRule = -1;
-			bool record = MainSettings.recordSkippedRules;
-
-			while (context.position < context.maxPosition)
-			{
-				var parsed = ParseWithSkip(settings.skippingStrategy, rule, skipRule, ref context,
-					ref settings, ref skipSettings, ref childSettings, ref childSkipSettings, record, true);
-
-				if (parsed.success)
-				{
-					yield return parsed;
-					if (overlap)
-						context.position++;
-					else
-						context.position = parsed.startIndex + parsed.length;
-				}
-				else
-				{
-					context.position++;
-				}
-			}
-			yield break;
+			var skipStrategy = settings.skippingStrategy ?? SkipStrategy.NoSkipping;
+			return skipStrategy.FindAllMatches(context, settings, overlap,
+				rule, ruleContext, ruleSettings, ruleChildSettings);
 		}
 
 

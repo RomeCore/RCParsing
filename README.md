@@ -665,21 +665,21 @@ AMD Ryzen 5 5600 3.60GHz, 1 CPU, 12 logical and 6 physical cores
 
 The JSON value calculation with the typeset `Dictionary<string, object>`, `object[]`, `string`, `int` and `null`. It uses visitors to transform value from AST (Abstract Syntax Tree).
 
-| Method                                | Mean       | Error     | StdDev    | Ratio | RatioSD | Gen0    | Gen1   | Allocated | Alloc Ratio |
-|-------------------------------------- |-----------:|----------:|----------:|------:|--------:|--------:|-------:|----------:|------------:|
-| JsonBig_RCParsing                     | 195.186 us | 1.4530 us | 0.6451 us |  1.00 |    0.00 | 13.1836 | 3.9063 | 216.68 KB |        1.00 |
-| JsonBig_RCParsing_NoValue             | 164.917 us | 1.0814 us | 0.3856 us |  0.84 |    0.00 |  8.0566 | 2.4414 | 134.78 KB |        0.62 |
-| JsonBig_RCParsing_Optimized           |  93.384 us | 0.5880 us | 0.2097 us |  0.48 |    0.00 |  9.2773 | 2.0752 | 152.59 KB |        0.70 |
-| JsonBig_RCParsing_Optimized_NoValue   |  62.635 us | 0.3340 us | 0.1191 us |  0.32 |    0.00 |  4.2725 | 0.8545 |   70.7 KB |        0.33 |
-| JsonBig_ANTLR                         | 185.196 us | 1.9857 us | 0.7081 us |  0.95 |    0.00 | 19.5313 | 7.5684 | 322.84 KB |        1.49 |
-| JsonBig_ANTLR_NoValue                 | 125.122 us | 1.9475 us | 0.8647 us |  0.64 |    0.00 | 10.7422 | 3.9063 | 176.01 KB |        0.81 |
-|                                       |            |           |           |       |         |         |        |           |             |
-| JsonShort_RCParsing                   |  10.315 us | 0.3138 us | 0.1393 us |  1.00 |    0.02 |  0.6409 |      - |  10.68 KB |        1.00 |
-| JsonShort_RCParsing_NoValue           |   8.343 us | 0.0231 us | 0.0102 us |  0.81 |    0.01 |  0.3815 |      - |   6.38 KB |        0.60 |
-| JsonShort_RCParsing_Optimized         |   5.183 us | 0.0514 us | 0.0228 us |  0.50 |    0.01 |  0.5264 | 0.0076 |   8.71 KB |        0.82 |
-| JsonShort_RCParsing_Optimized_NoValue |   3.432 us | 0.0026 us | 0.0012 us |  0.33 |    0.00 |  0.2670 |      - |   4.41 KB |        0.41 |
-| JsonShort_ANTLR                       |  10.266 us | 0.0538 us | 0.0239 us |  1.00 |    0.01 |  1.1444 | 0.0305 |  18.91 KB |        1.77 |
-| JsonShort_ANTLR_NoValue               |   6.871 us | 0.0512 us | 0.0227 us |  0.67 |    0.01 |  0.6332 | 0.0229 |  10.35 KB |        0.97 |
+| Method                                | Mean       | Error     | StdDev    | Ratio | Gen0    | Gen1   | Allocated | Alloc Ratio |
+|-------------------------------------- |-----------:|----------:|----------:|------:|--------:|-------:|----------:|------------:|
+| JsonBig_RCParsing                     | 172.574 us | 1.0484 us | 0.4655 us |  1.00 | 13.1836 | 4.1504 | 218.23 KB |        1.00 |
+| JsonBig_RCParsing_NoValue             | 143.908 us | 1.2655 us | 0.5619 us |  0.83 |  8.3008 | 2.6855 | 136.34 KB |        0.62 |
+| JsonBig_RCParsing_Optimized           |  94.066 us | 1.0540 us | 0.4680 us |  0.55 |  9.3994 | 2.0752 | 154.15 KB |        0.71 |
+| JsonBig_RCParsing_Optimized_NoValue   |  60.354 us | 0.2330 us | 0.0831 us |  0.35 |  4.3945 | 0.9155 |  72.25 KB |        0.33 |
+| JsonBig_ANTLR                         | 182.729 us | 0.9600 us | 0.4263 us |  1.06 | 19.5313 | 7.5684 | 322.84 KB |        1.48 |
+| JsonBig_ANTLR_NoValue                 | 123.729 us | 0.9649 us | 0.4284 us |  0.72 | 10.7422 | 3.9063 | 176.01 KB |        0.81 |
+|                                       |            |           |           |       |         |        |           |             |
+| JsonShort_RCParsing                   |   9.260 us | 0.0524 us | 0.0233 us |  1.00 |  0.6561 |      - |  10.73 KB |        1.00 |
+| JsonShort_RCParsing_NoValue           |   7.351 us | 0.0396 us | 0.0141 us |  0.79 |  0.3891 |      - |   6.44 KB |        0.60 |
+| JsonShort_RCParsing_Optimized         |   5.222 us | 0.0447 us | 0.0159 us |  0.56 |  0.5341 | 0.0076 |   8.77 KB |        0.82 |
+| JsonShort_RCParsing_Optimized_NoValue |   3.349 us | 0.0514 us | 0.0183 us |  0.36 |  0.2708 | 0.0038 |   4.47 KB |        0.42 |
+| JsonShort_ANTLR                       |  10.521 us | 0.0886 us | 0.0393 us |  1.14 |  1.1444 | 0.0305 |  18.91 KB |        1.76 |
+| JsonShort_ANTLR_NoValue               |   7.029 us | 0.0323 us | 0.0143 us |  0.76 |  0.6332 | 0.0229 |  10.35 KB |        0.96 |
 
 Notes:
 
@@ -693,21 +693,21 @@ Notes:
 
 The JSON value calculation with the typeset `Dictionary<string, object>`, `object[]`, `string`, `int` and `null`. It uses token combination style for immediate transformations without AST.
 
-| Method                      | Mean           | Error        | StdDev       | Ratio | RatioSD | Gen0     | Gen1    | Allocated | Alloc Ratio |
-|---------------------------- |---------------:|-------------:|-------------:|------:|--------:|---------:|--------:|----------:|------------:|
-| JsonBig_RCParsing           |    29,130.9 ns |    127.07 ns |     45.31 ns |  1.00 |    0.00 |   2.5635 |  0.1831 |   43096 B |        1.00 |
-| JsonBig_RCParsing_NoValue   |    17,307.5 ns |     87.72 ns |     38.95 ns |  0.59 |    0.00 |   0.4883 |       - |    8312 B |        0.19 |
-| JsonBig_Parlot              |    41,642.2 ns |    336.08 ns |    149.22 ns |  1.43 |    0.01 |   1.9531 |  0.1221 |   32848 B |        0.76 |
-| JsonBig_Pidgin              |   202,696.8 ns |  1,810.80 ns |    645.75 ns |  6.96 |    0.02 |   3.9063 |  0.2441 |   66816 B |        1.55 |
-| JsonBig_Superpower          | 1,172,810.9 ns |  9,238.72 ns |  3,294.62 ns | 40.26 |    0.12 |  39.0625 |  5.8594 |  653627 B |       15.17 |
-| JsonBig_Sprache             | 1,204,704.3 ns | 22,595.35 ns | 10,032.48 ns | 41.35 |    0.33 | 232.4219 | 27.3438 | 3899736 B |       90.49 |
-|                             |                |              |              |       |         |          |         |           |             |
-| JsonShort_RCParsing         |     1,542.1 ns |     31.36 ns |     13.92 ns |  1.00 |    0.01 |   0.1354 |       - |    2280 B |        1.00 |
-| JsonShort_RCParsing_NoValue |       982.3 ns |     33.58 ns |     14.91 ns |  0.64 |    0.01 |   0.0324 |       - |     568 B |        0.25 |
-| JsonShort_Parlot            |     2,326.0 ns |     37.37 ns |     16.59 ns |  1.51 |    0.02 |   0.1144 |       - |    1960 B |        0.86 |
-| JsonShort_Pidgin            |    11,427.8 ns |    148.95 ns |     66.13 ns |  7.41 |    0.07 |   0.2136 |       - |    3664 B |        1.61 |
-| JsonShort_Superpower        |    64,933.2 ns |    346.65 ns |    153.92 ns | 42.11 |    0.37 |   1.9531 |       - |   34117 B |       14.96 |
-| JsonShort_Sprache           |    62,378.9 ns |  2,055.67 ns |    912.73 ns | 40.45 |    0.65 |  12.6953 |  0.2441 |  213168 B |       93.49 |
+| Method                      | Mean           | Error         | StdDev       | Ratio | RatioSD | Gen0     | Gen1    | Allocated | Alloc Ratio |
+|---------------------------- |---------------:|--------------:|-------------:|------:|--------:|---------:|--------:|----------:|------------:|
+| JsonBig_RCParsing           |    30,539.1 ns |     966.16 ns |    344.54 ns |  1.00 |    0.01 |   2.5635 |  0.1831 |   43096 B |        1.00 |
+| JsonBig_RCParsing_NoValue   |    18,568.7 ns |      90.52 ns |     32.28 ns |  0.61 |    0.01 |   0.4883 |       - |    8312 B |        0.19 |
+| JsonBig_Parlot              |    43,390.4 ns |   2,386.59 ns |  1,059.66 ns |  1.42 |    0.04 |   1.9531 |  0.1221 |   32848 B |        0.76 |
+| JsonBig_Pidgin              |   222,498.3 ns |  43,307.75 ns | 19,228.91 ns |  7.29 |    0.59 |   3.9063 |  0.2441 |   66816 B |        1.55 |
+| JsonBig_Superpower          | 1,296,556.1 ns | 149,894.47 ns | 66,554.07 ns | 42.46 |    2.09 |  39.0625 |  5.8594 |  653627 B |       15.17 |
+| JsonBig_Sprache             | 1,188,669.8 ns |  23,721.34 ns | 10,532.42 ns | 38.93 |    0.52 | 232.4219 | 27.3438 | 3899736 B |       90.49 |
+|                             |                |               |              |       |         |          |         |           |             |
+| JsonShort_RCParsing         |     1,591.3 ns |      12.23 ns |      4.36 ns |  1.00 |    0.00 |   0.1354 |       - |    2280 B |        1.00 |
+| JsonShort_RCParsing_NoValue |       990.8 ns |       5.21 ns |      1.86 ns |  0.62 |    0.00 |   0.0324 |       - |     568 B |        0.25 |
+| JsonShort_Parlot            |     2,339.5 ns |       8.47 ns |      3.76 ns |  1.47 |    0.00 |   0.1144 |       - |    1960 B |        0.86 |
+| JsonShort_Pidgin            |    10,735.2 ns |      38.67 ns |     13.79 ns |  6.75 |    0.02 |   0.2136 |       - |    3664 B |        1.61 |
+| JsonShort_Superpower        |    65,377.8 ns |     610.65 ns |    217.76 ns | 41.08 |    0.16 |   1.9531 |       - |   34117 B |       14.96 |
+| JsonShort_Sprache           |    63,140.1 ns |     597.33 ns |    213.01 ns | 39.68 |    0.16 |  12.6953 |  0.2441 |  213168 B |       93.49 |
 
 Notes:
 

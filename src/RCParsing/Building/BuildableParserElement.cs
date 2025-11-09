@@ -11,7 +11,7 @@ namespace RCParsing.Building
 	/// <remarks>
 	/// Its recommended to implement the Equals and GetHashCode methods to remove redudancy when compiling parser.
 	/// </remarks>
-	public abstract class BuildableParserElement : BuildableParserElementBase
+	public abstract class BuildableParserElement : BuildableParserElementBase<ParserElement>
 	{
 		/// <summary>
 		/// Gets the parsed value factory associated with this parser element. <br/>
@@ -29,7 +29,7 @@ namespace RCParsing.Building
 		/// Gets the error recovery builder for this parser element. <br/>
 		/// For rules it will be applied directly; for tokens it will be applied to parent rule.
 		/// </summary>
-		public ErrorRecoveryBuilder ErrorRecovery { get; } = new ErrorRecoveryBuilder();
+		public ErrorRecoveryStrategyBuilder ErrorRecovery { get; } = new ErrorRecoveryStrategyBuilder();
 
 		public override IEnumerable<BuildableParserElementBase?>? ElementChildren =>
 			new BuildableParserElementBase?[] { Settings, ErrorRecovery };
@@ -42,13 +42,13 @@ namespace RCParsing.Building
 		/// <returns>The built parser element.</returns>
 		public abstract ParserElement Build(List<int>? ruleChildren, List<int>? tokenChildren);
 
-		public override object? Build(List<int>? ruleChildren,
+		public override ParserElement BuildTyped(List<int>? ruleChildren,
 			List<int>? tokenChildren, List<object?>? elementChildren)
 		{
 			var element = Build(ruleChildren, tokenChildren);
 
 			var builtSettings = (ParserLocalSettings)elementChildren[0];
-			var builtErrorRecovery = (ErrorRecovery)elementChildren[1];
+			var builtErrorRecovery = (ErrorRecoveryStrategy)elementChildren[1];
 
 			if (element is ParserRule rule)
 			{

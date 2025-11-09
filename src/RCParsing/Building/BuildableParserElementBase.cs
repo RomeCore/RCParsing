@@ -35,4 +35,19 @@ namespace RCParsing.Building
 		public abstract object? Build(List<int>? ruleChildren,
 			List<int>? tokenChildren, List<object?>? elementChildren);
 	}
+
+	/// <summary>
+	/// Represents a base class for all buildable parser elements, including tokens, rules, skip strategies and error recovery strategies.
+	/// </summary>
+	public abstract class BuildableParserElementBase<T> : BuildableParserElementBase
+	{
+		/// <inheritdoc cref="Build(List{int}?, List{int}?, List{object?}?)"/>
+		public abstract T BuildTyped(List<int>? ruleChildren,
+			List<int>? tokenChildren, List<object?>? elementChildren);
+
+		public override sealed object? Build(List<int>? ruleChildren, List<int>? tokenChildren, List<object?>? elementChildren)
+		{
+			return BuildTyped(ruleChildren, tokenChildren, elementChildren);
+		}
+	}
 }

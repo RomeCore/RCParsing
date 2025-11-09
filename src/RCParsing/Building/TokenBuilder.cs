@@ -166,7 +166,7 @@ namespace RCParsing.Building
 		/// <param name="recoveryConfigAction">The error recovery configuration action.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		/// <exception cref="ParserBuildingException">Thrown if the parser rule is not set or it is a direct reference to a named rule.</exception>
-		public TokenBuilder Recovery(Action<ErrorRecoveryBuilder> recoveryConfigAction)
+		public TokenBuilder Recovery(Action<ErrorRecoveryStrategyBuilder> recoveryConfigAction)
 		{
 			if (BuildingPattern?.AsT2() is BuildableTokenPattern pattern)
 				recoveryConfigAction(pattern.ErrorRecovery);

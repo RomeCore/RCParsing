@@ -51,11 +51,6 @@ namespace RCParsing
 		public readonly List<int> errorRecoveryIndices;
 
 		/// <summary>
-		/// A list to store any rules that were skipped during the parsing process.
-		/// </summary>
-		public readonly List<ParsedRule> skippedRules;
-
-		/// <summary>
 		/// A list of barrier tokens that are used to prevent parsing at certain positions.
 		/// </summary>
 		public readonly BarrierTokenCollection barrierTokens;
@@ -80,7 +75,6 @@ namespace RCParsing
 			this.cache = new ParserCache();
 			this.errors = new List<ParsingError>();
 			this.errorRecoveryIndices = new List<int>();
-			this.skippedRules = new List<ParsedRule>();
 			this.barrierTokens = new BarrierTokenCollection();
 			this.walkTrace = new ParserWalkTrace(this);
 		}
@@ -195,11 +189,6 @@ namespace RCParsing
 		/// Used for retrieving the relevant error groups.
 		/// </remarks>
 		public readonly List<int> errorRecoveryIndices => shared.errorRecoveryIndices;
-
-		/// <summary>
-		/// A list to store any rules that were skipped during the parsing process.
-		/// </summary>
-		public readonly List<ParsedRule> skippedRules => shared.skippedRules;
 
 		/// <summary>
 		/// A list of barrier tokens that are used to prevent parsing at certain positions.
@@ -324,6 +313,15 @@ namespace RCParsing
 		public readonly void RecordError(ParserSettings settings, int position, int passedBarriers, string? message = null, int elementId = -1, bool isToken = false)
 		{
 			RecordError(settings, new ParsingError(position, passedBarriers, message, elementId, isToken, topStackFrame));
+		}
+
+		/// <summary>
+		/// Records an index pointing to the current error count when error recovery was triggered.
+		/// </summary>
+		public void RecordErrorRecoveryIndex()
+		{
+			if (errors.Count > 0)
+				errorRecoveryIndices.Add(errors.Count);
 		}
 
 		/// <summary>

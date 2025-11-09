@@ -370,24 +370,7 @@ namespace RCParsing
 			}
 
 			// Process global parser settings child rules
-			List<BuildableParserRule?> parserSettingsRuleChildren = new();
-			foreach (var ruleChild in _settingsBuilder.RuleChildren)
-			{
-				ruleChild.Switch(name =>
-				{
-					if (name == null)
-						parserSettingsRuleChildren.Add(null);
-					else if (namedRules.TryGetValue(name, out var namedRule))
-						parserSettingsRuleChildren.Add(namedRule);
-					else
-						throw new ParserBuildingException($"Unknown rule reference '{name}' found in settings rule.");
-				}, brule =>
-				{
-					parserSettingsRuleChildren.Add(brule);
-					elementsToProcess.Enqueue(brule);
-				});
-			}
-
+			elementsToProcess.Enqueue(_settingsBuilder);
 			int mainRuleId = -1;
 
 			// Process all rules and tokens in the queue, assign IDs and collect dependencies
@@ -490,15 +473,23 @@ namespace RCParsing
 
 			Dictionary<BuildableParserElementBase, object?> elementBases = new();
 
-			object? BuildElementBase(BuildableParserElementBase element)
+			HashSet<IInitializeAfterBuild> toInitialize = new();
+
+			object? BuildElementBase(BuildableParserElementBase? element)
 			{
+				if (element == null)
+					return null;
+
 				var (_ruleChildren, _tokenChildren, _elementChildren) = argMap[element];
 
 				var ruleChildren = _ruleChildren?.Select(r => r == null ? -1 : elements[r]).ToList();
 				var tokenChildren = _tokenChildren?.Select(p => p == null ? -1 : elements[p]).ToList();
 				var elementChildren = _elementChildren?.Select(e => BuildElementBase(e)).ToList();
 
-				return element.Build(ruleChildren, tokenChildren, elementChildren);
+				var builtElement = element.Build(ruleChildren, tokenChildren, elementChildren);
+				if (builtElement is IInitializeAfterBuild iib)
+					toInitialize.Add(iib);
+				return builtElement;
 			}
 
 			// Fill the final map
@@ -524,9 +515,9 @@ namespace RCParsing
 			TokenPattern[] resultTokenPatterns = new TokenPattern[elements.Count(e => e.Key is BuildableTokenPattern)];
 
 			// Build the final parser settings with resolved child rules
-			var (mainSettings, globalSettings, initFlagsFactory) = _settingsBuilder.Build(parserSettingsRuleChildren
-				.Select(r => r == null ? -1 : elements[r]).ToList());
-
+			(ParserMainSettings mainSettings, ParserSettings globalSettings, Func<ParserElement, ParserInitFlags> initFlagsFactory) =
+				((ParserMainSettings, ParserSettings, Func<ParserElement, ParserInitFlags>))BuildElementBase(_settingsBuilder);
+			
 			// Release the final map to the result arrays
 			foreach (var elem in finalMap)
 			{
@@ -538,6 +529,8 @@ namespace RCParsing
 				var aliases = elem.aliases;
 
 				var builtElement = (ParserElement)element.Build(ruleChildren, tokenChildren, elementChildren);
+				if (builtElement is IInitializeAfterBuild iib)
+					toInitialize.Add(iib);
 
 				builtElement.Id = id;
 				builtElement.Aliases = aliases.ToArray().AsReadOnlyList();
@@ -553,8 +546,13 @@ namespace RCParsing
 			}
 
 			// Return the fully built parser instance with rules and token patterns
-			return new Parser(resultTokenPatterns, resultRules,
+			var parser = new Parser(resultTokenPatterns, resultRules,
 				tokenizers, mainSettings, globalSettings, mainRuleId, initFlagsFactory);
+
+			foreach (var iib in toInitialize)
+				iib.Initialize(parser);
+
+			return parser;
 		}
 	}
 }

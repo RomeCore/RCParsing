@@ -218,8 +218,7 @@ namespace RCParsing.Tests
 			builder.CreateMainRule()
 				.Choice(
 					b => b
-						.LiteralChoice("if", "for", "while")
-						.RequiredWhitespaces()
+						.KeywordChoice("if", "for", "while")
 						.Identifier(),
 					b => b
 						.Identifier()
@@ -237,11 +236,10 @@ namespace RCParsing.Tests
 			Assert.Contains("number", second.Expected.ToString());
 
 			// It requires whitespaces after 'if' and fails on 'a', then fail on EOF in the second choice
-			exception = Assert.Throws<ParsingException>(() => parser.Parse("ifa"));
-			first = exception.Groups.First(g => g.Column == 3);
-			second = exception.Groups.First(g => g.Column == 4);
-			Assert.Contains("whitespaces", first.Expected.ToString());
-			Assert.Contains("=", second.Expected.ToString());
+			exception = Assert.Throws<ParsingException>(() => parser.Parse("if 1 a"));
+			var group = exception.Groups.First(g => g.Column == 4);
+			Assert.Contains("identifier", group.Expected.ToString());
+			Assert.Contains("=", group.Expected.ToString());
 		}
 
 		[Fact]

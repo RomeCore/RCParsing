@@ -17,8 +17,7 @@ namespace RCParsing.Tests
 			builder.Settings.SkipWhitespaces();
 
 			builder.CreateRule("statement")
-				.Literal("var")
-				.RequiredWhitespaces() // Require whitespaces after 'var' keyword to prevent the 'varabc'-like matching
+				.Keyword("var")
 				.Identifier()
 				.Literal('=')
 				.Identifier()
@@ -51,8 +50,7 @@ namespace RCParsing.Tests
 			builder.Settings.SkipWhitespaces();
 
 			builder.CreateRule("statement")
-				.Literal("var")
-				.RequiredWhitespaces() // Require whitespaces after 'var' keyword to prevent the 'varabc'-like matching
+				.Keyword("var")
 				.Identifier()
 				.Literal('=')
 				.Identifier()
@@ -264,8 +262,7 @@ namespace RCParsing.Tests
 			builder.Settings.SkipWhitespaces();
 
 			builder.CreateRule("statement")
-				.Literal("var")
-				.RequiredWhitespaces()
+				.Keyword("var")
 				.Identifier()
 				.Literal('=')
 				.Identifier()
@@ -294,8 +291,7 @@ namespace RCParsing.Tests
 			builder.Settings.SkipWhitespaces();
 
 			builder.CreateRule("statement")
-				.Literal("var")
-				.RequiredWhitespaces()
+				.Keyword("var")
 				.Identifier()
 				.Literal('=')
 				.Identifier()
@@ -329,8 +325,7 @@ namespace RCParsing.Tests
 			builder.Settings.SkipWhitespaces();
 
 			builder.CreateRule("statement")
-				.Literal("var")
-				.RequiredWhitespaces()
+				.Keyword("var")
 				.Identifier()
 				.Literal('=')
 				.Identifier()

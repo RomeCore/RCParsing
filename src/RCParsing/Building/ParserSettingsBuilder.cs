@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Text;
+using RCParsing.Building.SkipStrategies;
 using RCParsing.ParserRules;
 using RCParsing.Utils;
 
@@ -10,19 +11,15 @@ namespace RCParsing.Building
 	/// <summary>
 	/// The settings builder for the parser itself.
 	/// </summary>
-	public class ParserSettingsBuilder : BuildableParserElementBase
+	public class ParserSettingsBuilder : BuildableParserElementBase<(ParserMainSettings, ParserSettings, Func<ParserElement, ParserInitFlags>)>
 	{
 		private ParserMainSettings _mainSettings = default;
 		private ParserSettings _settings = default;
+		private BuildableSkipStrategy? _skipStrategy = null;
 		private Func<ParserElement, ParserInitFlags> _initFlagsFactory = e => ParserInitFlags.None;
 
-		private Or<string, BuildableParserRule>? _skipRule = null;
-
-		/// <summary>
-		/// Gets the children of the settings builder.
-		/// </summary>
-		public override IEnumerable<Or<string, BuildableParserRule>> RuleChildren =>
-			new [] { _skipRule ?? default };
+		public override IEnumerable<BuildableParserElementBase?>? ElementChildren =>
+			new[] { _skipStrategy };
 
 		/// <summary>
 		/// Initializes a new instance of <see cref="ParserSettingsBuilder"/> class.
@@ -32,73 +29,93 @@ namespace RCParsing.Building
 			_mainSettings.maxWalkStepsDisplay = -1;
 		}
 
-		/// <summary>
-		/// Builds the settings for parser.
-		/// </summary>
-		/// <param name="ruleChildren">The list of child elements.</param>
-		/// <returns>The built settings for parser.</returns>
-		public (ParserMainSettings, ParserSettings, Func<ParserElement, ParserInitFlags>) Build(List<int> ruleChildren)
+		public override (ParserMainSettings, ParserSettings, Func<ParserElement, ParserInitFlags>) BuildTyped(List<int>? ruleChildren, List<int>? tokenChildren, List<object?>? elementChildren)
 		{
 			var result = _settings;
-			result.skipRule = ruleChildren[0];
+			result.skippingStrategy = elementChildren[0] as SkipStrategy;
 			return (_mainSettings, result, _initFlagsFactory);
 		}
 
-		public override object? Build(List<int>? ruleChildren, List<int>? tokenChildren, List<object?>? elementChildren)
-		{
-			return Build(ruleChildren);
-		}
-
 
 
 		/// <summary>
-		/// Sets the skip rule that will be skipped before parsing rules.
+		/// Sets the skip rule and builtin skip strategy.
+		/// </summary>
+		/// <param name="builderAction">The action to build the skip strategy.</param>
+		/// <returns>This instance for method chaining.</returns>
+		public ParserSettingsBuilder Skip(Action<SkipStrategyBuilder> builderAction)
+		{
+			var builder = new SkipStrategyBuilder();
+			builderAction(builder);
+
+			_skipStrategy = builder.BuildingSkipStrategy;
+			return this;
+		}
+
+		/// <summary>
+		/// Sets the skip rule and builtin skip strategy.
 		/// </summary>
 		/// <param name="builderAction">The action to build the skip rule.</param>
-		/// <param name="skippingStrategy">The skipping strategy to use.</param>
-		/// <returns>Current instance for method chaining.</returns>
+		/// <param name="skippingStrategy">The builtin skipping strategy to use.</param>
+		/// <returns>This instance for method chaining.</returns>
 		public ParserSettingsBuilder Skip(Action<RuleBuilder> builderAction,
 			ParserSkippingStrategy skippingStrategy = ParserSkippingStrategy.SkipBeforeParsing)
 		{
 			var builder = new RuleBuilder();
 			builderAction(builder);
-			_skipRule = builder.BuildingRule;
-			_settings.skippingStrategy = skippingStrategy;
+
+			_skipStrategy = new BuildableSimpleSkipStrategy
+			{
+				Strategy = skippingStrategy,
+				SkipRule = builder.BuildingRule,
+			};
 			return this;
 		}
 
 		/// <summary>
-		/// Sets the 'Whitespaces' skip rule that will be skipped before parsing rules.
+		/// Sets the builtin skip strategy without skip-rule.
 		/// </summary>
-		/// <param name="skippingStrategy">The skipping strategy to use.</param>
-		/// <returns>Current instance for method chaining.</returns>
-		public ParserSettingsBuilder SkipWhitespaces(ParserSkippingStrategy skippingStrategy = ParserSkippingStrategy.SkipBeforeParsing)
+		/// <param name="skippingStrategy">The builtin skipping strategy to use.</param>
+		/// <returns>This instance for method chaining.</returns>
+		public ParserSettingsBuilder Skip(ParserSkippingStrategy skippingStrategy)
 		{
-			var builder = new RuleBuilder();
-			builder.Whitespaces().ConfigureForSkip();
-			_skipRule = builder.BuildingRule;
-			_settings.skippingStrategy = skippingStrategy;
+			_skipStrategy = new BuildableSimpleSkipStrategy
+			{
+				Strategy = skippingStrategy,
+				SkipRule = null,
+			};
 			return this;
 		}
 
 		/// <summary>
-		/// Sets the skipping strategy.
+		/// Sets the whitespaces skip token and <see cref="ParserSkippingStrategy.SkipBeforeParsing"/> strategy.
 		/// </summary>
-		/// <param name="skippingStrategy">The skipping strategy to use.</param>
-		/// <returns>Current instance for method chaining.</returns>
-		public ParserSettingsBuilder SkippingStrategy(ParserSkippingStrategy skippingStrategy)
+		/// <returns>This instance for method chaining.</returns>
+		public ParserSettingsBuilder SkipWhitespaces()
 		{
-			_settings.skippingStrategy = skippingStrategy;
-			return this;
+			return Skip(r => r.Whitespaces().ConfigureForSkip());
+		}
+
+		/// <summary>
+		/// Sets the whitespaces skip strategy that directly skips whitespace characters before parsing.
+		/// </summary>
+		/// <returns>This instance for method chaining.</returns>
+		public ParserSettingsBuilder SkipWhitespacesOptimized()
+		{
+			return Skip(ParserSkippingStrategy.Whitespaces);
 		}
 
 		/// <summary>
 		/// Removes the skip rule.
 		/// </summary>
-		/// <returns>Current instance for method chaining.</returns>
+		/// <returns>This instance for method chaining.</returns>
 		public ParserSettingsBuilder NoSkipping()
 		{
-			_settings.skippingStrategy = ParserSkippingStrategy.Default;
+			_skipStrategy = new BuildableSimpleSkipStrategy
+			{
+				Strategy = ParserSkippingStrategy.Default,
+				SkipRule = null,
+			};
 			return this;
 		}
 
@@ -243,49 +260,12 @@ namespace RCParsing.Building
 		}
 
 		/// <summary>
-		/// Allows the parser to record skipped rules to the context.
-		/// </summary>
-		/// <remarks>
-		/// Useful for debugging purposes and syntax highlighting.
-		/// </remarks>
-		/// <param name="record">Whether to record skipped rules. Default is true.</param>
-		/// <returns>Current instance for method chaining.</returns>
-		public ParserSettingsBuilder RecordSkippedRules(bool record = true)
-		{
-			_mainSettings.recordSkippedRules = record;
-			return this;
-		}
-
-		/// <summary>
-		/// Prevents the parser from recording skipped rules to the context.
-		/// </summary>
-		/// <returns>Current instance for method chaining.</returns>
-		public ParserSettingsBuilder DoNotRecordSkippedRules()
-		{
-			_mainSettings.recordSkippedRules = false;
-			return this;
-		}
-
-		/// <summary>
 		/// Sets the tab size, mostly used for debugging and better error display.
 		/// </summary>
 		/// <returns>Current instance for method chaining.</returns>
 		public ParserSettingsBuilder SetTabSize(int tabSize = 4)
 		{
 			_mainSettings.tabSize = tabSize;
-			return this;
-		}
-
-		/// <summary>
-		/// Sets the optimized skip whitespace mode, where parser directly skips whitespaces before parsing rules. <br/>
-		/// </summary>
-		/// <remarks>
-		/// This mode prevents any other skip rules, strategies, recording and barriers calculation. Use with caution.
-		/// </remarks>
-		/// <returns>Current instance for method chaining.</returns>
-		public ParserSettingsBuilder SkipWhitespacesOptimized()
-		{
-			_mainSettings.useOptimizedWhitespaceSkip = true;
 			return this;
 		}
 
