@@ -363,9 +363,29 @@ namespace RCParsing.Building
 		/// </summary>
 		/// <param name="literals">The literal strings set.</param>
 		/// <returns>Current instance for method chaining.</returns>
+		public T LiteralChoice(params char[] literals)
+		{
+			return Token(new LiteralChoiceTokenPattern(literals.Select(x => new KeyValuePair<string, object?>(x.ToString(), x))));
+		}
+
+		/// <summary>
+		/// Adds a literal choice token to the current sequence.
+		/// </summary>
+		/// <param name="literals">The literal strings set.</param>
+		/// <returns>Current instance for method chaining.</returns>
 		public T LiteralChoice(params string[] literals)
 		{
 			return Token(new LiteralChoiceTokenPattern(literals));
+		}
+
+		/// <summary>
+		/// Adds a literal choice token to the current sequence.
+		/// </summary>
+		/// <param name="literals">The literal strings set.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T LiteralChoice(IEnumerable<char> literals)
+		{
+			return Token(new LiteralChoiceTokenPattern(literals.Select(x => new KeyValuePair<string, object?>(x.ToString(), x))));
 		}
 
 		/// <summary>
@@ -384,9 +404,30 @@ namespace RCParsing.Building
 		/// <param name="literals">The literal strings set.</param>
 		/// <param name="comparer">The optional string comparer to use.</param>
 		/// <returns>Current instance for method chaining.</returns>
+		public T LiteralChoice(IEnumerable<char> literals, StringComparer? comparer)
+		{
+			return Token(new LiteralChoiceTokenPattern(literals.Select(x => new KeyValuePair<string, object?>(x.ToString(), x)), comparer));
+		}
+
+		/// <summary>
+		/// Adds a literal choice token to the current sequence.
+		/// </summary>
+		/// <param name="literals">The literal strings set.</param>
+		/// <param name="comparer">The optional string comparer to use.</param>
+		/// <returns>Current instance for method chaining.</returns>
 		public T LiteralChoice(IEnumerable<string> literals, StringComparer? comparer)
 		{
 			return Token(new LiteralChoiceTokenPattern(literals, comparer));
+		}
+
+		/// <summary>
+		/// Adds a literal choice token to the current sequence. Ignores case when comparing literals.
+		/// </summary>
+		/// <param name="literals">The literal strings set.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T LiteralChoiceIgnoreCase(params char[] literals)
+		{
+			return Token(new LiteralChoiceTokenPattern(literals.Select(x => new KeyValuePair<string, object?>(x.ToString(), x)), StringComparer.OrdinalIgnoreCase));
 		}
 
 		/// <summary>
@@ -404,6 +445,16 @@ namespace RCParsing.Building
 		/// </summary>
 		/// <param name="literals">The literal strings set.</param>
 		/// <returns>Current instance for method chaining.</returns>
+		public T LiteralChoiceIgnoreCase(IEnumerable<char> literals)
+		{
+			return Token(new LiteralChoiceTokenPattern(literals.Select(x => new KeyValuePair<string, object?>(x.ToString(), x)), StringComparer.OrdinalIgnoreCase));
+		}
+
+		/// <summary>
+		/// Adds a literal choice token to the current sequence. Ignores case when comparing literals.
+		/// </summary>
+		/// <param name="literals">The literal strings set.</param>
+		/// <returns>Current instance for method chaining.</returns>
 		public T LiteralChoiceIgnoreCase(IEnumerable<string> literals)
 		{
 			return Token(new LiteralChoiceTokenPattern(literals, StringComparer.OrdinalIgnoreCase));
@@ -414,9 +465,29 @@ namespace RCParsing.Building
 		/// </summary>
 		/// <param name="literals">The literal strings set mapped with intermediate values.</param>
 		/// <returns>Current instance for method chaining.</returns>
+		public T LiteralChoice(params KeyValuePair<char, object?>[] literals)
+		{
+			return Token(new LiteralChoiceTokenPattern(literals.Select(x => new KeyValuePair<string, object?>(x.Key.ToString(), x.Value))));
+		}
+
+		/// <summary>
+		/// Adds a literal choice token to the current sequence.
+		/// </summary>
+		/// <param name="literals">The literal strings set mapped with intermediate values.</param>
+		/// <returns>Current instance for method chaining.</returns>
 		public T LiteralChoice(params KeyValuePair<string, object?>[] literals)
 		{
 			return Token(new LiteralChoiceTokenPattern(literals));
+		}
+
+		/// <summary>
+		/// Adds a literal choice token to the current sequence.
+		/// </summary>
+		/// <param name="literals">The literal strings set mapped with intermediate values.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T LiteralChoice(IEnumerable<KeyValuePair<char, object?>> literals)
+		{
+			return Token(new LiteralChoiceTokenPattern(literals.Select(x => new KeyValuePair<string, object?>(x.Key.ToString(), x.Value))));
 		}
 
 		/// <summary>
@@ -435,9 +506,30 @@ namespace RCParsing.Building
 		/// <param name="literals">The literal strings set mapped with intermediate values.</param>
 		/// <param name="comparer">The optional string comparer to use.</param>
 		/// <returns>Current instance for method chaining.</returns>
+		public T LiteralChoice(IEnumerable<KeyValuePair<char, object?>> literals, StringComparer? comparer)
+		{
+			return Token(new LiteralChoiceTokenPattern(literals.Select(x => new KeyValuePair<string, object?>(x.Key.ToString(), x.Value)), comparer));
+		}
+
+		/// <summary>
+		/// Adds a literal choice token to the current sequence.
+		/// </summary>
+		/// <param name="literals">The literal strings set mapped with intermediate values.</param>
+		/// <param name="comparer">The optional string comparer to use.</param>
+		/// <returns>Current instance for method chaining.</returns>
 		public T LiteralChoice(IEnumerable<KeyValuePair<string, object?>> literals, StringComparer? comparer)
 		{
 			return Token(new LiteralChoiceTokenPattern(literals, comparer));
+		}
+
+		/// <summary>
+		/// Adds a literal choice token to the current sequence. Ignores case when comparing literals.
+		/// </summary>
+		/// <param name="literals">The literal strings set mapped with intermediate values.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T LiteralChoiceIgnoreCase(params KeyValuePair<char, object?>[] literals)
+		{
+			return Token(new LiteralChoiceTokenPattern(literals.Select(x => new KeyValuePair<string, object?>(x.Key.ToString(), x.Value)), StringComparer.OrdinalIgnoreCase));
 		}
 
 		/// <summary>
@@ -455,6 +547,16 @@ namespace RCParsing.Building
 		/// </summary>
 		/// <param name="literals">The literal strings set mapped with intermediate values.</param>
 		/// <returns>Current instance for method chaining.</returns>
+		public T LiteralChoiceIgnoreCase(IEnumerable<KeyValuePair<char, object?>> literals)
+		{
+			return Token(new LiteralChoiceTokenPattern(literals.Select(x => new KeyValuePair<string, object?>(x.Key.ToString(), x.Value)), StringComparer.OrdinalIgnoreCase));
+		}
+
+		/// <summary>
+		/// Adds a literal choice token to the current sequence. Ignores case when comparing literals.
+		/// </summary>
+		/// <param name="literals">The literal strings set mapped with intermediate values.</param>
+		/// <returns>Current instance for method chaining.</returns>
 		public T LiteralChoiceIgnoreCase(IEnumerable<KeyValuePair<string, object?>> literals)
 		{
 			return Token(new LiteralChoiceTokenPattern(literals, StringComparer.OrdinalIgnoreCase));
@@ -465,9 +567,29 @@ namespace RCParsing.Building
 		/// </summary>
 		/// <param name="literals">The literal strings set mapped with intermediate values.</param>
 		/// <returns>Current instance for method chaining.</returns>
+		public T LiteralChoice(params (char, object?)[] literals)
+		{
+			return Token(new LiteralChoiceTokenPattern(literals.Select(x => new KeyValuePair<string, object?>(x.Item1.ToString(), x.Item2))));
+		}
+
+		/// <summary>
+		/// Adds a literal choice token to the current sequence.
+		/// </summary>
+		/// <param name="literals">The literal strings set mapped with intermediate values.</param>
+		/// <returns>Current instance for method chaining.</returns>
 		public T LiteralChoice(params (string, object?)[] literals)
 		{
 			return Token(new LiteralChoiceTokenPattern(literals.Select(x => new KeyValuePair<string, object?>(x.Item1, x.Item2))));
+		}
+
+		/// <summary>
+		/// Adds a literal choice token to the current sequence.
+		/// </summary>
+		/// <param name="literals">The literal strings set mapped with intermediate values.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T LiteralChoice(IEnumerable<(char, object?)> literals)
+		{
+			return Token(new LiteralChoiceTokenPattern(literals.Select(x => new KeyValuePair<string, object?>(x.Item1.ToString(), x.Item2))));
 		}
 
 		/// <summary>
@@ -486,6 +608,17 @@ namespace RCParsing.Building
 		/// <param name="literals">The literal strings set mapped with intermediate values.</param>
 		/// <param name="comparer">The optional string comparer to use.</param>
 		/// <returns>Current instance for method chaining.</returns>
+		public T LiteralChoice(IEnumerable<(char, object?)> literals, StringComparer? comparer)
+		{
+			return Token(new LiteralChoiceTokenPattern(literals.Select(x => new KeyValuePair<string, object?>(x.Item1.ToString(), x.Item2)), comparer));
+		}
+
+		/// <summary>
+		/// Adds a literal choice token to the current sequence.
+		/// </summary>
+		/// <param name="literals">The literal strings set mapped with intermediate values.</param>
+		/// <param name="comparer">The optional string comparer to use.</param>
+		/// <returns>Current instance for method chaining.</returns>
 		public T LiteralChoice(IEnumerable<(string, object?)> literals, StringComparer? comparer)
 		{
 			return Token(new LiteralChoiceTokenPattern(literals.Select(x => new KeyValuePair<string, object?>(x.Item1, x.Item2)), comparer));
@@ -496,9 +629,29 @@ namespace RCParsing.Building
 		/// </summary>
 		/// <param name="literals">The literal strings set mapped with intermediate values.</param>
 		/// <returns>Current instance for method chaining.</returns>
+		public T LiteralChoiceIgnoreCase(params (char, object?)[] literals)
+		{
+			return Token(new LiteralChoiceTokenPattern(literals.Select(x => new KeyValuePair<string, object?>(x.Item1.ToString(), x.Item2)), StringComparer.OrdinalIgnoreCase));
+		}
+
+		/// <summary>
+		/// Adds a literal choice token to the current sequence. Ignores case when comparing literals.
+		/// </summary>
+		/// <param name="literals">The literal strings set mapped with intermediate values.</param>
+		/// <returns>Current instance for method chaining.</returns>
 		public T LiteralChoiceIgnoreCase(params (string, object?)[] literals)
 		{
 			return Token(new LiteralChoiceTokenPattern(literals.Select(x => new KeyValuePair<string, object?>(x.Item1, x.Item2)), StringComparer.OrdinalIgnoreCase));
+		}
+
+		/// <summary>
+		/// Adds a literal choice token to the current sequence. Ignores case when comparing literals.
+		/// </summary>
+		/// <param name="literals">The literal strings set mapped with intermediate values.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T LiteralChoiceIgnoreCase(IEnumerable<(char, object?)> literals)
+		{
+			return Token(new LiteralChoiceTokenPattern(literals.Select(x => new KeyValuePair<string, object?>(x.Item1.ToString(), x.Item2)), StringComparer.OrdinalIgnoreCase));
 		}
 
 		/// <summary>
@@ -1244,6 +1397,15 @@ namespace RCParsing.Building
 		public T Fail()
 		{
 			return Token(new FailTokenPattern());
+		}
+
+		/// <summary>
+		/// Adds an all text token to the current sequence. It matches all characters until end of input.
+		/// </summary>
+		/// <returns>Current instance for method chaining.</returns>
+		public T AllText()
+		{
+			return Token(new AllTextTokenPattern());
 		}
 
 		private static NumberType NumberTypeFromCLR(Type type)

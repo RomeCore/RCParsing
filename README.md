@@ -721,19 +721,19 @@ Notes:
 
 The `int` value calculation from expression with parentheses `()`, spaces and operators `+-/*` with precedence.
 
-| Method                                     | Mean         | Error        | StdDev      | Ratio | RatioSD | Gen0    | Gen1    | Allocated | Alloc Ratio |
-|------------------------------------------- |-------------:|-------------:|------------:|------:|--------:|--------:|--------:|----------:|------------:|
-| ExpressionBig_RCParsing                    | 330,461.1 ns | 34,988.41 ns | 9,086.38 ns |  1.00 |    0.04 | 23.4375 | 11.2305 |  399552 B |        1.00 |
-| ExpressionBig_RCParsing_Optimized          | 180,675.9 ns |  4,651.20 ns |   719.78 ns |  0.55 |    0.01 | 19.7754 |  8.7891 |  333928 B |        0.84 |
-| ExpressionBig_RCParsing_TokenCombination   |  59,683.9 ns |    623.53 ns |   161.93 ns |  0.18 |    0.00 |  4.1504 |  0.0610 |   70288 B |        0.18 |
-| ExpressionBig_Parlot                       |  63,349.8 ns |  3,060.58 ns |   473.63 ns |  0.19 |    0.00 |  3.2959 |       - |   56608 B |        0.14 |
-| ExpressionBig_Pidgin                       | 709,868.6 ns | 13,975.98 ns | 2,162.80 ns |  2.15 |    0.05 |  0.9766 |       - |   23536 B |        0.06 |
-|                                            |              |              |             |       |         |         |         |           |             |
-| ExpressionShort_RCParsing                  |   2,527.6 ns |     47.91 ns |    12.44 ns |  1.00 |    0.01 |  0.2213 |       - |    3736 B |        1.00 |
-| ExpressionShort_RCParsing_Optimized        |   1,725.7 ns |     94.04 ns |    24.42 ns |  0.68 |    0.01 |  0.2136 |       - |    3584 B |        0.96 |
-| ExpressionShort_RCParsing_TokenCombination |     474.4 ns |      5.34 ns |     1.39 ns |  0.19 |    0.00 |  0.0391 |       - |     656 B |        0.18 |
-| ExpressionShort_Parlot                     |     591.5 ns |     61.97 ns |    16.09 ns |  0.23 |    0.01 |  0.0534 |       - |     896 B |        0.24 |
-| ExpressionShort_Pidgin                     |   6,522.3 ns |    197.11 ns |    51.19 ns |  2.58 |    0.02 |  0.0153 |       - |     344 B |        0.09 |
+| Method                                     | Mean         | Error       | StdDev      | Ratio | Gen0    | Gen1    | Allocated | Alloc Ratio |
+|------------------------------------------- |-------------:|------------:|------------:|------:|--------:|--------:|----------:|------------:|
+| ExpressionBig_RCParsing                    | 291,542.2 ns | 5,064.93 ns | 1,315.35 ns |  1.00 | 23.9258 | 11.7188 |  403312 B |        1.00 |
+| ExpressionBig_RCParsing_Optimized          | 169,101.5 ns | 3,900.30 ns |   603.58 ns |  0.58 | 20.0195 |  9.0332 |  337688 B |        0.84 |
+| ExpressionBig_RCParsing_TokenCombination   |  57,988.6 ns |   911.87 ns |   236.81 ns |  0.20 |  4.1504 |  0.0610 |   70288 B |        0.17 |
+| ExpressionBig_Parlot                       |  64,083.7 ns |   278.18 ns |    72.24 ns |  0.22 |  3.2959 |       - |   56608 B |        0.14 |
+| ExpressionBig_Pidgin                       | 678,366.6 ns | 7,911.06 ns | 2,054.48 ns |  2.33 |  0.9766 |       - |   23536 B |        0.06 |
+|                                            |              |             |             |       |         |         |           |             |
+| ExpressionShort_RCParsing                  |   2,317.5 ns |    49.43 ns |     7.65 ns |  1.00 |  0.2213 |       - |    3736 B |        1.00 |
+| ExpressionShort_RCParsing_Optimized        |   1,546.2 ns |    32.98 ns |     8.57 ns |  0.67 |  0.2136 |       - |    3584 B |        0.96 |
+| ExpressionShort_RCParsing_TokenCombination |     512.7 ns |     5.18 ns |     1.35 ns |  0.22 |  0.0391 |       - |     656 B |        0.18 |
+| ExpressionShort_Parlot                     |     580.2 ns |    10.32 ns |     2.68 ns |  0.25 |  0.0534 |       - |     896 B |        0.24 |
+| ExpressionShort_Pidgin                     |   6,522.9 ns |   107.10 ns |    27.81 ns |  2.81 |  0.0153 |       - |     344 B |        0.09 |
 
 Notes:
 
@@ -780,13 +780,13 @@ Just GraphQL parsing without transformations from AST. GraphQL is a mid-complex 
 
 | Method                                 | Mean        | Error      | StdDev     | Ratio | RatioSD | Gen0     | Gen1     | Gen2    | Allocated  | Alloc Ratio |
 |--------------------------------------- |------------:|-----------:|-----------:|------:|--------:|---------:|---------:|--------:|-----------:|------------:|
-| QueryBig_RCParsing_Default             | 1,467.57 us |  13.053 us |   5.795 us |  1.00 |    0.01 |  27.3438 |   9.7656 |  1.9531 |  554.87 KB |        1.00 |
-| QueryBig_RCParsing_Optimized           |   423.76 us |   5.314 us |   2.359 us |  0.29 |    0.00 |  18.0664 |   4.3945 |       - |  295.82 KB |        0.53 |
-| QueryBig_ANTLR                         | 1,194.41 us |   7.032 us |   3.122 us |  0.81 |    0.00 |  35.1563 |  11.7188 |       - |  590.55 KB |        1.06 |
+| QueryBig_RCParsing_Default             | 1,610.33 us |   9.340 us |   3.331 us |  1.00 |    0.00 |  31.2500 |  13.6719 |  3.9063 |  603.94 KB |        1.00 |
+| QueryBig_RCParsing_Optimized           |   369.89 us |   1.312 us |   0.468 us |  0.23 |    0.00 |  20.9961 |   5.3711 |       - |  345.59 KB |        0.57 |
+| QueryBig_ANTLR                         | 1,206.50 us |  19.478 us |   8.648 us |  0.75 |    0.01 |  35.1563 |  11.7188 |       - |  590.55 KB |        0.98 |
 |                                        |             |            |            |       |         |          |          |         |            |             |
-| QueryShort_RCParsing_Default           |   144.00 us |   0.535 us |   0.238 us |  1.00 |    0.00 |   4.1504 |   0.4883 |       - |   69.15 KB |        1.00 |
-| QueryShort_RCParsing_Optimized         |    44.45 us |   0.282 us |   0.125 us |  0.31 |    0.00 |   2.0752 |   0.1221 |       - |   34.86 KB |        0.50 |
-| QueryShort_ANTLR                       |    68.98 us |   0.303 us |   0.134 us |  0.48 |    0.00 |   5.9814 |   0.7324 |       - |    99.2 KB |        1.43 |
+| QueryShort_RCParsing_Default           |   166.01 us |   0.599 us |   0.266 us |  1.00 |    0.00 |   4.3945 |   0.4883 |       - |   72.58 KB |        1.00 |
+| QueryShort_RCParsing_Optimized         |    37.10 us |   0.132 us |   0.058 us |  0.22 |    0.00 |   2.3193 |   0.1221 |       - |   38.31 KB |        0.53 |
+| QueryShort_ANTLR                       |    68.37 us |   0.321 us |   0.142 us |  0.41 |    0.00 |   5.9814 |   0.7324 |       - |    99.2 KB |        1.37 |
 
 Notes:
 
@@ -800,19 +800,19 @@ Notes:
 
 Yes, seriously, the entire Python 3.13 parsing, without transformations from AST. Involves barrier tokens for RCParsing and custom lexer for ANTLR.
 
-| Method                                  | Mean        | Error     | StdDev    | Ratio | Gen0     | Gen1     | Gen2     | Allocated   | Alloc Ratio |
-|---------------------------------------- |------------:|----------:|----------:|------:|---------:|---------:|---------:|------------:|------------:|
-| PythonBig_RCParsing_Default             | 35,644.7 us | 621.52 us | 275.96 us |  1.00 | 357.1429 | 285.7143 | 142.8571 | 37397.53 KB |        1.00 |
-| PythonBig_RCParsing_Optimized           |  5,249.3 us |  26.83 us |  11.91 us |  0.15 | 218.7500 | 109.3750 |        - |  3863.07 KB |        0.10 |
-| PythonBig_RCParsing_Memoized            | 24,782.9 us | 905.61 us | 402.10 us |  0.70 | 250.0000 | 218.7500 |  93.7500 | 26893.22 KB |        0.72 |
-| PythonBig_RCParsing_MemoizedOptimized   | 11,522.9 us | 355.17 us | 157.70 us |  0.32 | 203.1250 | 187.5000 |  78.1250 | 11930.88 KB |        0.32 |
-| PythonBig_ANTLR                         |  5,631.1 us |  14.91 us |   6.62 us |  0.16 | 406.2500 | 281.2500 |        - |  6699.11 KB |        0.18 |
-|                                         |             |           |           |       |          |          |          |             |             |
-| PythonShort_RCParsing_Default           |  3,642.0 us |  21.43 us |   7.64 us |  1.00 |  42.9688 |  23.4375 |   7.8125 |  2555.13 KB |        1.00 |
-| PythonShort_RCParsing_Optimized         |    621.2 us |   9.75 us |   3.48 us |  0.17 |  27.3438 |   5.8594 |        - |   460.98 KB |        0.18 |
-| PythonShort_RCParsing_Memoized          |  1,468.8 us |  77.19 us |  34.27 us |  0.40 |  33.2031 |  25.3906 |   7.8125 |  1465.39 KB |        0.57 |
-| PythonShort_RCParsing_MemoizedOptimized |    698.0 us |  22.50 us |   8.02 us |  0.19 |  19.5313 |  14.6484 |   3.9063 |   632.13 KB |        0.25 |
-| PythonShort_ANTLR                       |    559.8 us |   2.47 us |   0.88 us |  0.15 |  46.8750 |  12.6953 |        - |   780.65 KB |        0.31 |
+| Method                                  | Mean        | Error       | StdDev    | Ratio | RatioSD | Gen0     | Gen1     | Gen2     | Allocated   | Alloc Ratio |
+|---------------------------------------- |------------:|------------:|----------:|------:|--------:|---------:|---------:|---------:|------------:|------------:|
+| PythonBig_RCParsing_Default             | 35,562.6 us | 1,261.52 us | 560.12 us |  1.00 |    0.02 | 357.1429 | 285.7143 | 142.8571 | 37508.89 KB |        1.00 |
+| PythonBig_RCParsing_Optimized           |  4,969.6 us |    17.83 us |   6.36 us |  0.14 |    0.00 | 226.5625 | 140.6250 |        - |  3974.76 KB |        0.11 |
+| PythonBig_RCParsing_Memoized            | 22,798.5 us |   238.79 us |  85.15 us |  0.64 |    0.01 | 281.2500 | 250.0000 | 125.0000 | 26926.87 KB |        0.72 |
+| PythonBig_RCParsing_MemoizedOptimized   | 11,273.2 us |   356.30 us | 158.20 us |  0.32 |    0.01 | 234.3750 | 218.7500 |  93.7500 |  11964.9 KB |        0.32 |
+| PythonBig_ANTLR                         |  5,583.7 us |    36.85 us |  13.14 us |  0.16 |    0.00 | 406.2500 | 281.2500 |        - |  6699.11 KB |        0.18 |
+|                                         |             |             |           |       |         |          |          |          |             |             |
+| PythonShort_RCParsing_Default           |  3,535.2 us |    18.01 us |   6.42 us |  1.00 |    0.00 |  46.8750 |  19.5313 |   7.8125 |  2569.46 KB |        1.00 |
+| PythonShort_RCParsing_Optimized         |    580.7 us |     3.29 us |   1.46 us |  0.16 |    0.00 |  28.3203 |   6.8359 |        - |    475.3 KB |        0.18 |
+| PythonShort_RCParsing_Memoized          |  1,355.7 us |    34.23 us |  12.21 us |  0.38 |    0.00 |  35.1563 |  25.3906 |   9.7656 |  1467.47 KB |        0.57 |
+| PythonShort_RCParsing_MemoizedOptimized |    634.0 us |    27.53 us |   9.82 us |  0.18 |    0.00 |  19.5313 |  15.6250 |   3.9063 |   634.17 KB |        0.25 |
+| PythonShort_ANTLR                       |    556.4 us |     1.50 us |   0.67 us |  0.16 |    0.00 |  46.8750 |  12.6953 |        - |   780.65 KB |        0.30 |
 
 Notes:
 
