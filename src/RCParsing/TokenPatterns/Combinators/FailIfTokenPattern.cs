@@ -1,14 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using RCParsing.Utils;
+using System.Linq;
 
 namespace RCParsing.TokenPatterns.Combinators
 {
 	/// <summary>
 	/// The token pattern that matches a single element,
-	/// transforming its intermediate value with a provided function.
+	/// but fails if the condition function returns true for the intermediate value.
 	/// </summary>
-	public class MapTokenPattern : TokenPattern
+	public class FailIfTokenPattern : TokenPattern
 	{
 		/// <summary>
 		/// Gets the token pattern ID of the child that should be parsed.
@@ -16,19 +16,26 @@ namespace RCParsing.TokenPatterns.Combinators
 		public int Child { get; }
 
 		/// <summary>
-		/// Gets the mapping function that transforms the intermediate value of the child.
+		/// Gets the condition function that determines if the match should fail.
 		/// </summary>
-		public Func<object?, object?> Mapper { get; }
+		public Func<object?, bool> Condition { get; }
 
 		/// <summary>
-		/// Initializes a new instance of <see cref="MapTokenPattern"/> class.
+		/// Gets the error message to use when the condition fails.
+		/// </summary>
+		public string ErrorMessage { get; }
+
+		/// <summary>
+		/// Initializes a new instance of <see cref="FailIfTokenPattern"/> class.
 		/// </summary>
 		/// <param name="child">The token pattern ID of the child element that must be matched.</param>
-		/// <param name="mapper">The transformation function applied to the child's intermediate value.</param>
-		public MapTokenPattern(int child, Func<object?, object?> mapper)
+		/// <param name="condition">The condition function that determines if the match should fail.</param>
+		/// <param name="errorMessage">The error message to use when the condition fails.</param>
+		public FailIfTokenPattern(int child, Func<object?, bool> condition, string errorMessage = "Condition failed.")
 		{
 			Child = child;
-			Mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+			Condition = condition ?? throw new ArgumentNullException(nameof(condition));
+			ErrorMessage = errorMessage;
 		}
 
 		protected override HashSet<char> FirstCharsCore => GetTokenPattern(Child).FirstChars;
@@ -48,17 +55,20 @@ namespace RCParsing.TokenPatterns.Combinators
 		public override ParsedElement Match(string input, int position, int barrierPosition,
 			object? parserParameter, bool calculateIntermediateValue, ref ParsingError furthestError)
 		{
-			if (!calculateIntermediateValue)
-				return _child.Match(input, position, barrierPosition, parserParameter,
-					false, ref furthestError);
-
+			var initialPosition = position;
 			var child = _child.Match(input, position, barrierPosition, parserParameter,
-				calculateIntermediateValue, ref furthestError);
+				calculateIntermediateValue: true, ref furthestError);
 
 			if (!child.success)
 				return ParsedElement.Fail;
 
-			child.intermediateValue = Mapper(child.intermediateValue);
+			if (Condition(child.intermediateValue))
+			{
+				if (position >= furthestError.position)
+					furthestError = new ParsingError(initialPosition, position - initialPosition, ErrorMessage, Id, true);
+				return ParsedElement.Fail;
+			}
+
 			return child;
 		}
 
@@ -67,23 +77,25 @@ namespace RCParsing.TokenPatterns.Combinators
 		public override string ToStringOverride(int remainingDepth)
 		{
 			if (remainingDepth <= 0)
-				return "map...";
-			return $"map: {GetTokenPattern(Child).ToString(remainingDepth - 1)}";
+				return "fail if...";
+			return $"fail if: {GetTokenPattern(Child).ToString(remainingDepth - 1)}";
 		}
 
 		public override bool Equals(object? obj)
 		{
 			return base.Equals(obj) &&
-				   obj is MapTokenPattern pattern &&
+				   obj is FailIfTokenPattern pattern &&
 				   Child == pattern.Child &&
-				   Equals(Mapper, pattern.Mapper);
+				   Equals(Condition, pattern.Condition) &&
+				   ErrorMessage == pattern.ErrorMessage;
 		}
 
 		public override int GetHashCode()
 		{
 			int hashCode = base.GetHashCode();
 			hashCode = hashCode * 397 + Child.GetHashCode();
-			hashCode = hashCode * 397 + Mapper.GetHashCode();
+			hashCode = hashCode * 397 + Condition.GetHashCode();
+			hashCode = hashCode * 397 + ErrorMessage.GetHashCode();
 			return hashCode;
 		}
 	}

@@ -8,14 +8,36 @@ using RCParsing.Utils;
 namespace RCParsing.TokenPatterns
 {
 	/// <summary>
-	/// Matches as much text as possible that does not contain a specified set of forbidden sequences, 
-	/// with support for escaping using a set of escape mappings. Escapes are processed and replaced 
-	/// in the parsed value. Uses Tries for efficient lookup of escape and forbidden sequences.
+	/// Represents an escaping strategy for <see cref="EscapedTextTokenPattern"/>.
 	/// </summary>
-	/// <remarks>
-	/// Passes a captured <see cref="string"/> with replacements applied as an intermediate value.
-	/// </remarks>
-	public class EscapedTextTokenPattern : TokenPattern
+	public abstract class EscapingStrategy
+	{
+		/// <summary>
+		/// Tries to match the escape sequence in the input text and returns replacement text.
+		/// </summary>
+		/// <param name="input">The input text to match.</param>
+		/// <param name="position">The start position to begin match from.</param>
+		/// <param name="maxPosition">The max position to stop matching at.</param>
+		/// <param name="consumedLength">A length of matched escape sequence (or length of consumed input).</param>
+		/// <param name="replacement">The replacement text (unescaped sequence) to paste into resulting unescaped text.</param>
+		/// <returns><see langword="true"/> if this method did matched any escape sequence; otherwise, <see langword="false"/>.</returns>
+		public abstract bool TryEscape(string input, int position, int maxPosition, out int consumedLength, out string replacement);
+
+		/// <summary>
+		/// Checks if input text contains the stop sequence, where parser should stop matching at.
+		/// </summary>
+		/// <param name="input">The input text to match.</param>
+		/// <param name="position">The start position to begin match from.</param>
+		/// <param name="maxPosition">The max position to stop matching at.</param>
+		/// <param name="consumedLength">A length of matched stop sequence (or length of consumed input).</param>
+		/// <returns><see langword="true"/> if this method did matched any stop sequence and parser should stop; otherwise, <see langword="false"/>.</returns>
+		public abstract bool TryStop(string input, int position, int maxPosition, out int consumedLength);
+	}
+
+	/// <summary>
+	/// Represents a default, trie-based escaping strategy with escape mappings 
+	/// </summary>
+	public class TrieEscapingStrategy : EscapingStrategy
 	{
 		private readonly bool _comparerWasSet;
 		private readonly bool _escapeNonEmpty;
@@ -33,11 +55,6 @@ namespace RCParsing.TokenPatterns
 		public IReadOnlyList<string> ForbiddenSequences { get; }
 
 		/// <summary>
-		/// Gets a value indicating whether empty strings are allowed as valid matches.
-		/// </summary>
-		public bool AllowsEmpty { get; }
-
-		/// <summary>
 		/// The string comparer used for comparing and searching within the Trie nodes.
 		/// </summary>
 		public StringComparer Comparer { get; }
@@ -48,14 +65,13 @@ namespace RCParsing.TokenPatterns
 		public CharComparer CharComparer { get; }
 
 		/// <summary>
-		/// Initializes a new instance of the <see cref="EscapedTextTokenPattern"/> class.
+		/// Initializes a new instance of the <see cref="TrieEscapingStrategy"/> class.
 		/// </summary>
 		/// <param name="escapeMappings">The mappings for escape sequences to their replacements.</param>
 		/// <param name="forbidden">The set of forbidden sequences that terminate the match if encountered unescaped.</param>
-		/// <param name="allowsEmpty">Indicates whether empty strings are allowed as valid matches.</param>
 		/// <param name="comparer">The comparer to use for matching.</param>
-		public EscapedTextTokenPattern(IEnumerable<KeyValuePair<string, string>> escapeMappings,
-			IEnumerable<string> forbidden, bool allowsEmpty = true, StringComparer? comparer = null)
+		public TrieEscapingStrategy(IEnumerable<KeyValuePair<string, string>> escapeMappings,
+			IEnumerable<string> forbidden, StringComparer? comparer = null)
 		{
 			if (escapeMappings == null)
 				throw new ArgumentNullException(nameof(escapeMappings));
@@ -66,13 +82,113 @@ namespace RCParsing.TokenPatterns
 			CharComparer = new CharComparer(Comparer);
 			EscapeMappings = new ReadOnlyDictionary<string, string>(escapeMappings.ToDictionary(k => k.Key, v => v.Value, Comparer));
 			ForbiddenSequences = forbidden.ToArray().AsReadOnlyList();
-			AllowsEmpty = allowsEmpty;
 
 			_comparerWasSet = comparer != null;
 			_escape = new Trie(escapeMappings.Select(kvp => new KeyValuePair<string, object?>(kvp.Key, kvp.Value)),
 				comparer != null ? CharComparer : null);
 			_forbidden = new Trie(forbidden, comparer != null ? CharComparer : null);
 			_escapeNonEmpty = _escape.Count > 0;
+		}
+
+		public override bool TryEscape(string input, int position, int maxPosition, out int consumedLength, out string replacement)
+		{
+			var res = _escape.TryGetLongestMatch(input, position, maxPosition, out var _replacement, out consumedLength);
+			replacement = _replacement as string;
+			return res;
+		}
+
+		public override bool TryStop(string input, int position, int maxPosition, out int consumedLength)
+		{
+			return _forbidden.TryGetLongestMatch(input, position, maxPosition, out _, out consumedLength);
+		}
+
+		public override string ToString()
+		{
+			string escapes = string.Join(" ", EscapeMappings.Keys.Select(e => $"'{e}'"));
+			string forbidden = string.Join(" ", ForbiddenSequences.Select(e => $"'{e}'"));
+			return $"escapes: {{{escapes}}} forbidden: {{{forbidden}}}";
+		}
+
+		public override bool Equals(object? obj)
+		{
+			return base.Equals(obj) &&
+				   obj is TrieEscapingStrategy other &&
+				   EscapeMappings.SetEqual(other.EscapeMappings) &&
+				   ForbiddenSequences.SetEqual(other.ForbiddenSequences) &&
+				   Equals(Comparer, other.Comparer) &&
+				   _comparerWasSet == other._comparerWasSet;
+		}
+
+		public override int GetHashCode()
+		{
+			int hashCode = base.GetHashCode();
+			hashCode = hashCode * -1521134295 + EscapeMappings.GetSetHashCode(Comparer);
+			hashCode = hashCode * -1521134295 + ForbiddenSequences.GetSetHashCode(Comparer);
+			hashCode = hashCode * -1521134295 + Comparer.GetHashCode();
+			hashCode = hashCode * -1521134295 + _comparerWasSet.GetHashCode();
+			return hashCode;
+		}
+	}
+
+
+
+	/// <summary>
+	/// Matches as much text as possible that does not contain a specified set of forbidden sequences, 
+	/// with support for escaping using a set of escape mappings. Escapes are processed and replaced 
+	/// in the parsed value. Uses Tries for efficient lookup of escape and forbidden sequences.
+	/// </summary>
+	/// <remarks>
+	/// Passes a captured <see cref="string"/> with replacements applied as an intermediate value.
+	/// </remarks>
+	public class EscapedTextTokenPattern : TokenPattern
+	{
+		/// <summary>
+		/// The escaping strategy to use.
+		/// </summary>
+		public EscapingStrategy EscapingStrategy { get; }
+
+		/// <summary>
+		/// Gets a value indicating whether empty strings are allowed as valid matches.
+		/// </summary>
+		public bool AllowsEmpty { get; }
+
+		/// <summary>
+		/// Gets a value indicating whether need to capture/consume the stop sequence for match.
+		/// </summary>
+		/// <remarks>
+		/// Affects both on intermediate value (unescaped text) and capture length.
+		/// </remarks>
+		public bool ConsumeStopSequence { get; }
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="EscapedTextTokenPattern"/> class.
+		/// </summary>
+		/// <param name="escapingStrategy">The escaping strategy to use.</param>
+		/// <param name="allowsEmpty">Indicates whether empty strings are allowed as valid matches.</param>
+		/// <param name="consumeStopSequence">Indicates whether need to capture/consume the stop sequence for match.</param>
+		public EscapedTextTokenPattern(EscapingStrategy escapingStrategy,
+			bool allowsEmpty = true, bool consumeStopSequence = false)
+		{
+			EscapingStrategy = escapingStrategy ?? throw new ArgumentNullException(nameof(escapingStrategy));
+			AllowsEmpty = allowsEmpty;
+			ConsumeStopSequence = consumeStopSequence;
+		}
+		
+		/// <summary>
+		/// Initializes a new instance of the <see cref="EscapedTextTokenPattern"/> class.
+		/// </summary>
+		/// <param name="escapeMappings">The mappings for escape sequences to their replacements.</param>
+		/// <param name="forbidden">The set of forbidden sequences that terminate the match if encountered unescaped.</param>
+		/// <param name="comparer">The comparer to use for matching.</param>
+		/// <param name="allowsEmpty">Indicates whether empty strings are allowed as valid matches.</param>
+		/// <param name="consumeStopSequence">Indicates whether need to capture/consume the stop sequence for match.</param>
+		public EscapedTextTokenPattern(IEnumerable<KeyValuePair<string, string>> escapeMappings,
+			IEnumerable<string> forbidden, StringComparer? comparer = null,
+			bool allowsEmpty = true, bool consumeStopSequence = false)
+		{
+			EscapingStrategy = new TrieEscapingStrategy(escapeMappings, forbidden, comparer);
+			AllowsEmpty = allowsEmpty;
+			ConsumeStopSequence = consumeStopSequence;
 		}
 
 		protected override HashSet<char> FirstCharsCore => new();
@@ -89,16 +205,19 @@ namespace RCParsing.TokenPatterns
 		/// with "{{" -> "{", "}}" -> "}" as escape sequences with "{" and "}" as forbidden sequences.
 		/// </remarks>
 		/// <param name="charSource">The source collection (or <see cref="string"/>) of characters to be escaped.</param>
-		/// <param name="allowsEmpty">Indicates whether empty strings are allowed as valid matches.</param>
 		/// <param name="comparer">The comparer to use for matching.</param>
+		/// <param name="allowsEmpty">Indicates whether empty strings are allowed as valid matches.</param>
+		/// <param name="consumeStopSequence">Indicates whether need to capture/consume the stop sequence for match.</param>
 		/// <returns>A created <see cref="EscapedTextTokenPattern"/> instance.</returns>
-		public static EscapedTextTokenPattern CreateDoubleCharacters(IEnumerable<char> charSource, bool allowsEmpty = true, StringComparer? comparer = null)
+		public static EscapedTextTokenPattern CreateDoubleCharacters(IEnumerable<char> charSource, StringComparer? comparer = null,
+			bool allowsEmpty = true, bool consumeStopSequence = false)
 		{
 			return new EscapedTextTokenPattern(
 				charSource.Select(c => new KeyValuePair<string, string>(new string(c, 2), new string(c, 1))),
 				charSource.Select(c => c.ToString()),
+				comparer,
 				allowsEmpty,
-				comparer
+				consumeStopSequence
 			);
 		}
 
@@ -110,17 +229,20 @@ namespace RCParsing.TokenPatterns
 		/// with "abab" -> "ab", "bcbc" -> "bc" as escape sequences with "ab" and "bc" as forbidden sequences.
 		/// </remarks>
 		/// <param name="sequences">The source collection of sequences to be escaped.</param>
-		/// <param name="allowsEmpty">Indicates whether empty strings are allowed as valid matches.</param>
 		/// <param name="comparer">The comparer to use for matching.</param>
+		/// <param name="allowsEmpty">Indicates whether empty strings are allowed as valid matches.</param>
+		/// <param name="consumeStopSequence">Indicates whether need to capture/consume the stop sequence for match.</param>
 		/// <returns>A created <see cref="EscapedTextTokenPattern"/> instance.</returns>
-		public static EscapedTextTokenPattern CreateDoubleSequences(IEnumerable<string> sequences, bool allowsEmpty = true, StringComparer? comparer = null)
+		public static EscapedTextTokenPattern CreateDoubleSequences(IEnumerable<string> sequences, StringComparer? comparer = null,
+			bool allowsEmpty = true, bool consumeStopSequence = false)
 		{
 			var sourceList = sequences.AsReadOnlyList();
 			return new EscapedTextTokenPattern(
 				sourceList.Select(c => new KeyValuePair<string, string>(c + c, c)),
 				sourceList,
+				comparer,
 				allowsEmpty,
-				comparer
+				consumeStopSequence
 			);
 		}
 
@@ -133,16 +255,19 @@ namespace RCParsing.TokenPatterns
 		/// </remarks>
 		/// <param name="charSource">The source collection (or <see cref="string"/>) of characters to be escaped.</param>
 		/// <param name="prefix">The prefix used for escaping.</param>
-		/// <param name="allowsEmpty">Indicates whether empty strings are allowed as valid matches.</param>
 		/// <param name="comparer">The comparer to use for matching.</param>
+		/// <param name="allowsEmpty">Indicates whether empty strings are allowed as valid matches.</param>
+		/// <param name="consumeStopSequence">Indicates whether need to capture/consume the stop sequence for match.</param>
 		/// <returns>A created <see cref="EscapedTextTokenPattern"/> instance.</returns>
-		public static EscapedTextTokenPattern CreatePrefix(IEnumerable<char> charSource, char prefix = '\\', bool allowsEmpty = true, StringComparer? comparer = null)
+		public static EscapedTextTokenPattern CreatePrefix(IEnumerable<char> charSource, char prefix = '\\', StringComparer? comparer = null,
+			bool allowsEmpty = true, bool consumeStopSequence = false)
 		{
 			return new EscapedTextTokenPattern(
 				charSource.Select(c => new KeyValuePair<string, string>($"{prefix}{c}", c.ToString())),
 				charSource.Select(c => c.ToString()),
+				comparer,
 				allowsEmpty,
-				comparer
+				consumeStopSequence
 			);
 		}
 
@@ -155,17 +280,20 @@ namespace RCParsing.TokenPatterns
 		/// </remarks>
 		/// <param name="sequences">The source collection of sequences to be escaped.</param>
 		/// <param name="prefix">The prefix used for escaping.</param>
-		/// <param name="allowsEmpty">Indicates whether empty strings are allowed as valid matches.</param>
 		/// <param name="comparer">The comparer to use for matching.</param>
+		/// <param name="allowsEmpty">Indicates whether empty strings are allowed as valid matches.</param>
+		/// <param name="consumeStopSequence">Indicates whether need to capture/consume the stop sequence for match.</param>
 		/// <returns>A created <see cref="EscapedTextTokenPattern"/> instance.</returns>
-		public static EscapedTextTokenPattern CreatePrefix(IEnumerable<string> sequences, string prefix = "\\", bool allowsEmpty = true, StringComparer? comparer = null)
+		public static EscapedTextTokenPattern CreatePrefix(IEnumerable<string> sequences, string prefix = "\\", StringComparer? comparer = null,
+			bool allowsEmpty = true, bool consumeStopSequence = false)
 		{
 			var sourceList = sequences.AsReadOnlyList();
 			return new EscapedTextTokenPattern(
 				sourceList.Select(c => new KeyValuePair<string, string>(prefix + c, c)),
 				sourceList,
+				comparer,
 				allowsEmpty,
-				comparer
+				consumeStopSequence
 			);
 		}
 
@@ -174,16 +302,19 @@ namespace RCParsing.TokenPatterns
 		/// with no escape sequences defined.
 		/// </summary>
 		/// <param name="forbiddenChars">The set of forbidden characters that terminate the match if encountered.</param>
-		/// <param name="allowsEmpty">Indicates whether empty strings are allowed as valid matches.</param>
 		/// <param name="comparer">The comparer to use for matching.</param>
+		/// <param name="allowsEmpty">Indicates whether empty strings are allowed as valid matches.</param>
+		/// <param name="consumeStopSequence">Indicates whether need to capture/consume the stop sequence for match.</param>
 		/// <returns>A created <see cref="EscapedTextTokenPattern"/> instance.</returns>
-		public static EscapedTextTokenPattern CreateUntil(IEnumerable<char> forbiddenChars, bool allowsEmpty = true, StringComparer? comparer = null)
+		public static EscapedTextTokenPattern CreateUntil(IEnumerable<char> forbiddenChars, StringComparer? comparer = null,
+			bool allowsEmpty = true, bool consumeStopSequence = false)
 		{
 			return new EscapedTextTokenPattern(
 				Array.Empty<KeyValuePair<string, string>>(),
 				forbiddenChars.Select(c => c.ToString()),
+				comparer,
 				allowsEmpty,
-				comparer
+				consumeStopSequence
 			);
 		}
 
@@ -192,16 +323,19 @@ namespace RCParsing.TokenPatterns
 		/// with no escape sequences defined.
 		/// </summary>
 		/// <param name="forbidden">The set of forbidden sequences that terminate the match if encountered.</param>
-		/// <param name="allowsEmpty">Indicates whether empty strings are allowed as valid matches.</param>
 		/// <param name="comparer">The comparer to use for matching.</param>
+		/// <param name="allowsEmpty">Indicates whether empty strings are allowed as valid matches.</param>
+		/// <param name="consumeStopSequence">Indicates whether need to capture/consume the stop sequence for match.</param>
 		/// <returns>A created <see cref="EscapedTextTokenPattern"/> instance.</returns>
-		public static EscapedTextTokenPattern CreateUntil(IEnumerable<string> forbidden, bool allowsEmpty = true, StringComparer? comparer = null)
+		public static EscapedTextTokenPattern CreateUntil(IEnumerable<string> forbidden, StringComparer? comparer = null,
+			bool allowsEmpty = true, bool consumeStopSequence = false)
 		{
 			return new EscapedTextTokenPattern(
 				Array.Empty<KeyValuePair<string, string>>(),
 				forbidden,
+				comparer,
 				allowsEmpty,
-				comparer
+				consumeStopSequence
 			);
 		}
 
@@ -213,52 +347,33 @@ namespace RCParsing.TokenPatterns
 		private ParsedElement MatchWithoutCalculation(string input, int position, int barrierPosition, ref ParsingError furthestError)
 		{
 			int start = position;
-			int pos = start;
+			var strategy = EscapingStrategy;
 
-			while (pos < barrierPosition)
+			while (position < barrierPosition)
 			{
 				// 1) Try to match the longest escape starting at pos.
 				//    If found — apply replacement and continue.
-				if (_escapeNonEmpty && _escape.TryGetLongestMatch(input, pos, barrierPosition, out var replacement, out int escapeConsumed))
+				if (strategy.TryEscape(input, position, barrierPosition, out var consumedLength, out var replacement))
 				{
-					pos += escapeConsumed;
+					position += consumedLength;
 					continue;
 				}
 
 				// 2) No escape terminal at this position.
 				//    If a forbidden terminal starts here, stop (do not consume forbidden).
-				if (_forbidden.ContainsMatch(input, pos, barrierPosition, out int forbiddenConsumed))
+				if (strategy.TryStop(input, position, barrierPosition, out consumedLength))
 				{
+					if (ConsumeStopSequence)
+						position += consumedLength;
 					break; // unescaped forbidden sequence -> end of matched text
 				}
 
-				// TODO: Maybe remove this? Needs tesing
-
-				/*// 3) No terminal found for escape or forbidden.
-				//    We must detect the *real* incomplete-escape case:
-				//    If the remainder of the input starting at pos is a strict prefix of some escape
-				//    AND we are at the end of the input (no more chars to try) => incomplete escape -> error.
-				//    Otherwise treat the current char as normal text.
-				if (_escape.IsStrictPrefixOfAny(input, pos, barrierPosition))
-				{
-					// If the remaining input is a strict prefix of some escape and we are at EOF
-					// (i.e. there are no more characters to complete that escape), then it's invalid.
-					// We only error when pos..end matches prefix-of-some-escape and there are no more characters
-					// that can arrive (we operate on the full string), so this is true incomplete escape.
-					if (pos + (barrierPosition - pos) >= barrierPosition) // redundant but explicit: we are at end-of-input suffix
-					{
-						return ParsedElement.Fail;
-					}
-					// If we are not at EOF, we still append current char as normal — future iterations
-					// may complete into a terminal escape (rare here because we scan the whole input).
-				}*/
-
-				// 4) Advance.
-				pos++;
+				// 3) Advance.
+				position++;
 			}
 
 			// Produce token
-			int length = pos - start;
+			int length = position - start;
 
 			if (length == 0 && !AllowsEmpty) // empty match and not allowed -> error
 			{
@@ -273,61 +388,42 @@ namespace RCParsing.TokenPatterns
 		private ParsedElement MatchWithCalculation(string input, int position, int barrierPosition, ref ParsingError furthestError)
 		{
 			int start = position;
-			int pos = start;
+			var strategy = EscapingStrategy;
 			int lastFoundEscape = start;
 			StringBuilder? sb = null;
 
-			while (pos < barrierPosition)
+			while (position < barrierPosition)
 			{
 				// 1) Try to match the longest escape starting at pos.
 				//    If found — apply replacement and continue.
-				if (_escapeNonEmpty && _escape.TryGetLongestMatch(input, pos, barrierPosition, out var replacement, out int escapeConsumed))
+				if (strategy.TryEscape(input, position, barrierPosition, out var consumedLength, out var replacement))
 				{
 					sb ??= new StringBuilder();
 
-					if (pos > lastFoundEscape)
-						sb.Append(input, lastFoundEscape, pos - lastFoundEscape);
+					if (position > lastFoundEscape)
+						sb.Append(input, lastFoundEscape, position - lastFoundEscape);
 					sb.Append(replacement as string ?? string.Empty);
 
-					pos += escapeConsumed;
-					lastFoundEscape = pos;
+					position += consumedLength;
+					lastFoundEscape = position;
 					continue;
 				}
 
 				// 2) No escape terminal at this position.
 				//    If a forbidden terminal starts here, stop (do not consume forbidden).
-				if (_forbidden.ContainsMatch(input, pos, barrierPosition, out int forbiddenConsumed))
+				if (strategy.TryStop(input, position, barrierPosition, out consumedLength))
 				{
+					if (ConsumeStopSequence)
+						position += consumedLength;
 					break; // unescaped forbidden sequence -> end of matched text
 				}
 
-				// TODO: Maybe remove this? Needs tesing
-
-				/*// 3) No terminal found for escape or forbidden.
-				//    We must detect the *real* incomplete-escape case:
-				//    If the remainder of the input starting at pos is a strict prefix of some escape
-				//    AND we are at the end of the input (no more chars to try) => incomplete escape -> error.
-				//    Otherwise treat the current char as normal text.
-				if (_escape.IsStrictPrefixOfAny(input, pos, barrierPosition))
-				{
-					// If the remaining input is a strict prefix of some escape and we are at EOF
-					// (i.e. there are no more characters to complete that escape), then it's invalid.
-					// We only error when pos..end matches prefix-of-some-escape and there are no more characters
-					// that can arrive (we operate on the full string), so this is true incomplete escape.
-					if (pos + (barrierPosition - pos) >= barrierPosition) // redundant but explicit: we are at end-of-input suffix
-					{
-						return ParsedElement.Fail;
-					}
-					// If we are not at EOF, we still append current char as normal — future iterations
-					// may complete into a terminal escape (rare here because we scan the whole input).
-				}*/
-
 				// 4) Advance.
-				pos++;
+				position++;
 			}
 
 			// Produce token
-			int length = pos - start;
+			int length = position - start;
 
 			if (length == 0) // empty match and not allowed -> error
 			{
@@ -342,8 +438,8 @@ namespace RCParsing.TokenPatterns
 
 			if (lastFoundEscape == start)
 				return new ParsedElement(start, length, input.Substring(start, length));
-			if (pos > lastFoundEscape)
-				sb.Append(input, lastFoundEscape, pos - lastFoundEscape);
+			if (position > lastFoundEscape)
+				sb.Append(input, lastFoundEscape, position - lastFoundEscape);
 
 			return new ParsedElement(start, length, sb?.ToString());
 		}
@@ -361,31 +457,24 @@ namespace RCParsing.TokenPatterns
 
 		public override string ToStringOverride(int remainingDepth)
 		{
-			string escapes = string.Join(" ", EscapeMappings.Keys.Select(e => $"'{e}'"));
-			string forbidden = string.Join(" ", ForbiddenSequences.Select(e => $"'{e}'"));
 			string allowsEmpty = AllowsEmpty ? " allows empty" : " disallows empty";
-			return $"escaped {{{escapes}}} forbidden: {{{forbidden}}}{allowsEmpty}";
+			string consumesStop = ConsumeStopSequence ? " consumes stop" : " does not consumes stop";
+			return $"escaped text {EscapingStrategy}{allowsEmpty}{consumesStop}";
 		}
 
 		public override bool Equals(object? obj)
 		{
 			return base.Equals(obj) &&
 				   obj is EscapedTextTokenPattern other &&
-				   EscapeMappings.SetEqual(other.EscapeMappings) &&
-				   ForbiddenSequences.SetEqual(other.ForbiddenSequences) &&
-				   Equals(Comparer, other.Comparer) &&
-				   AllowsEmpty == other.AllowsEmpty &&
-				   _comparerWasSet == other._comparerWasSet;
+				   Equals(EscapingStrategy, other.EscapingStrategy) &&
+				   AllowsEmpty == other.AllowsEmpty;
 		}
 
 		public override int GetHashCode()
 		{
 			int hashCode = base.GetHashCode();
-			hashCode = hashCode * -1521134295 + EscapeMappings.GetSetHashCode(Comparer);
-			hashCode = hashCode * -1521134295 + ForbiddenSequences.GetSetHashCode();
-			hashCode = hashCode * -1521134295 + Comparer.GetHashCode();
+			hashCode = hashCode * -1521134295 + EscapingStrategy.GetHashCode();
 			hashCode = hashCode * -1521134295 + AllowsEmpty.GetHashCode();
-			hashCode = hashCode * -1521134295 + _comparerWasSet.GetHashCode();
 			return hashCode;
 		}
 	}

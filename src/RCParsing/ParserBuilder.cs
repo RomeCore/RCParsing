@@ -288,11 +288,16 @@ namespace RCParsing
 				}
 			}
 
+			List<string> errors = new();
+
 			// Initialize processing queue and namedRules map with root rules
 			foreach (var rule in _rules)
 			{
 				if (!rule.Value.CanBeBuilt)
-					throw new ParserBuildingException($"Rule '{rule.Key}' cannot be built, because it's empty.");
+				{
+					errors.Add($"Rule '{rule.Key}' cannot be built, because it's empty.");
+					continue;
+				}
 
 				// Detect circular references and resolve to the base rule
 				HashSet<string> checkedNames = new HashSet<string>();
@@ -301,25 +306,31 @@ namespace RCParsing
 				while (currentRule.VariantIndex != 1)
 				{
 					if (!checkedNames.Add(currentRule.Value1))
-						throw new ParserBuildingException($"Circular reference detected in rule '{rule.Key}': " +
+					{
+						errors.Add($"Circular reference detected in rule '{rule.Key}': " +
 							$"{string.Join(" -> ", checkedNames.Append(currentRule.Value1).Select(n => $"'{n}'"))}");
+						break;
+					}
 
 					if (_rules.TryGetValue(currentRule.Value1, out var nextRule))
 					{
 						if (!nextRule.CanBeBuilt)
-							throw new ParserBuildingException($"Rule '{currentRule.Value1}' cannot be built, because it's empty.");
+							errors.Add($"Rule '{currentRule.Value1}' cannot be built, because it's empty.");
 
 						currentRule = nextRule.BuildingRule.Value;
 					}
 					else
 					{
-						throw new ParserBuildingException($"Rule '{currentRule.Value1}' cannot be found.");
+						errors.Add($"Rule '{currentRule.Value1}' cannot be found.");
 					}
 				}
 
-				var brule = currentRule.Value2;
-				elementsToProcess.Enqueue(brule);
-				namedRules.Add(rule.Key, brule);
+				if (currentRule.VariantIndex == 1)
+				{
+					var brule = currentRule.Value2;
+					elementsToProcess.Enqueue(brule);
+					namedRules.Add(rule.Key, brule);
+				}
 			}
 
 			BuildableParserRule? mainRule = null;
@@ -327,7 +338,7 @@ namespace RCParsing
 				name =>
 				{
 					if (!namedRules.TryGetValue(name, out mainRule))
-						throw new ParserBuildingException($"Main rule '{name}' cannot be found.");
+						errors.Add($"Main rule '{name}' cannot be found.");
 				},
 				rule =>
 				{
@@ -339,7 +350,10 @@ namespace RCParsing
 			foreach (var pattern in _tokenPatterns)
 			{
 				if (!pattern.Value.CanBeBuilt)
-					throw new ParserBuildingException($"Token pattern '{pattern.Key}' cannot be built, because it's empty.");
+				{
+					errors.Add($"Token pattern '{pattern.Key}' cannot be built, because it's empty.");
+					continue;
+				}
 
 				// Detect circular references and resolve to the base token pattern
 				HashSet<string> checkedNames = new HashSet<string>();
@@ -348,25 +362,31 @@ namespace RCParsing
 				while (currentPattern.VariantIndex != 1)
 				{
 					if (!checkedNames.Add(currentPattern.Value1))
-						throw new ParserBuildingException($"Circular reference detected in token pattern '{pattern.Key}': " +
+					{
+						errors.Add($"Circular reference detected in token pattern '{pattern.Key}': " +
 							$"{string.Join(" -> ", checkedNames.Append(currentPattern.Value1).Select(n => $"'{n}'"))}");
+						break;
+					}
 
 					if (_tokenPatterns.TryGetValue(currentPattern.Value1, out var nextPattern))
 					{
 						if (!nextPattern.CanBeBuilt)
-							throw new ParserBuildingException($"Token pattern '{currentPattern.Value1}' cannot be built, because it's empty.");
+							errors.Add($"Token pattern '{currentPattern.Value1}' cannot be built, because it's empty.");
 
 						currentPattern = nextPattern.BuildingPattern.Value;
 					}
 					else
 					{
-						throw new ParserBuildingException($"Token pattern '{currentPattern.Value1}' cannot be found.");
+						errors.Add($"Token pattern '{currentPattern.Value1}' cannot be found.");
 					}
 				}
 
-				var bpattern = currentPattern.Value2;
-				elementsToProcess.Enqueue(bpattern);
-				namedTokenPatterns.Add(pattern.Key, bpattern);
+				if (currentPattern.VariantIndex == 1)
+				{
+					var bpattern = currentPattern.Value2;
+					elementsToProcess.Enqueue(bpattern);
+					namedTokenPatterns.Add(pattern.Key, bpattern);
+				}
 			}
 
 			// Process global parser settings child rules
@@ -407,7 +427,7 @@ namespace RCParsing
 							else if (namedRules.TryGetValue(name, out var namedRule))
 								ruleChildrenToArgs.Add(namedRule);
 							else
-								throw new ParserBuildingException($"Unknown rule reference '{name}'.");
+								errors.Add($"Unknown rule reference '{name}'.");
 						}, brule =>
 						{
 							ruleChildrenToArgs.Add(brule);
@@ -431,7 +451,7 @@ namespace RCParsing
 							else if (namedTokenPatterns.TryGetValue(name, out var namedPattern))
 								tokenChildrenToArgs.Add(namedPattern);
 							else
-								throw new ParserBuildingException($"Unknown token pattern reference '{name}'.");
+								errors.Add($"Unknown token pattern reference '{name}'.");
 						}, bpattern =>
 						{
 							tokenChildrenToArgs.Add(bpattern);
@@ -455,6 +475,12 @@ namespace RCParsing
 
 				// Register dependencies for building
 				argMap[element] = (ruleChildrenToArgs, tokenChildrenToArgs, elementChildrenToArgs);
+			}
+
+			if (errors.Count > 0)
+			{
+				var message = string.Join(Environment.NewLine, errors);
+				throw new ParserBuildingException(message);
 			}
 
 			// Prepare the names map for quick lookup of elements to names
@@ -511,8 +537,8 @@ namespace RCParsing
 				finalMap.Add((element, id, ruleChildren, tokenChildren, elementChildren, aliases));
 			}
 
-			ParserRule[] resultRules = new ParserRule[elements.Count(e => e.Key is BuildableParserRule)];
-			TokenPattern[] resultTokenPatterns = new TokenPattern[elements.Count(e => e.Key is BuildableTokenPattern)];
+			ParserRule[] resultRules = new ParserRule[ruleCounter];
+			TokenPattern[] resultTokenPatterns = new TokenPattern[tokenCounter];
 
 			// Build the final parser settings with resolved child rules
 			(ParserMainSettings mainSettings, ParserSettings globalSettings, Func<ParserElement, ParserInitFlags> initFlagsFactory) =

@@ -16,22 +16,29 @@ namespace RCParsing.Building.TokenPatterns
 		public Or<string, BuildableTokenPattern> Child { get; set; } = string.Empty;
 		public override IEnumerable<Or<string, BuildableTokenPattern>>? TokenChildren => Child.WrapIntoEnumerable();
 
+		/// <summary>
+		/// The fallback intermadiate value that will be returned when child fails.
+		/// </summary>
+		public object? FallbackValue { get; set; }
+
 		protected override TokenPattern BuildToken(List<int>? tokenChildren)
 		{
-			return new OptionalTokenPattern(tokenChildren[0]);
+			return new OptionalTokenPattern(tokenChildren[0], FallbackValue);
 		}
 
 		public override bool Equals(object? obj)
 		{
 			return base.Equals(obj) &&
 				   obj is BuildableOptionalTokenPattern other &&
-				   Child == other.Child;
+				   Child == other.Child &&
+				   FallbackValue == other.FallbackValue;
 		}
 
 		public override int GetHashCode()
 		{
 			int hashCode = base.GetHashCode();
-			hashCode = hashCode * 397 + Child.GetHashCode() * 23;
+			hashCode = hashCode * 397 + Child.GetHashCode();
+			hashCode = hashCode * 397 + FallbackValue?.GetHashCode() ?? 0;
 			return hashCode;
 		}
 	}

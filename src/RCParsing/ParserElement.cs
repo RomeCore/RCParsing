@@ -151,6 +151,18 @@ namespace RCParsing
 		{
 			return Parser.Rules[index];
 		}
+		
+		/// <summary>
+		/// Tries to get the rule by index within the current parser.
+		/// </summary>
+		/// <param name="index">The index of the rule to retrieve.</param>
+		/// <returns>The rule at the specified index.</returns>
+		protected ParserRule? TryGetRule(int index)
+		{
+			if (index >= 0 && index < Parser.Rules.Count)
+				return Parser.Rules[index];
+			return null;
+		}
 
 		/// <summary>
 		/// Gets the token pattern by index within the current parser.
@@ -160,6 +172,18 @@ namespace RCParsing
 		protected TokenPattern GetTokenPattern(int index)
 		{
 			return Parser.TokenPatterns[index];
+		}
+
+		/// <summary>
+		/// Tries to get the token pattern by index within the current parser.
+		/// </summary>
+		/// <param name="index">The index of the token pattern to retrieve.</param>
+		/// <returns>The token pattern at the specified index.</returns>
+		protected TokenPattern? TryGetTokenPattern(int index)
+		{
+			if (index >= 0 && index < Parser.TokenPatterns.Count)
+				return Parser.TokenPatterns[index];
+			return null;
 		}
 
 		/// <summary>

@@ -1516,10 +1516,12 @@ namespace RCParsing.Building
 		/// Intemediate value will be converted to <see cref="float"/> if original string has decimal point, otherwise to <see cref="int"/>.
 		/// </remarks>
 		/// <param name="flags">The number flags to use.</param>
+		/// <param name="decimalPoint">The decimal point character.</param>
+		/// <param name="groupSeparator">The group separator character.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public T Number(NumberFlags flags)
+		public T Number(NumberFlags flags, char decimalPoint = '.', char groupSeparator = '_')
 		{
-			return Token(new NumberTokenPattern(NumberType.PreferSimpler, flags));
+			return Token(new NumberTokenPattern(NumberType.PreferSimpler, flags, decimalPoint, groupSeparator));
 		}
 
 		/// <summary>
@@ -1527,10 +1529,12 @@ namespace RCParsing.Building
 		/// </summary>
 		/// <param name="flags">The number flags to use.</param>
 		/// <param name="type">The number type to use.</param>
+		/// <param name="decimalPoint">The decimal point character.</param>
+		/// <param name="groupSeparator">The group separator character.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public T Number(NumberType type, NumberFlags flags)
+		public T Number(NumberType type, NumberFlags flags, char decimalPoint = '.', char groupSeparator = '_')
 		{
-			return Token(new NumberTokenPattern(type, flags));
+			return Token(new NumberTokenPattern(type, flags, decimalPoint, groupSeparator));
 		}
 
 		/// <summary>
@@ -1539,12 +1543,14 @@ namespace RCParsing.Building
 		/// <remarks>
 		/// Flags and intermediate value conversion type will be inferred from <typeparamref name="TNum"/> type.
 		/// </remarks>
+		/// <param name="decimalPoint">The decimal point character.</param>
+		/// <param name="groupSeparator">The group separator character.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public T Number<TNum>()
+		public T Number<TNum>(char decimalPoint = '.', char groupSeparator = '_')
 		{
 			var type = NumberTypeFromCLR(typeof(TNum));
 			var flags = NumberFlagsFromCLR(typeof(TNum));
-			return Token(new NumberTokenPattern(type, flags));
+			return Token(new NumberTokenPattern(type, flags, decimalPoint, groupSeparator));
 		}
 
 		/// <summary>
@@ -1554,12 +1560,14 @@ namespace RCParsing.Building
 		/// Flags and intermediate value conversion type will be inferred from <typeparamref name="TNum"/> type.
 		/// </remarks>
 		/// <param name="signed">Whether the number can have a sign.</param>
+		/// <param name="decimalPoint">The decimal point character.</param>
+		/// <param name="groupSeparator">The group separator character.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public T Number<TNum>(bool signed)
+		public T Number<TNum>(bool signed, char decimalPoint = '.', char groupSeparator = '_')
 		{
 			var type = NumberTypeFromCLR(typeof(TNum));
 			var flags = NumberFlagsFromCLR(typeof(TNum), signed);
-			return Token(new NumberTokenPattern(type, flags));
+			return Token(new NumberTokenPattern(type, flags, decimalPoint, groupSeparator));
 		}
 
 		/// <summary>
@@ -1569,49 +1577,72 @@ namespace RCParsing.Building
 		/// Intermediate value conversion type will be inferred from <typeparamref name="TNum"/> type.
 		/// </remarks>
 		/// <param name="flags">The number flags to use.</param>
+		/// <param name="decimalPoint">The decimal point character.</param>
+		/// <param name="groupSeparator">The group separator character.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public T Number<TNum>(NumberFlags flags)
+		public T Number<TNum>(NumberFlags flags, char decimalPoint = '.', char groupSeparator = '_')
 		{
 			var type = NumberTypeFromCLR(typeof(TNum));
-			return Token(new NumberTokenPattern(type, flags));
+			return Token(new NumberTokenPattern(type, flags, decimalPoint, groupSeparator));
 		}
 
+		/// <summary>
+		/// Adds an escaped text token to the current sequence with escaping strategy.
+		/// </summary>
+		/// <param name="escapingStrategy">The escaping strategy to use.</param>
+		/// <param name="allowsEmpty">Indicates whether empty strings are allowed as valid matches.</param>
+		/// <param name="consumeStopSequence">Indicates whether need to capture/consume the stop sequence for match.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T EscapedText(EscapingStrategy escapingStrategy,
+			bool allowsEmpty = true, bool consumeStopSequence = false)
+		{
+			return Token(new EscapedTextTokenPattern(escapingStrategy, allowsEmpty, consumeStopSequence));
+		}
+		
 		/// <summary>
 		/// Adds an escaped text token to the current sequence with custom escape mappings, forbidden sequences, and string comparer.
 		/// </summary>
 		/// <param name="escapeMappings">The mappings for escape sequences to their replacements.</param>
 		/// <param name="forbidden">The set of forbidden sequences that terminate the match.</param>
-		/// <param name="allowsEmpty">Indicates whether an empty string is allowed as a match.</param>
 		/// <param name="comparer">The string comparer to use.</param>
+		/// <param name="allowsEmpty">Indicates whether an empty string is allowed as a match.</param>
+		/// <param name="consumeStopSequence">Indicates whether need to capture/consume the stop sequence for match.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		public T EscapedText(IEnumerable<KeyValuePair<string, string>> escapeMappings, IEnumerable<string> forbidden,
-			bool allowsEmpty = true, StringComparer? comparer = null)
+			StringComparer? comparer = null, bool allowsEmpty = true, bool consumeStopSequence = false)
 		{
-			return Token(new EscapedTextTokenPattern(escapeMappings, forbidden, allowsEmpty, comparer));
+			return Token(new EscapedTextTokenPattern(escapeMappings, forbidden, comparer,
+				allowsEmpty, consumeStopSequence));
 		}
 
 		/// <summary>
 		/// Adds an escaped text token to the current sequence with double character escaping strategy.
 		/// </summary>
 		/// <param name="charSource">The source string of characters to be escaped.</param>
-		/// <param name="allowsEmpty">Indicates whether an empty string is allowed as a match.</param>
 		/// <param name="comparer">The string comparer to use.</param>
+		/// <param name="allowsEmpty">Indicates whether an empty string is allowed as a match.</param>
+		/// <param name="consumeStopSequence">Indicates whether need to capture/consume the stop sequence for match.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public T EscapedTextDoubleChars(IEnumerable<char> charSource, bool allowsEmpty = true, StringComparer? comparer = null)
+		public T EscapedTextDoubleChars(IEnumerable<char> charSource, StringComparer? comparer = null,
+			bool allowsEmpty = true, bool consumeStopSequence = false)
 		{
-			return Token(EscapedTextTokenPattern.CreateDoubleCharacters(charSource, allowsEmpty, comparer));
+			return Token(EscapedTextTokenPattern.CreateDoubleCharacters(charSource, comparer,
+				allowsEmpty, consumeStopSequence));
 		}
 
 		/// <summary>
 		/// Adds an escaped text token to the current sequence with double sequence escaping strategy.
 		/// </summary>
 		/// <param name="sequences">The source collection of sequences to be escaped.</param>
-		/// <param name="allowsEmpty">Indicates whether an empty string is allowed as a match.</param>
 		/// <param name="comparer">The string comparer to use.</param>
+		/// <param name="allowsEmpty">Indicates whether an empty string is allowed as a match.</param>
+		/// <param name="consumeStopSequence">Indicates whether need to capture/consume the stop sequence for match.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public T EscapedTextDoubleSequences(IEnumerable<string> sequences, bool allowsEmpty = true, StringComparer? comparer = null)
+		public T EscapedTextDoubleSequences(IEnumerable<string> sequences, StringComparer? comparer = null,
+			bool allowsEmpty = true, bool consumeStopSequence = false)
 		{
-			return Token(EscapedTextTokenPattern.CreateDoubleSequences(sequences, allowsEmpty, comparer));
+			return Token(EscapedTextTokenPattern.CreateDoubleSequences(sequences, comparer,
+				allowsEmpty, consumeStopSequence));
 		}
 
 		/// <summary>
@@ -1639,12 +1670,15 @@ namespace RCParsing.Building
 		/// </summary>
 		/// <param name="charSource">The source collection (or <see cref="string"/>) of characters to be escaped.</param>
 		/// <param name="prefix">The prefix used for escaping.</param>
-		/// <param name="allowsEmpty">Indicates whether an empty string is allowed as a match.</param>
 		/// <param name="comparer">The string comparer to use.</param>
+		/// <param name="allowsEmpty">Indicates whether an empty string is allowed as a match.</param>
+		/// <param name="consumeStopSequence">Indicates whether need to capture/consume the stop sequence for match.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public T EscapedTextPrefix(IEnumerable<char> charSource, char prefix, bool allowsEmpty = true, StringComparer? comparer = null)
+		public T EscapedTextPrefix(IEnumerable<char> charSource, char prefix, StringComparer? comparer = null,
+			bool allowsEmpty = true, bool consumeStopSequence = false)
 		{
-			return Token(EscapedTextTokenPattern.CreatePrefix(charSource, prefix, allowsEmpty, comparer));
+			return Token(EscapedTextTokenPattern.CreatePrefix(charSource, prefix, comparer,
+				allowsEmpty, consumeStopSequence));
 		}
 
 		/// <summary>
@@ -1652,12 +1686,15 @@ namespace RCParsing.Building
 		/// </summary>
 		/// <param name="sequences">The source collection of sequences to be escaped.</param>
 		/// <param name="prefix">The prefix used for escaping.</param>
-		/// <param name="allowsEmpty">Indicates whether an empty string is allowed as a match.</param>
 		/// <param name="comparer">The string comparer to use.</param>
+		/// <param name="allowsEmpty">Indicates whether an empty string is allowed as a match.</param>
+		/// <param name="consumeStopSequence">Indicates whether need to capture/consume the stop sequence for match.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public T EscapedTextPrefix(IEnumerable<string> sequences, string prefix, bool allowsEmpty = true, StringComparer? comparer = null)
+		public T EscapedTextPrefix(IEnumerable<string> sequences, string prefix, StringComparer? comparer = null,
+			bool allowsEmpty = true, bool consumeStopSequence = false)
 		{
-			return Token(EscapedTextTokenPattern.CreatePrefix(sequences, prefix, allowsEmpty, comparer));
+			return Token(EscapedTextTokenPattern.CreatePrefix(sequences, prefix, comparer,
+				allowsEmpty, consumeStopSequence));
 		}
 
 		/// <summary>
@@ -1686,12 +1723,15 @@ namespace RCParsing.Building
 		/// with no escape sequences defined.
 		/// </summary>
 		/// <param name="forbidden">The set of forbidden sequences that terminate the match.</param>
-		/// <param name="allowsEmpty">Indicates whether an empty string is allowed as a match.</param>
 		/// <param name="comparer">The string comparer to use.</param>
+		/// <param name="allowsEmpty">Indicates whether an empty string is allowed as a match.</param>
+		/// <param name="consumeStopSequence">Indicates whether need to capture/consume the stop sequence for match.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public T TextUntil(IEnumerable<string> forbidden, bool allowsEmpty = true, StringComparer? comparer = null)
+		public T TextUntil(IEnumerable<string> forbidden, StringComparer? comparer = null,
+			bool allowsEmpty = true, bool consumeStopSequence = false)
 		{
-			return Token(EscapedTextTokenPattern.CreateUntil(forbidden, allowsEmpty, comparer));
+			return Token(EscapedTextTokenPattern.CreateUntil(forbidden, comparer,
+				allowsEmpty, consumeStopSequence));
 		}
 
 		/// <summary>
@@ -1699,12 +1739,15 @@ namespace RCParsing.Building
 		/// with no escape sequences defined.
 		/// </summary>
 		/// <param name="forbiddenChars">The set of forbidden characters that terminate the match.</param>
-		/// <param name="allowsEmpty">Indicates whether an empty string is allowed as a match.</param>
 		/// <param name="comparer">The string comparer to use.</param>
+		/// <param name="allowsEmpty">Indicates whether an empty string is allowed as a match.</param>
+		/// <param name="consumeStopSequence">Indicates whether need to capture/consume the stop sequence for match.</param>
 		/// <returns>Current instance for method chaining.</returns>
-		public T TextUntil(IEnumerable<char> forbiddenChars, bool allowsEmpty = true, StringComparer? comparer = null)
+		public T TextUntil(IEnumerable<char> forbiddenChars, StringComparer? comparer = null,
+			bool allowsEmpty = true, bool consumeStopSequence = false)
 		{
-			return Token(EscapedTextTokenPattern.CreateUntil(forbiddenChars, allowsEmpty, comparer));
+			return Token(EscapedTextTokenPattern.CreateUntil(forbiddenChars, comparer,
+				allowsEmpty, consumeStopSequence));
 		}
 
 		/// <summary>

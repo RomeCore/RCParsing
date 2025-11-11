@@ -209,6 +209,40 @@ namespace RCParsing.Tests.Tokens
 			Assert.Equal(3, res.Length);
 			Assert.Equal(2.5f, res.GetIntermediateValue<float>());
 		}
+		
+		[Fact(DisplayName = "Number token with unsigned variants and group separators")]
+		public void Unsigned_Groups()
+		{
+			var builder = new ParserBuilder();
+
+			builder.CreateToken("uint")
+				.Number<int>(NumberFlags.UnsignedInteger | NumberFlags.GroupSeparators, groupSeparator: '\'');
+			builder.CreateToken("ufloat")
+				.Number<float>(NumberFlags.UnsignedScientific | NumberFlags.GroupSeparators, decimalPoint: ',', groupSeparator: '\'');
+
+			var parser = builder.Build();
+
+			// Unsigned integer rejects sign
+			var res = parser.TryMatchToken("uint", "-123abc");
+			Assert.False(res.Success);
+
+			res = parser.TryMatchToken("uint", "+123abc");
+			Assert.False(res.Success);
+
+			res = parser.TryMatchToken("uint", "45'67abc");
+			Assert.True(res.Success);
+			Assert.Equal(5, res.Length);
+			Assert.Equal(4567, res.GetIntermediateValue<int>());
+
+			// Unsigned float
+			res = parser.TryMatchToken("ufloat", "-1'0,5'4abc");
+			Assert.False(res.Success);
+
+			res = parser.TryMatchToken("ufloat", "2'0,5''7abc");
+			Assert.True(res.Success);
+			Assert.Equal(8, res.Length);
+			Assert.Equal(20.57f, res.GetIntermediateValue<float>());
+		}
 
 		[Fact(DisplayName = "Number token boundary cases")]
 		public void BoundaryCases()
