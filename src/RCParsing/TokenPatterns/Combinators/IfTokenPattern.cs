@@ -77,7 +77,7 @@ namespace RCParsing.TokenPatterns.Combinators
 		{
 			if (remainingDepth <= 0)
 				return "if...";
-			return $"if: ({GetTokenPattern(TrueBranch).ToString(remainingDepth - 1)} | {TryGetTokenPattern(FalseBranch)?.ToString(remainingDepth - 1) ?? "no else branch"})";
+			return $"if: {GetTokenPattern(TrueBranch).ToString(remainingDepth - 1)} | {TryGetTokenPattern(FalseBranch)?.ToString(remainingDepth - 1) ?? "no else branch"}";
 		}
 
 		public override bool Equals(object? obj)

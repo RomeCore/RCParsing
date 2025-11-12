@@ -35,12 +35,113 @@ namespace RCParsing.TokenPatterns
 	}
 
 	/// <summary>
+	/// Represents a combined escaping strategy that tries multiple strategies in order,
+	/// using the first one that matches for escape sequences and stop conditions.
+	/// </summary>
+	public class CombinedEscapingStrategy : EscapingStrategy
+	{
+		private readonly EscapingStrategy[] _strategies;
+
+		/// <summary>
+		/// Gets the sequence of escaping strategies that will be tried in order.
+		/// </summary>
+		public IReadOnlyList<EscapingStrategy> Strategies => _strategies;
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="CombinedEscapingStrategy"/> class.
+		/// </summary>
+		/// <param name="strategies">The escaping strategies to try in order.</param>
+		/// <exception cref="ArgumentNullException">Thrown when strategies is null.</exception>
+		/// <exception cref="ArgumentException">Thrown when strategies is empty or contains null elements.</exception>
+		public CombinedEscapingStrategy(params EscapingStrategy[] strategies)
+		{
+			if (strategies == null)
+				throw new ArgumentNullException(nameof(strategies));
+			if (strategies.Length == 0)
+				throw new ArgumentException("At least one strategy must be provided.", nameof(strategies));
+			if (strategies.Any(s => s == null))
+				throw new ArgumentException("Strategies array cannot contain null elements.", nameof(strategies));
+
+			_strategies = strategies.ToArray();
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="CombinedEscapingStrategy"/> class.
+		/// </summary>
+		/// <param name="strategies">The escaping strategies to try in order.</param>
+		/// <exception cref="ArgumentNullException">Thrown when strategies is null.</exception>
+		/// <exception cref="ArgumentException">Thrown when strategies is empty or contains null elements.</exception>
+		public CombinedEscapingStrategy(IEnumerable<EscapingStrategy> strategies)
+		{
+			if (strategies == null)
+				throw new ArgumentNullException(nameof(strategies));
+
+			var strategiesArray = strategies.ToArray();
+			if (strategiesArray.Length == 0)
+				throw new ArgumentException("At least one strategy must be provided.", nameof(strategies));
+			if (strategiesArray.Any(s => s == null))
+				throw new ArgumentException("Strategies collection cannot contain null elements.", nameof(strategies));
+
+			_strategies = strategiesArray;
+		}
+
+		public override bool TryEscape(string input, int position, int maxPosition, out int consumedLength, out string replacement)
+		{
+			// Try each strategy in order until one matches
+			foreach (var strategy in _strategies)
+			{
+				if (strategy.TryEscape(input, position, maxPosition, out consumedLength, out replacement))
+					return true;
+			}
+
+			// No strategy matched
+			consumedLength = 0;
+			replacement = string.Empty;
+			return false;
+		}
+
+		public override bool TryStop(string input, int position, int maxPosition, out int consumedLength)
+		{
+			// Try each strategy in order until one matches
+			foreach (var strategy in _strategies)
+			{
+				if (strategy.TryStop(input, position, maxPosition, out consumedLength))
+					return true;
+			}
+
+			// No strategy matched
+			consumedLength = 0;
+			return false;
+		}
+
+		public override string ToString()
+		{
+			var strategyStrings = _strategies.Select(s => s.ToString());
+			return $"combined: [{string.Join(" | ", strategyStrings)}]";
+		}
+
+		public override bool Equals(object? obj)
+		{
+			return obj is CombinedEscapingStrategy other &&
+				   _strategies.SequenceEqual(other._strategies);
+		}
+
+		public override int GetHashCode()
+		{
+			var hashCode = 17;
+			foreach (var strategy in _strategies)
+			{
+				hashCode = hashCode * 397 + strategy.GetHashCode();
+			}
+			return hashCode;
+		}
+	}
+
+	/// <summary>
 	/// Represents a default, trie-based escaping strategy with escape mappings 
 	/// </summary>
 	public class TrieEscapingStrategy : EscapingStrategy
 	{
-		private readonly bool _comparerWasSet;
-		private readonly bool _escapeNonEmpty;
 		private readonly Trie _escape;
 		private readonly Trie _forbidden;
 
@@ -83,11 +184,9 @@ namespace RCParsing.TokenPatterns
 			EscapeMappings = new ReadOnlyDictionary<string, string>(escapeMappings.ToDictionary(k => k.Key, v => v.Value, Comparer));
 			ForbiddenSequences = forbidden.ToArray().AsReadOnlyList();
 
-			_comparerWasSet = comparer != null;
 			_escape = new Trie(escapeMappings.Select(kvp => new KeyValuePair<string, object?>(kvp.Key, kvp.Value)),
 				comparer != null ? CharComparer : null);
 			_forbidden = new Trie(forbidden, comparer != null ? CharComparer : null);
-			_escapeNonEmpty = _escape.Count > 0;
 		}
 
 		public override bool TryEscape(string input, int position, int maxPosition, out int consumedLength, out string replacement)
@@ -115,8 +214,7 @@ namespace RCParsing.TokenPatterns
 				   obj is TrieEscapingStrategy other &&
 				   EscapeMappings.SetEqual(other.EscapeMappings) &&
 				   ForbiddenSequences.SetEqual(other.ForbiddenSequences) &&
-				   Equals(Comparer, other.Comparer) &&
-				   _comparerWasSet == other._comparerWasSet;
+				   Equals(Comparer, other.Comparer);
 		}
 
 		public override int GetHashCode()
@@ -125,7 +223,6 @@ namespace RCParsing.TokenPatterns
 			hashCode = hashCode * -1521134295 + EscapeMappings.GetSetHashCode(Comparer);
 			hashCode = hashCode * -1521134295 + ForbiddenSequences.GetSetHashCode(Comparer);
 			hashCode = hashCode * -1521134295 + Comparer.GetHashCode();
-			hashCode = hashCode * -1521134295 + _comparerWasSet.GetHashCode();
 			return hashCode;
 		}
 	}
@@ -467,14 +564,16 @@ namespace RCParsing.TokenPatterns
 			return base.Equals(obj) &&
 				   obj is EscapedTextTokenPattern other &&
 				   Equals(EscapingStrategy, other.EscapingStrategy) &&
-				   AllowsEmpty == other.AllowsEmpty;
+				   AllowsEmpty == other.AllowsEmpty &&
+				   ConsumeStopSequence == other.ConsumeStopSequence;
 		}
 
 		public override int GetHashCode()
 		{
 			int hashCode = base.GetHashCode();
-			hashCode = hashCode * -1521134295 + EscapingStrategy.GetHashCode();
-			hashCode = hashCode * -1521134295 + AllowsEmpty.GetHashCode();
+			hashCode = hashCode * 397 + EscapingStrategy.GetHashCode();
+			hashCode = hashCode * 397 + AllowsEmpty.GetHashCode();
+			hashCode = hashCode * 397 + ConsumeStopSequence.GetHashCode();
 			return hashCode;
 		}
 	}

@@ -55,7 +55,6 @@ namespace RCParsing.TokenPatterns.Combinators
 		public override ParsedElement Match(string input, int position, int barrierPosition,
 			object? parserParameter, bool calculateIntermediateValue, ref ParsingError furthestError)
 		{
-			var initialPosition = position;
 			var child = _child.Match(input, position, barrierPosition, parserParameter,
 				calculateIntermediateValue: true, ref furthestError);
 
@@ -65,7 +64,7 @@ namespace RCParsing.TokenPatterns.Combinators
 			if (Condition(child.intermediateValue))
 			{
 				if (position >= furthestError.position)
-					furthestError = new ParsingError(initialPosition, position - initialPosition, ErrorMessage, Id, true);
+					furthestError = new ParsingError(position, 0, ErrorMessage, Id, true);
 				return ParsedElement.Fail;
 			}
 

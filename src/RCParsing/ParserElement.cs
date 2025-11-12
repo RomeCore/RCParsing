@@ -54,7 +54,7 @@ namespace RCParsing
 
 		/// <summary>
 		/// The core implementation of <see cref="IsOptional"/>, which returns
-		/// a value indicating that this parser element is optional, e.g. can match a zero characters.
+		/// a value indicating that this parser element is optional, e.g. potentially can match a zero characters.
 		/// </summary>
 		protected virtual bool IsOptionalCore => false;
 

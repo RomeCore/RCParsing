@@ -307,7 +307,7 @@ namespace RCParsing
 				{
 					if (!checkedNames.Add(currentRule.Value1))
 					{
-						errors.Add($"Circular reference detected in rule '{rule.Key}': " +
+						errors.Add($"Direct circular reference detected in rule '{rule.Key}': " +
 							$"{string.Join(" -> ", checkedNames.Append(currentRule.Value1).Select(n => $"'{n}'"))}");
 						break;
 					}
@@ -363,7 +363,7 @@ namespace RCParsing
 				{
 					if (!checkedNames.Add(currentPattern.Value1))
 					{
-						errors.Add($"Circular reference detected in token pattern '{pattern.Key}': " +
+						errors.Add($"Direct circular reference detected in token pattern '{pattern.Key}': " +
 							$"{string.Join(" -> ", checkedNames.Append(currentPattern.Value1).Select(n => $"'{n}'"))}");
 						break;
 					}
@@ -479,7 +479,12 @@ namespace RCParsing
 
 			if (errors.Count > 0)
 			{
-				var message = string.Join(Environment.NewLine, errors);
+				string message;
+				if (errors.Count > 1)
+					message = "One or more errors occured during parser building:"
+						+ Environment.NewLine + string.Join(Environment.NewLine, errors);
+				else
+					message = errors[0];
 				throw new ParserBuildingException(message);
 			}
 

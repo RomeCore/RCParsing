@@ -70,14 +70,14 @@ namespace RCParsing.TokenPatterns.Combinators
 			return base.Equals(obj) &&
 				   obj is OptionalTokenPattern pattern &&
 				   Child == pattern.Child &&
-				   FallbackValue == pattern.FallbackValue;
+				   Equals(FallbackValue, pattern.FallbackValue);
 		}
 
 		public override int GetHashCode()
 		{
 			int hashCode = base.GetHashCode();
 			hashCode = hashCode * 397 + Child.GetHashCode();
-			hashCode = hashCode * 397 + FallbackValue.GetHashCode();
+			hashCode = hashCode * 397 + FallbackValue?.GetHashCode() ?? 0;
 			return hashCode;
 		}
 	}

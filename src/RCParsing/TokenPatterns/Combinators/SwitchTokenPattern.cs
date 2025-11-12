@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using RCParsing.Utils;
 
 namespace RCParsing.TokenPatterns.Combinators
 {
@@ -53,8 +54,8 @@ namespace RCParsing.TokenPatterns.Combinators
 			}
 		}
 
-		protected override bool IsFirstCharDeterministicCore => Branches.All(branchId => GetTokenPattern(branchId).IsFirstCharDeterministic);
-		protected override bool IsOptionalCore => Branches.Any(branchId => GetTokenPattern(branchId).IsOptional);
+		protected override bool IsFirstCharDeterministicCore => Branches.Append(DefaultBranch).All(branchId => TryGetTokenPattern(branchId)?.IsFirstCharDeterministic ?? true);
+		protected override bool IsOptionalCore => Branches.Append(DefaultBranch).Any(branchId => TryGetTokenPattern(branchId)?.IsOptional ?? false);
 
 		private TokenPattern[] _branches;
 		private TokenPattern? _defaultBranch;
@@ -88,11 +89,10 @@ namespace RCParsing.TokenPatterns.Combinators
 			if (remainingDepth <= 0)
 				return "switch...";
 
-			var branchStrings = Branches.Select(b => GetTokenPattern(b).ToString(remainingDepth - 1));
-			var defaultBranch = string.Empty;
+			var branchStrings = Branches.Select((b, i) => $"| {i}" + GetTokenPattern(b).ToString(remainingDepth - 1));
 			if (DefaultBranch >= 0)
-				defaultBranch = $" default: {GetTokenPattern(DefaultBranch).ToString(remainingDepth - 1)}";
-			return $"switch: ({string.Join(" | ", branchStrings)}){defaultBranch}";
+				branchStrings = branchStrings.Append($"| default: {GetTokenPattern(DefaultBranch).ToString(remainingDepth - 1)}");
+			return $"switch: ({string.Join(Environment.NewLine, branchStrings.Prepend(""))})".Indent("  ", addIndentToFirstLine: false);
 		}
 
 		public override bool Equals(object? obj)

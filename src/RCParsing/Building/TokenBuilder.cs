@@ -739,6 +739,31 @@ namespace RCParsing.Building
 		}
 
 		/// <summary>
+		/// Adds a token pattern that matches text until the child pattern is found, capturing the text as intermediate value.
+		/// </summary>
+		/// <param name="stopBuilder">The builder action for the stop condition pattern.</param>
+		/// <param name="allowEmpty">Whether empty matches are allowed.</param>
+		/// <param name="consumeStop">Whether to consume the stop pattern.</param>
+		/// <param name="failOnEof">Whether to fail when end of input is reached.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if builder action have not added any elements.</exception>
+		public TokenBuilder TextUntil(Action<TokenBuilder> stopBuilder, bool allowEmpty = true, bool consumeStop = false, bool failOnEof = false)
+		{
+			var stopPatternBuilder = new TokenBuilder(ParserBuilder);
+			stopBuilder(stopPatternBuilder);
+			if (!stopPatternBuilder.CanBeBuilt)
+				throw new ParserBuildingException("Stop pattern cannot be empty.");
+
+			return Token(new BuildableTextUntilTokenPattern
+			{
+				StopPattern = stopPatternBuilder.BuildingPattern.Value,
+				AllowEmpty = allowEmpty,
+				ConsumeStop = consumeStop,
+				FailOnEof = failOnEof
+			});
+		}
+
+		/// <summary>
 		/// Adds a token pattern that matches a single element, transforming its matched text span with a provided function.
 		/// </summary>
 		/// <param name="builderAction">The token builder action to build the child token.</param>
@@ -1106,35 +1131,7 @@ namespace RCParsing.Building
 		/// <exception cref="ParserBuildingException">Thrown if any builder action have not added any elements.</exception>
 		public TokenBuilder Switch(params (Func<object?, bool>, Action<TokenBuilder>)[] branches)
 		{
-			var branchPatterns = new List<Or<string, BuildableTokenPattern>>();
-			var conditions = new List<Func<object?, bool>>();
-
-			foreach (var (condition, branchBuilderAction) in branches)
-			{
-				var branchBuilder = new TokenBuilder(ParserBuilder);
-				branchBuilderAction(branchBuilder);
-				if (!branchBuilder.CanBeBuilt)
-					throw new ParserBuildingException("Branch token pattern cannot be empty.");
-
-				branchPatterns.Add(branchBuilder.BuildingPattern.Value);
-				conditions.Add(condition);
-			}
-
-			Func<object?, int> selector = param =>
-			{
-				for (int i = 0; i < conditions.Count; i++)
-				{
-					if (conditions[i](param))
-						return i;
-				}
-				return -1;
-			};
-
-			return Token(new BuildableSwitchTokenPattern
-			{
-				Selector = selector,
-				Branches = branchPatterns
-			});
+			return Switch(null, branches);
 		}
 
 		/// <summary>
@@ -1145,38 +1142,7 @@ namespace RCParsing.Building
 		/// <exception cref="ParserBuildingException">Thrown if any builder action have not added any elements.</exception>
 		public TokenBuilder Switch<T>(params (Func<T, bool>, Action<TokenBuilder>)[] branches)
 		{
-			var branchPatterns = new List<Or<string, BuildableTokenPattern>>();
-			var conditions = new List<Func<T, bool>>();
-
-			foreach (var (condition, branchBuilderAction) in branches)
-			{
-				var branchBuilder = new TokenBuilder(ParserBuilder);
-				branchBuilderAction(branchBuilder);
-				if (!branchBuilder.CanBeBuilt)
-					throw new ParserBuildingException("Branch token pattern cannot be empty.");
-
-				branchPatterns.Add(branchBuilder.BuildingPattern.Value);
-				conditions.Add(condition);
-			}
-
-			Func<object?, int> selector = param =>
-			{
-				if (param is T typedParam)
-				{
-					for (int i = 0; i < conditions.Count; i++)
-					{
-						if (conditions[i](typedParam))
-							return i;
-					}
-				}
-				return -1;
-			};
-
-			return Token(new BuildableSwitchTokenPattern
-			{
-				Selector = selector,
-				Branches = branchPatterns
-			});
+			return Switch(null, branches);
 		}
 	}
 }

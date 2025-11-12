@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using RCParsing.ParserRules;
 using RCParsing.Utils;
 
@@ -20,8 +22,7 @@ namespace RCParsing.Building.ParserRules
 		public bool IsPositive { get; set; } = true;
 
 		public override IEnumerable<Or<string, BuildableParserRule>>? RuleChildren => Child.WrapIntoEnumerable();
-		public override IEnumerable<Or<string, BuildableTokenPattern>>? TokenChildren => null;
-
+		
 		public BuildableLookaheadParserRule()
 		{
 			ParsedValueFactory = v => v.Count > 0 ? v[0].Value : null;
@@ -43,10 +44,9 @@ namespace RCParsing.Building.ParserRules
 		public override int GetHashCode()
 		{
 			int hashCode = base.GetHashCode();
-			hashCode = hashCode * 397 + Child.GetHashCode() * 23;
+			hashCode = hashCode * 397 + Child.GetHashCode();
 			hashCode = hashCode * 397 + IsPositive.GetHashCode();
 			return hashCode;
 		}
 	}
-
 }

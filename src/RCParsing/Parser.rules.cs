@@ -136,6 +136,24 @@ namespace RCParsing
 		/// </summary>
 		/// <param name="ruleAlias">The alias for the parser rule to use.</param>
 		/// <param name="context">The parser context to use for parsing.</param>
+		/// <returns>The parsed rule containing the result of the parse.</returns>
+		public ParsedRuleResultBase TryParseRule(string ruleAlias, ParserContext context)
+		{
+			if (context.parser != this)
+				throw new InvalidOperationException("Parser context is not associated with this parser.");
+			if (!_rulesAliases.TryGetValue(ruleAlias, out var ruleId))
+				throw new ArgumentException("Invalid rule alias", nameof(ruleAlias));
+
+			EmitBarriers(ref context);
+			var parsedRule = TryParseRule(ruleId, context, GlobalSettings);
+			return CreateResult(ref context, ref parsedRule);
+		}
+		
+		/// <summary>
+		/// Tries to parse a rule using the specified rule alias and input text.
+		/// </summary>
+		/// <param name="ruleAlias">The alias for the parser rule to use.</param>
+		/// <param name="context">The parser context to use for parsing.</param>
 		/// <param name="result">The parsed rule containing the result of the parse.</param>
 		/// <returns><see langword="true"/> if a rule was parsed successfully, <see langword="false"/> otherwise.</returns>
 		public bool TryParseRule(string ruleAlias, ParserContext context, out ParsedRuleResultBase result)
@@ -156,6 +174,17 @@ namespace RCParsing
 		/// </summary>
 		/// <param name="ruleAlias">The alias for the parser rule to use.</param>
 		/// <param name="input">The input text to parse.</param>
+		/// <returns>The parsed rule containing the result of the parse.</returns>
+		public ParsedRuleResultBase TryParseRule(string ruleAlias, string input)
+		{
+			return TryParseRule(ruleAlias, input, null);
+		}
+		
+		/// <summary>
+		/// Tries to parse a rule using the specified rule alias and input text.
+		/// </summary>
+		/// <param name="ruleAlias">The alias for the parser rule to use.</param>
+		/// <param name="input">The input text to parse.</param>
 		/// <param name="result">The parsed rule containing the result of the parse.</param>
 		/// <returns><see langword="true"/> if a rule was parsed successfully, <see langword="false"/> otherwise.</returns>
 		public bool TryParseRule(string ruleAlias, string input, out ParsedRuleResultBase result)
@@ -163,6 +192,21 @@ namespace RCParsing
 			return TryParseRule(ruleAlias, input, null, out result);
 		}
 
+		/// <summary>
+		/// Tries to parse a rule using the specified rule alias and input text.
+		/// </summary>
+		/// <param name="ruleAlias">The alias for the parser rule to use.</param>
+		/// <param name="context">The parser context to use for parsing.</param>
+		/// <returns>The result of the parse converted to the specified type.</returns>
+		public T? TryParseRule<T>(string ruleAlias, ParserContext context)
+		{
+			if (TryParseRule(ruleAlias, context, out var ast))
+			{
+				return ast.GetValue<T>();
+			}
+			return default;
+		}
+		
 		/// <summary>
 		/// Tries to parse a rule using the specified rule alias and input text.
 		/// </summary>
@@ -186,6 +230,17 @@ namespace RCParsing
 		/// </summary>
 		/// <param name="ruleAlias">The alias for the parser rule to use.</param>
 		/// <param name="input">The input text to parse.</param>
+		/// <returns>The result of the parse converted to the specified type.</returns>
+		public T TryParseRule<T>(string ruleAlias, string input)
+		{
+			return TryParseRule<T>(ruleAlias, input, null);
+		}
+		
+		/// <summary>
+		/// Tries to parse a rule using the specified rule alias and input text.
+		/// </summary>
+		/// <param name="ruleAlias">The alias for the parser rule to use.</param>
+		/// <param name="input">The input text to parse.</param>
 		/// <param name="result">The result of the parse converted to the specified type.</param>
 		/// <returns><see langword="true"/> if a rule was parsed successfully, <see langword="false"/> otherwise.</returns>
 		public bool TryParseRule<T>(string ruleAlias, string input, out T result)
@@ -193,6 +248,24 @@ namespace RCParsing
 			return TryParseRule(ruleAlias, input, null, out result);
 		}
 
+		/// <summary>
+		/// Tries to parse a rule using the specified rule alias and input text.
+		/// </summary>
+		/// <param name="ruleAlias">The alias for the parser rule to use.</param>
+		/// <param name="input">The input text to parse.</param>
+		/// <param name="parameter">Optional parameter to pass to the parser. Can be used to pass additional information to the transformation functions.</param>
+		/// <returns>The parsed rule containing the result of the parse.</returns>
+		public ParsedRuleResultBase TryParseRule(string ruleAlias, string input, object? parameter)
+		{
+			if (!_rulesAliases.TryGetValue(ruleAlias, out var ruleId))
+				throw new ArgumentException("Invalid rule alias", nameof(ruleAlias));
+
+			var context = new ParserContext(this, input, parameter);
+			EmitBarriers(ref context);
+			var parsedRule = TryParseRule(ruleId, context, GlobalSettings);
+			return CreateResult(ref context, ref parsedRule);
+		}
+		
 		/// <summary>
 		/// Tries to parse a rule using the specified rule alias and input text.
 		/// </summary>
@@ -213,6 +286,22 @@ namespace RCParsing
 			return parsedRule.success;
 		}
 
+		/// <summary>
+		/// Tries to parse a rule using the specified rule alias and input text.
+		/// </summary>
+		/// <param name="ruleAlias">The alias for the parser rule to use.</param>
+		/// <param name="input">The input text to parse.</param>
+		/// <param name="parameter">Optional parameter to pass to the parser. Can be used to pass additional information to the transformation functions.</param>
+		/// <returns>The result of the parse converted to the specified type.</returns>
+		public T TryParseRule<T>(string ruleAlias, string input, object? parameter)
+		{
+			if (TryParseRule(ruleAlias, input, parameter, out var ast))
+			{
+				return ast.GetValue<T>();
+			}
+			return default;
+		}
+		
 		/// <summary>
 		/// Tries to parse a rule using the specified rule alias and input text.
 		/// </summary>
