@@ -290,8 +290,62 @@ namespace RCParsing
 
 			List<string> errors = new();
 
+			// Initialize processing queue and namedTokenPatterns map with root token patterns
+			var rules = new Dictionary<string, RuleBuilder>(_rules);
+			foreach (var pattern in _tokenPatterns)
+			{
+				if (!pattern.Value.CanBeBuilt)
+				{
+					errors.Add($"Token pattern '{pattern.Key}' cannot be built, because it's empty.");
+					continue;
+				}
+				if (!rules.ContainsKey(pattern.Key))
+				{
+					rules.Add(pattern.Key, new RuleBuilder
+					{
+						BuildingRule = new BuildableTokenParserRule
+						{
+							Child = pattern.Key
+						}
+					});
+				}
+
+				// Detect circular references and resolve to the base token pattern
+				HashSet<string> checkedNames = new HashSet<string>();
+				var currentPattern = pattern.Value.BuildingPattern.Value;
+
+				while (currentPattern.VariantIndex != 1)
+				{
+					if (!checkedNames.Add(currentPattern.Value1))
+					{
+						errors.Add($"Direct circular reference detected in token pattern '{pattern.Key}': " +
+							$"{string.Join(" -> ", checkedNames.Append(currentPattern.Value1).Select(n => $"'{n}'"))}");
+						break;
+					}
+
+					if (_tokenPatterns.TryGetValue(currentPattern.Value1, out var nextPattern))
+					{
+						if (!nextPattern.CanBeBuilt)
+							errors.Add($"Token pattern '{currentPattern.Value1}' cannot be built, because it's empty.");
+
+						currentPattern = nextPattern.BuildingPattern.Value;
+					}
+					else
+					{
+						errors.Add($"Token pattern '{currentPattern.Value1}' cannot be found.");
+					}
+				}
+
+				if (currentPattern.VariantIndex == 1)
+				{
+					var bpattern = currentPattern.Value2;
+					elementsToProcess.Enqueue(bpattern);
+					namedTokenPatterns.Add(pattern.Key, bpattern);
+				}
+			}
+
 			// Initialize processing queue and namedRules map with root rules
-			foreach (var rule in _rules)
+			foreach (var rule in rules)
 			{
 				if (!rule.Value.CanBeBuilt)
 				{
@@ -345,49 +399,6 @@ namespace RCParsing
 					elementsToProcess.Enqueue(mainRule = rule);
 				}
 			);
-
-			// Initialize processing queue and namedTokenPatterns map with root token patterns
-			foreach (var pattern in _tokenPatterns)
-			{
-				if (!pattern.Value.CanBeBuilt)
-				{
-					errors.Add($"Token pattern '{pattern.Key}' cannot be built, because it's empty.");
-					continue;
-				}
-
-				// Detect circular references and resolve to the base token pattern
-				HashSet<string> checkedNames = new HashSet<string>();
-				var currentPattern = pattern.Value.BuildingPattern.Value;
-
-				while (currentPattern.VariantIndex != 1)
-				{
-					if (!checkedNames.Add(currentPattern.Value1))
-					{
-						errors.Add($"Direct circular reference detected in token pattern '{pattern.Key}': " +
-							$"{string.Join(" -> ", checkedNames.Append(currentPattern.Value1).Select(n => $"'{n}'"))}");
-						break;
-					}
-
-					if (_tokenPatterns.TryGetValue(currentPattern.Value1, out var nextPattern))
-					{
-						if (!nextPattern.CanBeBuilt)
-							errors.Add($"Token pattern '{currentPattern.Value1}' cannot be built, because it's empty.");
-
-						currentPattern = nextPattern.BuildingPattern.Value;
-					}
-					else
-					{
-						errors.Add($"Token pattern '{currentPattern.Value1}' cannot be found.");
-					}
-				}
-
-				if (currentPattern.VariantIndex == 1)
-				{
-					var bpattern = currentPattern.Value2;
-					elementsToProcess.Enqueue(bpattern);
-					namedTokenPatterns.Add(pattern.Key, bpattern);
-				}
-			}
 
 			// Process global parser settings child rules
 			elementsToProcess.Enqueue(_settingsBuilder);

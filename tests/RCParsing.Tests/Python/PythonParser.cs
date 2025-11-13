@@ -1677,7 +1677,8 @@ namespace RCParsing.Tests.Python
 			var builder = new ParserBuilder();
 			FillWithRules(builder);
 			buildingAction?.Invoke(builder);
-			return builder.Build();
+			var parser = builder.Build();
+			return parser;
 		}
 	}
 }

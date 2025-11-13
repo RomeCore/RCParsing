@@ -76,7 +76,7 @@ namespace RCParsing.TokenPatterns
 			if (strategies == null)
 				throw new ArgumentNullException(nameof(strategies));
 
-			var strategiesArray = strategies.ToArray();
+			var strategiesArray = strategies.SelectMany(s => s is CombinedEscapingStrategy c ? c._strategies : s.WrapIntoEnumerable()).ToArray();
 			if (strategiesArray.Length == 0)
 				throw new ArgumentException("At least one strategy must be provided.", nameof(strategies));
 			if (strategiesArray.Any(s => s == null))
