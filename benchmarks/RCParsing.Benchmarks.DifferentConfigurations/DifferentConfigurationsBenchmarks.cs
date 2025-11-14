@@ -26,7 +26,6 @@ namespace RCParsing.Benchmarks.DifferentConfigurations
 			stackTraceParser,
 			walkTraceParser,
 			lazyAstParser,
-			recordSkippedParser,
 			memoizedParser,
 			fastestParser,
 			slowestParser;
@@ -73,11 +72,6 @@ namespace RCParsing.Benchmarks.DifferentConfigurations
 			lazyAstParser = builder.Build();
 
 			builder = new ParserBuilder();
-			builder.Settings.RecordSkippedRules();
-			RCJsonParser.FillWithRules(builder);
-			recordSkippedParser = builder.Build();
-
-			builder = new ParserBuilder();
 			builder.Settings.UseCaching();
 			RCJsonParser.FillWithRules(builder);
 			memoizedParser = builder.Build();
@@ -88,7 +82,7 @@ namespace RCParsing.Benchmarks.DifferentConfigurations
 			fastestParser = builder.Build();
 
 			builder = new ParserBuilder();
-			builder.Settings.WriteStackTrace().RecordWalkTrace().UseLazyAST().RecordSkippedRules().UseCaching();
+			builder.Settings.WriteStackTrace().RecordWalkTrace().UseLazyAST().UseCaching();
 			RCJsonParser.FillWithRules(builder);
 			slowestParser = builder.Build();
 		}
@@ -145,12 +139,6 @@ namespace RCParsing.Benchmarks.DifferentConfigurations
 		public void LazyAST()
 		{
 			var value = lazyAstParser.Parse<object>(TestJSONs.bigJson);
-		}
-
-		[Benchmark, BenchmarkCategory("json")]
-		public void RecordSkipped()
-		{
-			var value = recordSkippedParser.Parse<object>(TestJSONs.bigJson);
 		}
 
 		[Benchmark, BenchmarkCategory("json")]
