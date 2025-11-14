@@ -64,12 +64,12 @@ namespace RCParsing
 		/// Initializes a new instance of the <see cref="SharedParserContext"/> class.
 		/// </summary>
 		/// <param name="parser">The parser object that is performing the parsing.</param>
-		/// <param name="str">The input string to parse.</param>
+		/// <param name="input">The input string to parse.</param>
 		/// <param name="parserParameter">The optional parameter passed to the parser. Can be used to pass additional information to the transformation functions, custom parser rules and token patterns.</param>
 		/// <exception cref="ArgumentNullException"></exception>
-		public SharedParserContext(Parser parser, string str, object? parserParameter = null)
+		public SharedParserContext(Parser parser, string input, object? parserParameter = null)
 		{
-			this.input = str;
+			this.input = input ?? throw new ArgumentNullException(nameof(input));
 			this.parserParameter = parserParameter;
 			this.parser = parser ?? throw new ArgumentNullException(nameof(parser));
 			this.cache = new ParserCache();

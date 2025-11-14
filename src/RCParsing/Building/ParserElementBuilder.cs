@@ -1586,6 +1586,226 @@ namespace RCParsing.Building
 			return Token(new NumberTokenPattern(type, flags, decimalPoint, groupSeparator));
 		}
 
+		private static IntegerNumberType IntegerNumberTypeFromCLR(Type type)
+		{
+			if (type == null)
+				throw new ArgumentNullException(nameof(type));
+
+			switch (Type.GetTypeCode(type))
+			{
+				case TypeCode.Byte:
+					return IntegerNumberType.Byte;
+				case TypeCode.SByte:
+					return IntegerNumberType.SignedByte;
+				case TypeCode.UInt16:
+					return IntegerNumberType.UnsignedShort;
+				case TypeCode.Int16:
+					return IntegerNumberType.Short;
+				case TypeCode.UInt32:
+					return IntegerNumberType.UnsignedInteger;
+				case TypeCode.Int32:
+					return IntegerNumberType.Integer;
+				case TypeCode.UInt64:
+					return IntegerNumberType.UnsignedLong;
+				case TypeCode.Int64:
+					return IntegerNumberType.Long;
+				default:
+					throw new ArgumentException("Unsupported integer number type: " + type);
+			}
+		}
+
+		private static IntegerNumberFlags IntegerNumberFlagsFromCLR(Type type)
+		{
+			if (type == null)
+				return IntegerNumberFlags.None;
+
+			switch (Type.GetTypeCode(type))
+			{
+				case TypeCode.Byte:
+				case TypeCode.UInt16:
+				case TypeCode.UInt32:
+				case TypeCode.UInt64:
+					return IntegerNumberFlags.None;
+				case TypeCode.SByte:
+				case TypeCode.Int16:
+				case TypeCode.Int32:
+				case TypeCode.Int64:
+					return IntegerNumberFlags.Signed;
+				default:
+					throw new ArgumentException("Unsupported integer number type: " + type);
+			}
+		}
+
+		private static IntegerNumberFlags IntegerNumberFlagsFromCLR(Type type, bool signed)
+		{
+			if (type == null)
+				return IntegerNumberFlags.None;
+
+			switch (Type.GetTypeCode(type))
+			{
+				case TypeCode.Byte:
+				case TypeCode.UInt16:
+				case TypeCode.UInt32:
+				case TypeCode.UInt64:
+				case TypeCode.SByte:
+				case TypeCode.Int16:
+				case TypeCode.Int32:
+				case TypeCode.Int64:
+					return signed ? IntegerNumberFlags.Signed : IntegerNumberFlags.None;
+				
+				default:
+					throw new ArgumentException("Unsupported integer number type: " + type);
+			}
+		}
+
+		/// <summary>
+		/// Adds an integer number token to the current sequence.
+		/// </summary>
+		/// <remarks>
+		/// <see cref="IntegerNumberFlags.Signed"/> or
+		/// <see cref="IntegerNumberFlags.None"/>, based on <paramref name="signed"/>
+		/// will be used here, intermediate value will be converted to <see cref="int"/>.
+		/// </remarks>
+		/// <param name="signed">Whether the number can have a sign.</param>
+		/// <param name="groupSeparator">The group separator character.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T IntegerNumber(bool signed = false, char groupSeparator = '_')
+		{
+			return Token(new IntegerNumberTokenPattern(IntegerNumberType.Integer,
+				signed ? IntegerNumberFlags.Signed : IntegerNumberFlags.None, groupSeparator));
+		}
+
+		/// <summary>
+		/// Adds an integer number token to the current sequence.
+		/// </summary>
+		/// <remarks>
+		/// Intemediate value will be converted to <see cref="float"/> if original string has decimal point, otherwise to <see cref="int"/>.
+		/// </remarks>
+		/// <param name="flags">The integer number flags to use.</param>
+		/// <param name="groupSeparator">The group separator character.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T IntegerNumber(IntegerNumberFlags flags, char groupSeparator = '_')
+		{
+			return Token(new IntegerNumberTokenPattern(IntegerNumberType.Integer, flags, groupSeparator));
+		}
+
+		/// <summary>
+		/// Adds an integer number token to the current sequence.
+		/// </summary>
+		/// <param name="type">The integer number type to use.</param>
+		/// <param name="groupSeparator">The group separator character.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T IntegerNumber(IntegerNumberType type, char groupSeparator = '_')
+		{
+			return Token(new IntegerNumberTokenPattern(type, IntegerNumberFlags.None, groupSeparator));
+		}
+		
+		/// <summary>
+		/// Adds an integer number token to the current sequence.
+		/// </summary>
+		/// <param name="flags">The integer number flags to use.</param>
+		/// <param name="type">The integer number type to use.</param>
+		/// <param name="groupSeparator">The group separator character.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T IntegerNumber(IntegerNumberType type, IntegerNumberFlags flags, char groupSeparator = '_')
+		{
+			return Token(new IntegerNumberTokenPattern(type, flags, groupSeparator));
+		}
+
+		/// <summary>
+		/// Adds an integer number token to the current sequence with custom base.
+		/// </summary>
+		/// <param name="type">The integer number type to use.</param>
+		/// <param name="defaultBase">The default base number (2 is binary, 8 is octal, 10 is decimal, 16 is hexadecimal).</param>
+		/// <param name="groupSeparator">The group separator character.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T IntegerNumber(IntegerNumberType type, int defaultBase, char groupSeparator = '_')
+		{
+			return Token(new IntegerNumberTokenPattern(type, IntegerNumberFlags.None, defaultBase, groupSeparator));
+		}
+
+		/// <summary>
+		/// Adds an integer number token to the current sequence with custom base and mappings.
+		/// </summary>
+		/// <param name="flags">The integer number flags to use.</param>
+		/// <param name="type">The integer number type to use.</param>
+		/// <param name="defaultBase">The default base number (2 is binary, 8 is octal, 10 is decimal, 16 is hexadecimal).</param>
+		/// <param name="baseMappings">The base mappings for each character.</param>
+		/// <param name="groupSeparator">The group separator character.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T IntegerNumber(IntegerNumberType type, IntegerNumberFlags flags, int defaultBase, IDictionary<char, int>? baseMappings, char groupSeparator = '_')
+		{
+			return Token(new IntegerNumberTokenPattern(type, flags, defaultBase, baseMappings, groupSeparator));
+		}
+
+		/// <summary>
+		/// Adds an integer number token to the current sequence.
+		/// </summary>
+		/// <remarks>
+		/// Flags and intermediate value conversion type will be inferred from <typeparamref name="TNum"/> type.
+		/// </remarks>
+		/// <param name="signed">Whether the number can have a sign.</param>
+		/// <param name="defaultBase">The default base number (2 is binary, 8 is octal, 10 is decimal, 16 is hexadecimal).</param>
+		/// <param name="baseMappings">The base mappings for each character.</param>
+		/// <param name="groupSeparator">The group separator character.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T IntegerNumber<TNum>(bool signed, int defaultBase = 10, IDictionary<char, int>? baseMappings = null, char groupSeparator = '_')
+		{
+			var type = IntegerNumberTypeFromCLR(typeof(TNum));
+			var flags = IntegerNumberFlagsFromCLR(typeof(TNum), signed);
+			return Token(new IntegerNumberTokenPattern(type, flags,
+				defaultBase, baseMappings, groupSeparator));
+		}
+
+		/// <summary>
+		/// Adds an integer number token to the current sequence.
+		/// </summary>
+		/// <remarks>
+		/// Intermediate value conversion type will be inferred from <typeparamref name="TNum"/> type.
+		/// </remarks>
+		/// <param name="flags">The integer number flags to use.</param>
+		/// <param name="groupSeparator">The group separator character.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T IntegerNumber<TNum>(IntegerNumberFlags flags, char groupSeparator = '_')
+		{
+			var type = IntegerNumberTypeFromCLR(typeof(TNum));
+			return Token(new IntegerNumberTokenPattern(type, flags, groupSeparator));
+		}
+
+		/// <summary>
+		/// Adds an integer number token to the current sequence with custom base and mappings.
+		/// </summary>
+		/// <remarks>
+		/// Intermediate value conversion type will be inferred from <typeparamref name="TNum"/> type.
+		/// </remarks>
+		/// <param name="defaultBase">The default base number (2 is binary, 8 is octal, 10 is decimal, 16 is hexadecimal).</param>
+		/// <param name="baseMappings">The base mappings for each character.</param>
+		/// <param name="groupSeparator">The group separator character.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T IntegerNumber<TNum>(int defaultBase = 10, IDictionary<char, int>? baseMappings = null, char groupSeparator = '_')
+		{
+			var type = IntegerNumberTypeFromCLR(typeof(TNum));
+			var flags = IntegerNumberFlagsFromCLR(typeof(TNum));
+			return Token(new IntegerNumberTokenPattern(type, flags, defaultBase, baseMappings, groupSeparator));
+		}
+		
+		/// <summary>
+		/// Adds an integer number token to the current sequence with custom base and mappings.
+		/// </summary>
+		/// <remarks>
+		/// Intermediate value conversion type will be inferred from <typeparamref name="TNum"/> type.
+		/// </remarks>
+		/// <param name="flags">The integer number flags to use.</param>
+		/// <param name="defaultBase">The default base number (2 is binary, 8 is octal, 10 is decimal, 16 is hexadecimal).</param>
+		/// <param name="baseMappings">The base mappings for each character.</param>
+		/// <param name="groupSeparator">The group separator character.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T IntegerNumber<TNum>(IntegerNumberFlags flags, int defaultBase = 10, IDictionary<char, int>? baseMappings = null, char groupSeparator = '_')
+		{
+			var type = IntegerNumberTypeFromCLR(typeof(TNum));
+			return Token(new IntegerNumberTokenPattern(type, flags, defaultBase, baseMappings, groupSeparator));
+		}
+
 		/// <summary>
 		/// Adds an escaped text token to the current sequence with escaping strategy.
 		/// </summary>

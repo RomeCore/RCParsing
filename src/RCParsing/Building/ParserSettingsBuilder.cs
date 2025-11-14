@@ -248,6 +248,21 @@ namespace RCParsing.Building
 				null, ctx, res);
 			return this;
 		}
+		
+		/// <summary>
+		/// Sets the creating AST type to the <see cref="ParsedRuleResultPrecalculated"/>.
+		/// </summary>
+		/// <remarks>
+		/// Prevents from AST recalculations, calculates all values on creation.
+		/// </remarks>
+		/// <param name="optimization">The optimization flags to apply to creating parsed rules.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public ParserSettingsBuilder UsePrecalculatedAST(ParseTreeOptimization optimization = ParseTreeOptimization.None)
+		{
+			_mainSettings.astFactory = (ctx, res) => new ParsedRuleResultPrecalculated(optimization,
+				null, ctx, res);
+			return this;
+		}
 
 		/// <summary>
 		/// Sets the creating AST type to the specified type.

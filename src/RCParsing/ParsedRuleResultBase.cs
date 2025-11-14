@@ -11,6 +11,17 @@ using RCParsing.Utils;
 namespace RCParsing
 {
 	/// <summary>
+	/// Represents a <see cref="ParsedRuleResultBase"/> with applied optimization tree flags.
+	/// </summary>
+	public interface IOptimizedParsedRuleResult
+	{
+		/// <summary>
+		/// Gets the optimization flags that used to optimize the parse tree.
+		/// </summary>
+		ParseTreeOptimization Optimization { get; }
+	}
+
+	/// <summary>
 	/// Represents a base class for parsed rule as the Abstract Syntax Tree (AST).
 	/// </summary>
 	public abstract class ParsedRuleResultBase : IReadOnlyList<ParsedRuleResultBase>

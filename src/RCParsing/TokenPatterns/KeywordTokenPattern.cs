@@ -129,9 +129,9 @@ namespace RCParsing.TokenPatterns
 		public override int GetHashCode()
 		{
 			int hashCode = base.GetHashCode();
-			hashCode = hashCode * -1521134295 + Keyword.GetHashCode();
-			hashCode = hashCode * -1521134295 + Comparison.GetHashCode();
-			hashCode = hashCode * -1521134295 + ProhibitedCharacterPredicate.GetHashCode();
+			hashCode = hashCode * 397 + Keyword.GetHashCode();
+			hashCode = hashCode * 397 + Comparison.GetHashCode();
+			hashCode = hashCode * 397 + ProhibitedCharacterPredicate.GetHashCode();
 			return hashCode;
 		}
 	}

@@ -281,5 +281,474 @@ namespace RCParsing.Tests.Tokens
 			Assert.Equal(2, res.Length);
 			Assert.Equal(5.0, res.GetIntermediateValue<double>());
 		}
+
+		[Fact(DisplayName = "IntegerNumber token matches numeric strings with different bases")]
+		public void IntegerNumber_WithDifferentBases()
+		{
+			var builder = new ParserBuilder();
+
+			builder.CreateToken("binary")
+				.IntegerNumber<int>(2);
+			builder.CreateToken("hex")
+				.IntegerNumber<int>(16);
+			builder.CreateToken("octal")
+				.IntegerNumber<int>(signed: false, 8);
+
+			var parser = builder.Build();
+
+			// Binary
+			var res = parser.TryMatchToken("binary", "10101abc");
+			Assert.True(res.Success);
+			Assert.Equal(5, res.Length);
+			Assert.Equal(21, res.GetIntermediateValue<int>());
+
+			// Hexadecimal
+			res = parser.TryMatchToken("hex", "FF|abc");
+			Assert.True(res.Success);
+			Assert.Equal(2, res.Length);
+			Assert.Equal(255, res.GetIntermediateValue<int>());
+
+			// Octal
+			res = parser.TryMatchToken("octal", "755abc");
+			Assert.True(res.Success);
+			Assert.Equal(3, res.Length);
+			Assert.Equal(493, res.GetIntermediateValue<int>());
+		}
+
+		[Fact(DisplayName = "IntegerNumber token with base mappings")]
+		public void IntegerNumber_WithBaseMappings()
+		{
+			var builder = new ParserBuilder();
+
+			var baseMappings = new Dictionary<char, int>
+			{
+				['b'] = 2,
+				['o'] = 8,
+				['x'] = 16
+			};
+
+			builder.CreateToken("mapped")
+				.IntegerNumber<int>(10, baseMappings);
+
+			var parser = builder.Build();
+
+			// Default base (decimal)
+			var res = parser.TryMatchToken("mapped", "123abc");
+			Assert.True(res.Success);
+			Assert.Equal(3, res.Length);
+			Assert.Equal(123, res.GetIntermediateValue<int>());
+
+			// Binary mapping
+			res = parser.TryMatchToken("mapped", "0b101abc");
+			Assert.True(res.Success);
+			Assert.Equal(5, res.Length);
+			Assert.Equal(5, res.GetIntermediateValue<int>());
+
+			// Octal mapping
+			res = parser.TryMatchToken("mapped", "0o77abc");
+			Assert.True(res.Success);
+			Assert.Equal(4, res.Length);
+			Assert.Equal(63, res.GetIntermediateValue<int>());
+
+			// Hexadecimal mapping
+			res = parser.TryMatchToken("mapped", "0x1F|abc");
+			Assert.True(res.Success);
+			Assert.Equal(4, res.Length);
+			Assert.Equal(31, res.GetIntermediateValue<int>());
+		}
+
+		[Fact(DisplayName = "IntegerNumber token handles signed and unsigned correctly")]
+		public void IntegerNumber_SignedUnsigned()
+		{
+			var builder = new ParserBuilder();
+
+			builder.CreateToken("signed_int")
+				.IntegerNumber<int>(signed: true);
+			builder.CreateToken("unsigned_int")
+				.IntegerNumber<uint>(signed: false);
+
+			var parser = builder.Build();
+
+			// Signed accepts negative numbers
+			var res = parser.TryMatchToken("signed_int", "-123abc");
+			Assert.True(res.Success);
+			Assert.Equal(4, res.Length);
+			Assert.Equal(-123, res.GetIntermediateValue<int>());
+
+			// Unsigned rejects negative numbers
+			res = parser.TryMatchToken("unsigned_int", "-123abc");
+			Assert.False(res.Success);
+
+			// Unsigned accepts positive numbers
+			res = parser.TryMatchToken("unsigned_int", "456abc");
+			Assert.True(res.Success);
+			Assert.Equal(3, res.Length);
+			Assert.Equal(456u, res.GetIntermediateValue<uint>());
+		}
+
+		[Fact(DisplayName = "IntegerNumber token with group separators")]
+		public void IntegerNumber_WithGroupSeparators()
+		{
+			var builder = new ParserBuilder();
+
+			builder.CreateToken("grouped")
+				.IntegerNumber<long>(IntegerNumberFlags.GroupSeparators, groupSeparator: '_');
+			builder.CreateToken("grouped_hex")
+				.IntegerNumber<long>(IntegerNumberFlags.GroupSeparators, 16, groupSeparator: '_');
+
+			var parser = builder.Build();
+
+			// Decimal with groups
+			var res = parser.TryMatchToken("grouped", "1_000_000abc");
+			Assert.True(res.Success);
+			Assert.Equal(9, res.Length);
+			Assert.Equal(1000000L, res.GetIntermediateValue<long>());
+
+			// Hexadecimal with groups
+			res = parser.TryMatchToken("grouped_hex", "FF_FF_FFzdb");
+			Assert.True(res.Success);
+			Assert.Equal(8, res.Length);
+			Assert.Equal(0xFFFFFFL, res.GetIntermediateValue<long>());
+		}
+
+		[Fact(DisplayName = "IntegerNumber token boundary cases")]
+		public void IntegerNumber_BoundaryCases()
+		{
+			var builder = new ParserBuilder();
+
+			builder.CreateToken("int")
+				.IntegerNumber<int>();
+			builder.CreateToken("uint")
+				.IntegerNumber<uint>();
+
+			var parser = builder.Build();
+
+			// Empty string
+			var res = parser.TryMatchToken("int", "");
+			Assert.False(res.Success);
+
+			// Only sign
+			res = parser.TryMatchToken("int", "-");
+			Assert.False(res.Success);
+
+			// Only base prefix
+			res = parser.TryMatchToken("int", "0x");
+			Assert.True(res.Success);
+			Assert.Equal(1, res.Length);
+
+			// Valid edge case - single digit
+			res = parser.TryMatchToken("int", "0abc");
+			Assert.True(res.Success);
+			Assert.Equal(1, res.Length);
+			Assert.Equal(0, res.GetIntermediateValue<int>());
+
+			// Maximum value
+			res = parser.TryMatchToken("int", "2147483647abc");
+			Assert.True(res.Success);
+			Assert.Equal(10, res.Length);
+			Assert.Equal(int.MaxValue, res.GetIntermediateValue<int>());
+
+			// Over maximum value
+			res = parser.TryMatchToken("int", "2147483648abc");
+			Assert.False(res.Success);
+		}
+
+		[Fact(DisplayName = "IntegerNumber token with different numeric types")]
+		public void IntegerNumber_DifferentTypes()
+		{
+			var builder = new ParserBuilder();
+
+			builder.CreateToken("byte_num")
+				.IntegerNumber<byte>();
+			builder.CreateToken("short_num")
+				.IntegerNumber<short>(signed: true);
+			builder.CreateToken("long_num")
+				.IntegerNumber<long>();
+
+			var parser = builder.Build();
+
+			// Byte
+			var res = parser.TryMatchToken("byte_num", "255abc");
+			Assert.True(res.Success);
+			Assert.Equal(3, res.Length);
+			Assert.Equal((byte)255, res.GetIntermediateValue<byte>());
+
+			// Short
+			res = parser.TryMatchToken("short_num", "-32768abc");
+			Assert.True(res.Success);
+			Assert.Equal(6, res.Length);
+			Assert.Equal(-32768, res.GetIntermediateValue<short>());
+
+			// Long
+			res = parser.TryMatchToken("long_num", "9223372036854775807abc");
+			Assert.True(res.Success);
+			Assert.Equal(19, res.Length);
+			Assert.Equal(long.MaxValue, res.GetIntermediateValue<long>());
+		}
+
+		[Fact(DisplayName = "IntegerNumber token handles invalid base characters")]
+		public void IntegerNumber_InvalidBaseCharacters()
+		{
+			var builder = new ParserBuilder();
+
+			builder.CreateToken("binary")
+				.IntegerNumber<int>(2);
+			builder.CreateToken("decimal")
+				.IntegerNumber<int>(10);
+
+			var parser = builder.Build();
+
+			// Binary with invalid digit
+			var res = parser.TryMatchToken("binary", "102abc");
+			Assert.True(res.Success);
+			Assert.Equal(2, res.Length); // Only "10" is valid binary
+			Assert.Equal(2, res.GetIntermediateValue<int>());
+
+			// Decimal with all valid digits
+			res = parser.TryMatchToken("decimal", "123abc");
+			Assert.True(res.Success);
+			Assert.Equal(3, res.Length);
+			Assert.Equal(123, res.GetIntermediateValue<int>());
+		}
+
+		[Fact(DisplayName = "IntegerNumber token with custom base mappings edge cases")]
+		public void IntegerNumber_CustomBaseMappingsEdgeCases()
+		{
+			var builder = new ParserBuilder();
+
+			var customMappings = new Dictionary<char, int>
+			{
+				['a'] = 11,
+				['b'] = 12,
+				['z'] = 36
+			};
+
+			builder.CreateToken("custom_base")
+				.IntegerNumber<long>(10, customMappings);
+
+			var parser = builder.Build();
+
+			// Base 11 with custom mapping
+			var res = parser.TryMatchToken("custom_base", "0a10abc");
+			Assert.True(res.Success);
+			Assert.Equal(5, res.Length);
+			Assert.Equal(131L, res.GetIntermediateValue<long>()); // 1*11^2 + 0*11^1 + 10*11^0
+
+			// Base 36 with maximum digit
+			res = parser.TryMatchToken("custom_base", "0zzz bc");
+			Assert.True(res.Success);
+			Assert.Equal(4, res.Length);
+			Assert.Equal(1295L, res.GetIntermediateValue<long>()); // 35*36 + 35
+		}
+
+		[Fact]
+		public void Number_Integer_OverflowCases()
+		{
+			var builder = new ParserBuilder();
+
+			builder.CreateToken("byte")
+				.Number<byte>();
+			builder.CreateToken("sbyte")
+				.Number<sbyte>();
+			builder.CreateToken("short")
+				.Number<short>();
+			builder.CreateToken("ushort")
+				.Number<ushort>();
+			builder.CreateToken("int")
+				.Number<int>();
+			builder.CreateToken("uint")
+				.Number<uint>();
+			builder.CreateToken("long")
+				.Number<long>();
+			builder.CreateToken("ulong")
+				.Number<ulong>();
+
+			var parser = builder.Build();
+
+			// byte: 0 to 255
+			var res = parser.TryMatchToken("byte", "-1");
+			Assert.False(res.Success);
+			res = parser.TryMatchToken("byte", "0");
+			Assert.True(res.Success);
+			res = parser.TryMatchToken("byte", "255");
+			Assert.True(res.Success);
+			res = parser.TryMatchToken("byte", "256");
+			Assert.False(res.Success);
+
+			// sbyte: -128 to 127
+			res = parser.TryMatchToken("sbyte", "-129");
+			Assert.False(res.Success);
+			res = parser.TryMatchToken("sbyte", "-128");
+			Assert.True(res.Success);
+			res = parser.TryMatchToken("sbyte", "127");
+			Assert.True(res.Success);
+			res = parser.TryMatchToken("sbyte", "128");
+			Assert.False(res.Success);
+
+			// short: -32768 to 32767
+			res = parser.TryMatchToken("short", "-32769");
+			Assert.False(res.Success);
+			res = parser.TryMatchToken("short", "-32768");
+			Assert.True(res.Success);
+			res = parser.TryMatchToken("short", "32767");
+			Assert.True(res.Success);
+			res = parser.TryMatchToken("short", "32768");
+			Assert.False(res.Success);
+
+			// ushort: 0 to 65535
+			res = parser.TryMatchToken("ushort", "-1");
+			Assert.False(res.Success);
+			res = parser.TryMatchToken("ushort", "0");
+			Assert.True(res.Success);
+			res = parser.TryMatchToken("ushort", "65535");
+			Assert.True(res.Success);
+			res = parser.TryMatchToken("ushort", "65536");
+			Assert.False(res.Success);
+
+			// int: -2147483648 to 2147483647
+			res = parser.TryMatchToken("int", "-2147483649");
+			Assert.False(res.Success);
+			res = parser.TryMatchToken("int", "-2147483648");
+			Assert.True(res.Success);
+			res = parser.TryMatchToken("int", "2147483647");
+			Assert.True(res.Success);
+			res = parser.TryMatchToken("int", "2147483648");
+			Assert.False(res.Success);
+
+			// uint: 0 to 4294967295
+			res = parser.TryMatchToken("uint", "-1");
+			Assert.False(res.Success);
+			res = parser.TryMatchToken("uint", "0");
+			Assert.True(res.Success);
+			res = parser.TryMatchToken("uint", "4294967295");
+			Assert.True(res.Success);
+			res = parser.TryMatchToken("uint", "4294967296");
+			Assert.False(res.Success);
+
+			// long: -9223372036854775808 to 9223372036854775807
+			res = parser.TryMatchToken("long", "-9223372036854775809");
+			Assert.False(res.Success);
+			res = parser.TryMatchToken("long", "-9223372036854775808");
+			Assert.True(res.Success);
+			res = parser.TryMatchToken("long", "9223372036854775807");
+			Assert.True(res.Success);
+			res = parser.TryMatchToken("long", "9223372036854775808");
+			Assert.False(res.Success);
+
+			// ulong: 0 to 18446744073709551615
+			res = parser.TryMatchToken("ulong", "-1");
+			Assert.False(res.Success);
+			res = parser.TryMatchToken("ulong", "0");
+			Assert.True(res.Success);
+			res = parser.TryMatchToken("ulong", "18446744073709551615");
+			Assert.True(res.Success);
+			res = parser.TryMatchToken("ulong", "18446744073709551616");
+			Assert.False(res.Success);
+		}
+
+		[Fact]
+		public void IntegerNumber_OverflowCases()
+		{
+			var builder = new ParserBuilder();
+
+			builder.CreateToken("byte")
+				.IntegerNumber<byte>();
+			builder.CreateToken("sbyte")
+				.IntegerNumber<sbyte>();
+			builder.CreateToken("short")
+				.IntegerNumber<short>();
+			builder.CreateToken("ushort")
+				.IntegerNumber<ushort>();
+			builder.CreateToken("int")
+				.IntegerNumber<int>();
+			builder.CreateToken("uint")
+				.IntegerNumber<uint>();
+			builder.CreateToken("long")
+				.IntegerNumber<long>();
+			builder.CreateToken("ulong")
+				.IntegerNumber<ulong>();
+
+			var parser = builder.Build();
+
+			// byte: 0 to 255
+			var res = parser.TryMatchToken("byte", "-1");
+			Assert.False(res.Success);
+			res = parser.TryMatchToken("byte", "0");
+			Assert.True(res.Success);
+			res = parser.TryMatchToken("byte", "255");
+			Assert.True(res.Success);
+			res = parser.TryMatchToken("byte", "256");
+			Assert.False(res.Success);
+
+			// sbyte: -128 to 127
+			res = parser.TryMatchToken("sbyte", "-129");
+			Assert.False(res.Success);
+			res = parser.TryMatchToken("sbyte", "-128");
+			Assert.True(res.Success);
+			res = parser.TryMatchToken("sbyte", "127");
+			Assert.True(res.Success);
+			res = parser.TryMatchToken("sbyte", "128");
+			Assert.False(res.Success);
+
+			// short: -32768 to 32767
+			res = parser.TryMatchToken("short", "-32769");
+			Assert.False(res.Success);
+			res = parser.TryMatchToken("short", "-32768");
+			Assert.True(res.Success);
+			res = parser.TryMatchToken("short", "32767");
+			Assert.True(res.Success);
+			res = parser.TryMatchToken("short", "32768");
+			Assert.False(res.Success);
+
+			// ushort: 0 to 65535
+			res = parser.TryMatchToken("ushort", "-1");
+			Assert.False(res.Success);
+			res = parser.TryMatchToken("ushort", "0");
+			Assert.True(res.Success);
+			res = parser.TryMatchToken("ushort", "65535");
+			Assert.True(res.Success);
+			res = parser.TryMatchToken("ushort", "65536");
+			Assert.False(res.Success);
+
+			// int: -2147483648 to 2147483647
+			res = parser.TryMatchToken("int", "-2147483649");
+			Assert.False(res.Success);
+			res = parser.TryMatchToken("int", "-2147483648");
+			Assert.True(res.Success);
+			res = parser.TryMatchToken("int", "2147483647");
+			Assert.True(res.Success);
+			res = parser.TryMatchToken("int", "2147483648");
+			Assert.False(res.Success);
+
+			// uint: 0 to 4294967295
+			res = parser.TryMatchToken("uint", "-1");
+			Assert.False(res.Success);
+			res = parser.TryMatchToken("uint", "0");
+			Assert.True(res.Success);
+			res = parser.TryMatchToken("uint", "4294967295");
+			Assert.True(res.Success);
+			res = parser.TryMatchToken("uint", "4294967296");
+			Assert.False(res.Success);
+
+			// long: -9223372036854775808 to 9223372036854775807
+			res = parser.TryMatchToken("long", "-9223372036854775809");
+			Assert.False(res.Success);
+			res = parser.TryMatchToken("long", "-9223372036854775808");
+			Assert.True(res.Success);
+			res = parser.TryMatchToken("long", "9223372036854775807");
+			Assert.True(res.Success);
+			res = parser.TryMatchToken("long", "9223372036854775808");
+			Assert.False(res.Success);
+
+			// ulong: 0 to 18446744073709551615
+			res = parser.TryMatchToken("ulong", "-1");
+			Assert.False(res.Success);
+			res = parser.TryMatchToken("ulong", "0");
+			Assert.True(res.Success);
+			res = parser.TryMatchToken("ulong", "18446744073709551615");
+			Assert.True(res.Success);
+			res = parser.TryMatchToken("ulong", "18446744073709551616");
+			Assert.False(res.Success);
+		}
 	}
 }
