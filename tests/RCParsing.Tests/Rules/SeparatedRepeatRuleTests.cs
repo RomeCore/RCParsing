@@ -93,7 +93,7 @@ namespace RCParsing.Tests.Rules
 			90
 
 			1
-			""", 7, 2); // Two elements
+			""", 2 + Environment.NewLine.Length * 2 + 1, 2); // Two elements
 			Check(
 			"""
 			90
@@ -102,7 +102,7 @@ namespace RCParsing.Tests.Rules
 
 
 
-			""", 7, 2); // Two elements, without trailing
+			""", 2 + Environment.NewLine.Length * 2 + 1, 2); // Two elements, without trailing
 			Check(
 			"""
 			90
@@ -110,7 +110,7 @@ namespace RCParsing.Tests.Rules
 			999
 
 
-			""", 10, 3); // Three elements
+			""", 2 + Environment.NewLine.Length + 1 + Environment.NewLine.Length + 3, 3); // Three elements
 		}
 
 		[Fact]
@@ -149,7 +149,7 @@ namespace RCParsing.Tests.Rules
 			90
 
 			1
-			""", 7, 2); // Two elements
+			""", 2 + Environment.NewLine.Length * 2 + 1, 2); // Two elements
 			Check(
 			"""
 			90
@@ -158,7 +158,7 @@ namespace RCParsing.Tests.Rules
 
 
 
-			""", 7, 2); // Two elements, without trailing
+			""", 2 + Environment.NewLine.Length * 2 + 1, 2); // Two elements, without trailing
 			Check(
 			"""
 			90
@@ -166,7 +166,7 @@ namespace RCParsing.Tests.Rules
 			999
 
 
-			""", 10, 3); // Three elements
+			""", 2 + Environment.NewLine.Length + 1 + Environment.NewLine.Length + 3, 3); // Three elements
 		}
 
 		[Fact]
