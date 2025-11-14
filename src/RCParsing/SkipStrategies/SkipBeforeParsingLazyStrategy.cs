@@ -55,36 +55,5 @@ namespace RCParsing.SkipStrategies
 				return rule.Parse(ruleContext, ruleSettings, ruleChildSettings);
 			}
 		}
-
-		public override IEnumerable<ParsedRule> FindAllMatches(ParserContext context, ParserSettings settings, bool overlap,
-			ParserRule rule, ParserContext ruleContext, ParserSettings ruleSettings, ParserSettings ruleChildSettings)
-		{
-			settings.skippingStrategy = null;
-			SkipRule.AdvanceContext(ref context, ref settings, out var childSkipSettings);
-
-			while (ruleContext.position < ruleContext.maxPosition)
-			{
-				while (true)
-				{
-					var parsedSkip = SkipRule.Parse(context, settings, childSkipSettings);
-					if (parsedSkip.endIndex > context.position)
-						ruleContext.position = context.position = parsedSkip.endIndex;
-					else
-						break;
-				}
-
-				var result = rule.Parse(ruleContext, ruleSettings, ruleChildSettings);
-				if (result.success)
-				{
-					yield return result;
-					if (overlap)
-						ruleContext.position++;
-					else
-						ruleContext.position = result.endIndex;
-				}
-				else
-					ruleContext.position++;
-			}
-		}
 	}
 }
