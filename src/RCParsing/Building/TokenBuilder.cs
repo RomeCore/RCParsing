@@ -867,7 +867,7 @@ namespace RCParsing.Building
 			return Token(new BuildableFailIfTokenPattern
 			{
 				Child = builder.BuildingPattern.Value,
-				Condition = v => condition((T)v),
+				Condition = v => v is T t && condition(t),
 				ErrorMessage = errorMessage
 			});
 		}
