@@ -28,259 +28,25 @@ namespace RCParsing
 			throw ExceptionFromContext(context);
 		}
 
-		static bool TrySkip(ref ParserContext context, ParserRule skipRule,
-				ref ParserSettings skipSettings, ref ParserSettings childSkipSettings, bool record)
-		{
-			//if (context.shared.positionsToAvoidSkipping[context.position])
-			//	return false;
-			if (context.position >= context.maxPosition)
-				return false;
-
-			var parsedSkipRule = skipRule.Parse(context, skipSettings, childSkipSettings);
-			int newPosition = parsedSkipRule.startIndex + parsedSkipRule.length;
-
-			if (parsedSkipRule.success && newPosition != context.position)
-			{
-				context.position = newPosition;
-				if (record)
-					context.skippedRules.Add(parsedSkipRule);
-				return true;
-			}
-			return false;
-		}
-
-		static bool TryParse(ParserRule rule, ref ParserContext context,
-				ref ParserSettings settings, ref ParserSettings childSettings, out ParsedRule parsedRule)
-		{
-			parsedRule = rule.Parse(context, settings, childSettings);
-			return parsedRule.success;
-		}
-
-		static ParsedRule Parse(ParserRule rule, ref ParserContext context,
-				ref ParserSettings settings, ref ParserSettings childSettings, bool canRecover)
-		{
-			var parsedRule = rule.Parse(context, settings, childSettings);
-			if (!parsedRule.success && canRecover)
-				if (rule.CanRecover)
-					return TryRecover(rule, ref context, ref settings, ref childSettings);
-			return parsedRule;
-		}
-
-
-
-		private static ParsedRule ParseWithSkip(ParserSkippingStrategy strategy,
-			ParserRule rule, ParserRule skipRule, ref ParserContext context,
-			ref ParserSettings settings, ref ParserSettings skipSettings,
-			ref ParserSettings childSettings, ref ParserSettings childSkipSettings,
-			bool record, bool canRecover)
-		{
-			switch (strategy)
-			{
-				case ParserSkippingStrategy.SkipBeforeParsing:
-
-					TrySkip(ref context, skipRule, ref skipSettings, ref childSkipSettings, record);
-					return Parse(rule, ref context, ref settings, ref childSettings, canRecover);
-
-				case ParserSkippingStrategy.SkipBeforeParsingLazy:
-
-					// Alternate: Skip -> TryParse -> Skip -> TryParse ... until TryParse succeeds
-					while (true)
-					{
-						if (TrySkip(ref context, skipRule, ref skipSettings, ref childSkipSettings, record))
-						{
-							if (TryParse(rule, ref context, ref settings, ref childSettings, out var res))
-							{
-								return res;
-							}
-							continue;
-						}
-						return Parse(rule, ref context, ref settings, ref childSettings, canRecover);
-					}
-
-				case ParserSkippingStrategy.SkipBeforeParsingGreedy:
-
-					while (TrySkip(ref context, skipRule, ref skipSettings, ref childSkipSettings, record))
-					{
-					}
-					return Parse(rule, ref context, ref settings, ref childSettings, canRecover);
-
-				case ParserSkippingStrategy.TryParseThenSkip:
-
-					if (TryParse(rule, ref context, ref settings, ref childSettings, out var result))
-						return result;
-
-					if (TrySkip(ref context, skipRule, ref skipSettings, ref childSkipSettings, record))
-					{
-						return Parse(rule, ref context, ref settings, ref childSettings, canRecover);
-					}
-
-					if (canRecover)
-						return TryRecover(rule, ref context, ref settings, ref childSettings);
-					return ParsedRule.Fail;
-
-				case ParserSkippingStrategy.TryParseThenSkipLazy:
-
-					// First try parse (handled above in TryParseThenSkip pattern),
-					// then alternate Skip -> TryParse -> Skip -> TryParse ... until success or nothing consumes
-					if (TryParse(rule, ref context, ref settings, ref childSettings, out var firstResult))
-					{
-						return firstResult;
-					}
-
-					while (true)
-					{
-						if (TrySkip(ref context, skipRule, ref skipSettings, ref childSkipSettings, record))
-						{
-							if (TryParse(rule, ref context, ref settings, ref childSettings, out var res))
-							{
-								return res;
-							}
-							continue;
-						}
-
-						if (canRecover)
-							return TryRecover(rule, ref context, ref settings, ref childSettings);
-						return ParsedRule.Fail;
-					}
-
-				case ParserSkippingStrategy.TryParseThenSkipGreedy:
-
-					// Try parse; if failed, greedily skip then parse once
-					if (TryParse(rule, ref context, ref settings, ref childSettings, out var firstRes))
-						return firstRes;
-
-					while (TrySkip(ref context, skipRule, ref skipSettings, ref childSkipSettings, record))
-					{
-					}
-
-					return Parse(rule, ref context, ref settings, ref childSettings, canRecover);
-
-				case ParserSkippingStrategy.TryParseNonEmptyThenSkip:
-
-					var lastResult = ParsedRule.Fail;
-					if (TryParse(rule, ref context, ref settings, ref childSettings, out lastResult) && lastResult.length > 0)
-						return lastResult;
-
-					if (TrySkip(ref context, skipRule, ref skipSettings, ref childSkipSettings, record))
-					{
-						return Parse(rule, ref context, ref settings, ref childSettings, canRecover);
-					}
-
-					if (lastResult.success)
-						return lastResult;
-
-					if (canRecover)
-						return TryRecover(rule, ref context, ref settings, ref childSettings);
-					return ParsedRule.Fail;
-
-				case ParserSkippingStrategy.TryParseNonEmptyThenSkipLazy:
-
-					// First try parse (handled above in TryParseThenSkip pattern),
-					// then alternate Skip -> TryParse -> Skip -> TryParse ... until success or nothing consumes
-					if (TryParse(rule, ref context, ref settings, ref childSettings, out firstResult) && firstResult.length > 0)
-					{
-						return firstResult;
-					}
-
-					while (true)
-					{
-						lastResult = ParsedRule.Fail;
-						if (TrySkip(ref context, skipRule, ref skipSettings, ref childSkipSettings, record))
-						{
-							if (TryParse(rule, ref context, ref settings, ref childSettings, out lastResult) && lastResult.length > 0)
-							{
-								return lastResult;
-							}
-							continue;
-						}
-
-						if (lastResult.success)
-							return lastResult;
-
-						if (canRecover)
-							return TryRecover(rule, ref context, ref settings, ref childSettings);
-						return ParsedRule.Fail;
-					}
-
-				case ParserSkippingStrategy.TryParseNonEmptyThenSkipGreedy:
-
-					// Try parse; if failed, greedily skip then parse once
-					if (TryParse(rule, ref context, ref settings, ref childSettings, out firstResult) && firstResult.length > 0)
-						return firstResult;
-
-					while (TrySkip(ref context, skipRule, ref skipSettings, ref childSkipSettings, record))
-					{
-					}
-
-					return Parse(rule, ref context, ref settings, ref childSettings, canRecover);
-
-				default:
-
-					return ParsedRule.Fail;
-			}
-		}
-
-		private ParsedRule TryParseRule(ParserRule rule, 
-			ref ParserContext context, ref ParserSettings settings, ref ParserSettings childSettings,
-			bool canRecover)
-		{
-			if (MainSettings.useOptimizedWhitespaceSkip)
-			{
-				while (context.position < context.maxPosition && char.IsWhiteSpace(context.input[context.position]))
-					context.position++;
-				return Parse(rule, ref context, ref settings, ref childSettings, canRecover);
-			}
-
-			if (settings.skipRule == -1 ||
-				settings.skippingStrategy == ParserSkippingStrategy.Default
-				// || context.positionsToAvoidSkipping[context.position]
-				)
-				return Parse(rule, ref context, ref settings, ref childSettings, canRecover);
-
-			var skipRule = _rules[settings.skipRule];
-			var skipSettings = settings;
-			var skipContext = context;
-			skipRule.AdvanceContext(ref skipContext, ref skipSettings, out var childSkipSettings);
-			skipSettings.skipRule = -1;
-			childSkipSettings.skipRule = -1;
-			bool record = MainSettings.recordSkippedRules;
-			return ParseWithSkip(settings.skippingStrategy, rule, skipRule, ref context,
-				 ref settings, ref skipSettings, ref childSettings, ref childSkipSettings, record, canRecover);
-		}
-
-		// Oh yea i know that i duplicated the code down here, but otherwise i will get -10% for speed lol
-
 		/// <summary>
 		/// Tries to parse the given input using the specified rule identifier and parser context.
 		/// </summary>
-		internal ParsedRule TryParseRule(int ruleId, ParserContext context,
-			ParserSettings settings)
+		internal ParsedRule TryParseRule(int ruleId, ParserContext context, ParserSettings settings)
 		{
 			var rule = _rules[ruleId];
-			rule.AdvanceContext(ref context, ref settings, out var childSettings);
+			var ruleSettings = settings;
+			var ruleContext = context;
+			rule.AdvanceContext(ref ruleContext, ref ruleSettings, out var ruleChildSettings);
 
-			if (MainSettings.useOptimizedWhitespaceSkip)
-			{
-				while (context.position < context.maxPosition && char.IsWhiteSpace(context.input[context.position]))
-					context.position++;
-				return Parse(rule, ref context, ref settings, ref childSettings, true);
-			}
+			var skipStrategy = settings.skippingStrategy ?? SkipStrategy.NoSkipping;
+			var result = skipStrategy.ParseWithSkip(context, settings,
+				rule, ruleContext, ruleSettings, ruleChildSettings);
 
-			if (settings.skipRule == -1 ||
-				settings.skippingStrategy == ParserSkippingStrategy.Default
-				// || context.positionsToAvoidSkipping[context.position]
-				)
-				return Parse(rule, ref context, ref settings, ref childSettings, true);
+			if (result.success)
+				return result;
 
-			var skipRule = _rules[settings.skipRule];
-			var skipSettings = settings;
-			var skipContext = context;
-			skipRule.AdvanceContext(ref skipContext, ref skipSettings, out var childSkipSettings);
-			skipSettings.skipRule = -1;
-			childSkipSettings.skipRule = -1;
-			bool record = MainSettings.recordSkippedRules;
-			return ParseWithSkip(settings.skippingStrategy, rule, skipRule, ref context,
-				 ref settings, ref skipSettings, ref childSettings, ref childSkipSettings, record, true);
+			var recovery = rule.ErrorRecovery ?? ErrorRecoveryStrategy.NoRecovery;
+			return recovery.TryRecover(context, settings, rule, ruleContext, ruleSettings, ruleChildSettings);
 		}
 
 
@@ -370,6 +136,24 @@ namespace RCParsing
 		/// </summary>
 		/// <param name="ruleAlias">The alias for the parser rule to use.</param>
 		/// <param name="context">The parser context to use for parsing.</param>
+		/// <returns>The parsed rule containing the result of the parse.</returns>
+		public ParsedRuleResultBase TryParseRule(string ruleAlias, ParserContext context)
+		{
+			if (context.parser != this)
+				throw new InvalidOperationException("Parser context is not associated with this parser.");
+			if (!_rulesAliases.TryGetValue(ruleAlias, out var ruleId))
+				throw new ArgumentException("Invalid rule alias", nameof(ruleAlias));
+
+			EmitBarriers(ref context);
+			var parsedRule = TryParseRule(ruleId, context, GlobalSettings);
+			return CreateResult(ref context, ref parsedRule);
+		}
+		
+		/// <summary>
+		/// Tries to parse a rule using the specified rule alias and input text.
+		/// </summary>
+		/// <param name="ruleAlias">The alias for the parser rule to use.</param>
+		/// <param name="context">The parser context to use for parsing.</param>
 		/// <param name="result">The parsed rule containing the result of the parse.</param>
 		/// <returns><see langword="true"/> if a rule was parsed successfully, <see langword="false"/> otherwise.</returns>
 		public bool TryParseRule(string ruleAlias, ParserContext context, out ParsedRuleResultBase result)
@@ -390,6 +174,17 @@ namespace RCParsing
 		/// </summary>
 		/// <param name="ruleAlias">The alias for the parser rule to use.</param>
 		/// <param name="input">The input text to parse.</param>
+		/// <returns>The parsed rule containing the result of the parse.</returns>
+		public ParsedRuleResultBase TryParseRule(string ruleAlias, string input)
+		{
+			return TryParseRule(ruleAlias, input, null);
+		}
+		
+		/// <summary>
+		/// Tries to parse a rule using the specified rule alias and input text.
+		/// </summary>
+		/// <param name="ruleAlias">The alias for the parser rule to use.</param>
+		/// <param name="input">The input text to parse.</param>
 		/// <param name="result">The parsed rule containing the result of the parse.</param>
 		/// <returns><see langword="true"/> if a rule was parsed successfully, <see langword="false"/> otherwise.</returns>
 		public bool TryParseRule(string ruleAlias, string input, out ParsedRuleResultBase result)
@@ -397,6 +192,21 @@ namespace RCParsing
 			return TryParseRule(ruleAlias, input, null, out result);
 		}
 
+		/// <summary>
+		/// Tries to parse a rule using the specified rule alias and input text.
+		/// </summary>
+		/// <param name="ruleAlias">The alias for the parser rule to use.</param>
+		/// <param name="context">The parser context to use for parsing.</param>
+		/// <returns>The result of the parse converted to the specified type.</returns>
+		public T? TryParseRule<T>(string ruleAlias, ParserContext context)
+		{
+			if (TryParseRule(ruleAlias, context, out var ast))
+			{
+				return ast.GetValue<T>();
+			}
+			return default;
+		}
+		
 		/// <summary>
 		/// Tries to parse a rule using the specified rule alias and input text.
 		/// </summary>
@@ -420,6 +230,17 @@ namespace RCParsing
 		/// </summary>
 		/// <param name="ruleAlias">The alias for the parser rule to use.</param>
 		/// <param name="input">The input text to parse.</param>
+		/// <returns>The result of the parse converted to the specified type.</returns>
+		public T TryParseRule<T>(string ruleAlias, string input)
+		{
+			return TryParseRule<T>(ruleAlias, input, null);
+		}
+		
+		/// <summary>
+		/// Tries to parse a rule using the specified rule alias and input text.
+		/// </summary>
+		/// <param name="ruleAlias">The alias for the parser rule to use.</param>
+		/// <param name="input">The input text to parse.</param>
 		/// <param name="result">The result of the parse converted to the specified type.</param>
 		/// <returns><see langword="true"/> if a rule was parsed successfully, <see langword="false"/> otherwise.</returns>
 		public bool TryParseRule<T>(string ruleAlias, string input, out T result)
@@ -427,6 +248,24 @@ namespace RCParsing
 			return TryParseRule(ruleAlias, input, null, out result);
 		}
 
+		/// <summary>
+		/// Tries to parse a rule using the specified rule alias and input text.
+		/// </summary>
+		/// <param name="ruleAlias">The alias for the parser rule to use.</param>
+		/// <param name="input">The input text to parse.</param>
+		/// <param name="parameter">Optional parameter to pass to the parser. Can be used to pass additional information to the transformation functions.</param>
+		/// <returns>The parsed rule containing the result of the parse.</returns>
+		public ParsedRuleResultBase TryParseRule(string ruleAlias, string input, object? parameter)
+		{
+			if (!_rulesAliases.TryGetValue(ruleAlias, out var ruleId))
+				throw new ArgumentException("Invalid rule alias", nameof(ruleAlias));
+
+			var context = new ParserContext(this, input, parameter);
+			EmitBarriers(ref context);
+			var parsedRule = TryParseRule(ruleId, context, GlobalSettings);
+			return CreateResult(ref context, ref parsedRule);
+		}
+		
 		/// <summary>
 		/// Tries to parse a rule using the specified rule alias and input text.
 		/// </summary>
@@ -447,6 +286,22 @@ namespace RCParsing
 			return parsedRule.success;
 		}
 
+		/// <summary>
+		/// Tries to parse a rule using the specified rule alias and input text.
+		/// </summary>
+		/// <param name="ruleAlias">The alias for the parser rule to use.</param>
+		/// <param name="input">The input text to parse.</param>
+		/// <param name="parameter">Optional parameter to pass to the parser. Can be used to pass additional information to the transformation functions.</param>
+		/// <returns>The result of the parse converted to the specified type.</returns>
+		public T TryParseRule<T>(string ruleAlias, string input, object? parameter)
+		{
+			if (TryParseRule(ruleAlias, input, parameter, out var ast))
+			{
+				return ast.GetValue<T>();
+			}
+			return default;
+		}
+		
 		/// <summary>
 		/// Tries to parse a rule using the specified rule alias and input text.
 		/// </summary>

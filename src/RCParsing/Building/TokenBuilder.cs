@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using RCParsing.Building.TokenPatterns;
 using RCParsing.TokenPatterns;
+using RCParsing.TokenPatterns.Combinators;
 using RCParsing.Utils;
 
 namespace RCParsing.Building
@@ -166,7 +167,7 @@ namespace RCParsing.Building
 		/// <param name="recoveryConfigAction">The error recovery configuration action.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		/// <exception cref="ParserBuildingException">Thrown if the parser rule is not set or it is a direct reference to a named rule.</exception>
-		public TokenBuilder Recovery(Action<ErrorRecoveryBuilder> recoveryConfigAction)
+		public TokenBuilder Recovery(Action<ErrorRecoveryStrategyBuilder> recoveryConfigAction)
 		{
 			if (BuildingPattern?.AsT2() is BuildableTokenPattern pattern)
 				recoveryConfigAction(pattern.ErrorRecovery);
@@ -212,10 +213,11 @@ namespace RCParsing.Building
 		/// <summary>
 		/// Adds an optional token pattern to the current sequence.
 		/// </summary>
-		/// <param name="builderAction">The action to build the optional token pattern.</param>
+		/// <param name="builderAction">The action to build the optional token pattern child.</param>
+		/// <param name="fallbackValue">The fallback intermadiate value that will be returned when child fails.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		/// <exception cref="ParserBuildingException">Thrown if builder action have not added any elements.</exception>
-		public TokenBuilder Optional(Action<TokenBuilder> builderAction)
+		public TokenBuilder Optional(Action<TokenBuilder> builderAction, object? fallbackValue = null)
 		{
 			var builder = new TokenBuilder(ParserBuilder);
 			builderAction(builder);
@@ -225,7 +227,8 @@ namespace RCParsing.Building
 
 			return Token(new BuildableOptionalTokenPattern
 			{
-				Child = builder.BuildingPattern.Value
+				Child = builder.BuildingPattern.Value,
+				FallbackValue = fallbackValue
 			});
 		}
 
@@ -709,6 +712,79 @@ namespace RCParsing.Building
 		}
 
 		/// <summary>
+		/// Adds a token pattern that matches a single element and captures its matched substring as intermediate value.
+		/// </summary>
+		/// <param name="builderAction">The token builder action to build the child token.</param>
+		/// <param name="trimStart">The number of characters to trim from the start of the captured text.</param>
+		/// <param name="trimEnd">The number of characters to trim from the end of the captured text.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if builder action have not added any elements.</exception>
+		public TokenBuilder CaptureText(Action<TokenBuilder> builderAction,
+			int trimStart = 0, int trimEnd = 0)
+		{
+			if (trimStart < 0) throw new ArgumentOutOfRangeException(nameof(trimStart));
+			if (trimEnd < 0) throw new ArgumentOutOfRangeException(nameof(trimEnd));
+
+			var builder = new TokenBuilder(ParserBuilder);
+			builderAction(builder);
+			if (!builder.CanBeBuilt)
+				throw new ParserBuildingException("Child token pattern cannot be empty.");
+
+			return Token(new BuildableCaptureTextTokenPattern
+			{
+				Child = builder.BuildingPattern.Value,
+				TrimStart = trimStart,
+				TrimEnd = trimEnd
+			});
+		}
+
+		/// <summary>
+		/// Adds a token pattern that matches text until the child pattern is found, capturing the text as intermediate value.
+		/// </summary>
+		/// <param name="stopBuilder">The builder action for the stop condition pattern.</param>
+		/// <param name="allowEmpty">Whether empty matches are allowed.</param>
+		/// <param name="consumeStop">Whether to consume the stop pattern.</param>
+		/// <param name="failOnEof">Whether to fail when end of input is reached.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if builder action have not added any elements.</exception>
+		public TokenBuilder TextUntil(Action<TokenBuilder> stopBuilder, bool allowEmpty = true, bool consumeStop = false, bool failOnEof = false)
+		{
+			var stopPatternBuilder = new TokenBuilder(ParserBuilder);
+			stopBuilder(stopPatternBuilder);
+			if (!stopPatternBuilder.CanBeBuilt)
+				throw new ParserBuildingException("Stop pattern cannot be empty.");
+
+			return Token(new BuildableTextUntilTokenPattern
+			{
+				StopPattern = stopPatternBuilder.BuildingPattern.Value,
+				AllowEmpty = allowEmpty,
+				ConsumeStop = consumeStop,
+				FailOnEof = failOnEof
+			});
+		}
+
+		/// <summary>
+		/// Adds a token pattern that matches a single element, transforming its matched text span with a provided function.
+		/// </summary>
+		/// <param name="builderAction">The token builder action to build the child token.</param>
+		/// <param name="mapper">The transformation function applied to the matched text span.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if builder action have not added any elements.</exception>
+		public TokenBuilder MapSpan(Action<TokenBuilder> builderAction, SpanMapper mapper)
+		{
+			var builder = new TokenBuilder(ParserBuilder);
+			builderAction(builder);
+			if (!builder.CanBeBuilt)
+				throw new ParserBuildingException("Child token pattern cannot be empty.");
+
+			return Token(new BuildableMapSpanTokenPattern
+			{
+				Child = builder.BuildingPattern.Value,
+				Mapper = mapper
+			});
+		}
+
+		/// <summary>
 		/// Adds a token pattern that matches a single element, transforming its intermediate value with a provided function.
 		/// </summary>
 		/// <param name="builderAction">The token builder action to build the child token.</param>
@@ -751,30 +827,322 @@ namespace RCParsing.Building
 		}
 
 		/// <summary>
-		/// Adds a token pattern that matches a single element and captures its matched substring as intermediate value.
+		/// Adds a token pattern that matches a single element, but fails if the condition function returns true for the intermediate value.
 		/// </summary>
 		/// <param name="builderAction">The token builder action to build the child token.</param>
-		/// <param name="trimStart">The number of characters to trim from the start of the captured text.</param>
-		/// <param name="trimEnd">The number of characters to trim from the end of the captured text.</param>
+		/// <param name="condition">The condition function that determines if the match should fail.</param>
+		/// <param name="errorMessage">The error message to use when the condition fails.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		/// <exception cref="ParserBuildingException">Thrown if builder action have not added any elements.</exception>
-		public TokenBuilder CaptureText(Action<TokenBuilder> builderAction,
-			int trimStart = 0, int trimEnd = 0)
+		public TokenBuilder FailIf(Action<TokenBuilder> builderAction, Func<object?, bool> condition, string errorMessage = "Condition failed.")
 		{
-			if (trimStart < 0) throw new ArgumentOutOfRangeException(nameof(trimStart));
-			if (trimEnd < 0) throw new ArgumentOutOfRangeException(nameof(trimEnd));
-
 			var builder = new TokenBuilder(ParserBuilder);
 			builderAction(builder);
 			if (!builder.CanBeBuilt)
 				throw new ParserBuildingException("Child token pattern cannot be empty.");
 
-			return Token(new BuildableCaptureTextTokenPattern
+			return Token(new BuildableFailIfTokenPattern
 			{
 				Child = builder.BuildingPattern.Value,
-				TrimStart = trimStart,
-				TrimEnd = trimEnd
+				Condition = condition,
+				ErrorMessage = errorMessage
 			});
+		}
+		
+		/// <summary>
+		/// Adds a token pattern that matches a single element, but fails if the condition function returns true for the intermediate value.
+		/// </summary>
+		/// <param name="builderAction">The token builder action to build the child token.</param>
+		/// <param name="condition">The condition function that determines if the match should fail.</param>
+		/// <param name="errorMessage">The error message to use when the condition fails.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if builder action have not added any elements.</exception>
+		public TokenBuilder FailIf<T>(Action<TokenBuilder> builderAction, Func<T, bool> condition, string errorMessage = "Condition failed.")
+		{
+			var builder = new TokenBuilder(ParserBuilder);
+			builderAction(builder);
+			if (!builder.CanBeBuilt)
+				throw new ParserBuildingException("Child token pattern cannot be empty.");
+
+			return Token(new BuildableFailIfTokenPattern
+			{
+				Child = builder.BuildingPattern.Value,
+				Condition = v => condition((T)v),
+				ErrorMessage = errorMessage
+			});
+		}
+
+		/// <summary>
+		/// Adds a token pattern that conditionally matches one of two patterns based on parser parameter.
+		/// </summary>
+		/// <param name="condition">The condition function that determines which branch to take.</param>
+		/// <param name="trueBuilder">The builder action for the true branch.</param>
+		/// <param name="falseBuilder">The builder action for the false branch.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if builder actions have not added any elements.</exception>
+		public TokenBuilder If(Func<object?, bool> condition, Action<TokenBuilder> trueBuilder, Action<TokenBuilder>? falseBuilder = null)
+		{
+			var trueBranchBuilder = new TokenBuilder(ParserBuilder);
+			trueBuilder(trueBranchBuilder);
+			if (!trueBranchBuilder.CanBeBuilt)
+				throw new ParserBuildingException("True branch token pattern cannot be empty.");
+
+			var falseBranchBuilder = new TokenBuilder(ParserBuilder);
+			if (falseBuilder != null)
+			{
+				falseBuilder(falseBranchBuilder);
+				if (!falseBranchBuilder.CanBeBuilt)
+					throw new ParserBuildingException("False branch token pattern cannot be empty.");
+			}
+
+			return Token(new BuildableIfTokenPattern
+			{
+				Condition = condition,
+				TrueBranch = trueBranchBuilder.BuildingPattern.Value,
+				FalseBranch = falseBranchBuilder.BuildingPattern ?? default
+			});
+		}
+		
+		/// <summary>
+		/// Adds a token pattern that conditionally matches one of two patterns based on parser parameter.
+		/// </summary>
+		/// <param name="condition">The condition function that determines which branch to take.</param>
+		/// <param name="trueBuilder">The builder action for the true branch.</param>
+		/// <param name="falseBuilder">The builder action for the false branch.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if builder actions have not added any elements.</exception>
+		public TokenBuilder If<T>(Func<T, bool> condition, Action<TokenBuilder> trueBuilder, Action<TokenBuilder>? falseBuilder = null)
+		{
+			var trueBranchBuilder = new TokenBuilder(ParserBuilder);
+			trueBuilder(trueBranchBuilder);
+			if (!trueBranchBuilder.CanBeBuilt)
+				throw new ParserBuildingException("True branch token pattern cannot be empty.");
+
+			var falseBranchBuilder = new TokenBuilder(ParserBuilder);
+			if (falseBuilder != null)
+			{
+				falseBuilder(falseBranchBuilder);
+				if (!falseBranchBuilder.CanBeBuilt)
+					throw new ParserBuildingException("False branch token pattern cannot be empty.");
+			}
+
+			return Token(new BuildableIfTokenPattern
+			{
+				Condition = p => p is T t && condition(t),
+				TrueBranch = trueBranchBuilder.BuildingPattern.Value,
+				FalseBranch = falseBranchBuilder.BuildingPattern ?? default
+			});
+		}
+
+		/// <summary>
+		/// Adds a token pattern that matches one of multiple patterns based on parser parameter.
+		/// </summary>
+		/// <param name="selector">The selector function that determines which branch to take, returns index.</param>
+		/// <param name="defaultBranch">The builder for the default branch.</param>
+		/// <param name="branches">The builder actions for the branches.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if any builder action have not added any elements.</exception>
+		public TokenBuilder Switch(Func<object?, int> selector, Action<TokenBuilder>? defaultBranch, params Action<TokenBuilder>[] branches)
+		{
+			var branchPatterns = new List<Or<string, BuildableTokenPattern>>();
+
+			foreach (var branchBuilderAction in branches)
+			{
+				var branchBuilder = new TokenBuilder(ParserBuilder);
+				branchBuilderAction(branchBuilder);
+				if (!branchBuilder.CanBeBuilt)
+					throw new ParserBuildingException("Branch token pattern cannot be empty.");
+
+				branchPatterns.Add(branchBuilder.BuildingPattern.Value);
+			}
+
+			Or<string, BuildableTokenPattern> defaultBranchToken = default;
+
+			if (defaultBranch != null)
+			{
+				var defaultBranchBuilder = new TokenBuilder(ParserBuilder);
+				defaultBranch(defaultBranchBuilder);
+				if (!defaultBranchBuilder.CanBeBuilt)
+					throw new ParserBuildingException("Default branch token pattern cannot be empty.");
+				defaultBranchToken = defaultBranchBuilder.BuildingPattern.Value;
+			}
+
+			return Token(new BuildableSwitchTokenPattern
+			{
+				Selector = selector,
+				Branches = branchPatterns,
+				DefaultBranch = defaultBranchToken
+			});
+		}
+
+		/// <summary>
+		/// Adds a token pattern that matches one of multiple patterns based on parser parameter.
+		/// </summary>
+		/// <param name="selector">The selector function that determines which branch to take, returns index.</param>
+		/// <param name="defaultBranch">The builder for the default branch.</param>
+		/// <param name="branches">The builder actions for the branches.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if any builder action have not added any elements.</exception>
+		public TokenBuilder Switch<T>(Func<T, int> selector, Action<TokenBuilder>? defaultBranch, params Action<TokenBuilder>[] branches)
+		{
+			var branchPatterns = new List<Or<string, BuildableTokenPattern>>();
+
+			foreach (var branchBuilderAction in branches)
+			{
+				var branchBuilder = new TokenBuilder(ParserBuilder);
+				branchBuilderAction(branchBuilder);
+				if (!branchBuilder.CanBeBuilt)
+					throw new ParserBuildingException("Branch token pattern cannot be empty.");
+
+				branchPatterns.Add(branchBuilder.BuildingPattern.Value);
+			}
+
+			Or<string, BuildableTokenPattern> defaultBranchToken = default;
+
+			if (defaultBranch != null)
+			{
+				var defaultBranchBuilder = new TokenBuilder(ParserBuilder);
+				defaultBranch(defaultBranchBuilder);
+				if (!defaultBranchBuilder.CanBeBuilt)
+					throw new ParserBuildingException("Default branch token pattern cannot be empty.");
+				defaultBranchToken = defaultBranchBuilder.BuildingPattern.Value;
+			}
+
+			return Token(new BuildableSwitchTokenPattern
+			{
+				Selector = p => p is T t ? selector(t) : -1,
+				Branches = branchPatterns,
+				DefaultBranch = defaultBranchToken
+			});
+		}
+
+		/// <summary>
+		/// Adds a token pattern that matches one of multiple patterns based on parser parameter.
+		/// </summary>
+		/// <param name="defaultBranch">The builder for the default branch.</param>
+		/// <param name="branches">The builder actions for the branches paired with conditions.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if any builder action have not added any elements.</exception>
+		public TokenBuilder Switch(Action<TokenBuilder>? defaultBranch, params (Func<object?, bool>, Action<TokenBuilder>)[] branches)
+		{
+			var branchPatterns = new List<Or<string, BuildableTokenPattern>>();
+			var conditions = new List<Func<object?, bool>>();
+
+			foreach (var (condition, branchBuilderAction) in branches)
+			{
+				var branchBuilder = new TokenBuilder(ParserBuilder);
+				branchBuilderAction(branchBuilder);
+				if (!branchBuilder.CanBeBuilt)
+					throw new ParserBuildingException("Branch token pattern cannot be empty.");
+
+				branchPatterns.Add(branchBuilder.BuildingPattern.Value);
+				conditions.Add(condition);
+			}
+
+			Or<string, BuildableTokenPattern> defaultBranchToken = default;
+
+			if (defaultBranch != null)
+			{
+				var defaultBranchBuilder = new TokenBuilder(ParserBuilder);
+				defaultBranch(defaultBranchBuilder);
+				if (!defaultBranchBuilder.CanBeBuilt)
+					throw new ParserBuildingException("Default branch token pattern cannot be empty.");
+				defaultBranchToken = defaultBranchBuilder.BuildingPattern.Value;
+			}
+
+			Func<object?, int> selector = param =>
+			{
+				for (int i = 0; i < conditions.Count; i++)
+				{
+					if (conditions[i](param))
+						return i;
+				}
+				return -1;
+			};
+
+			return Token(new BuildableSwitchTokenPattern
+			{
+				Selector = selector,
+				Branches = branchPatterns,
+				DefaultBranch = defaultBranchToken
+			});
+		}
+
+		/// <summary>
+		/// Adds a token pattern that matches one of multiple patterns based on parser parameter.
+		/// </summary>
+		/// <param name="defaultBranch">The builder for the default branch.</param>
+		/// <param name="branches">The builder actions for the branches paired with conditions.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if any builder action have not added any elements.</exception>
+		public TokenBuilder Switch<T>(Action<TokenBuilder>? defaultBranch, params (Func<T, bool>, Action<TokenBuilder>)[] branches)
+		{
+			var branchPatterns = new List<Or<string, BuildableTokenPattern>>();
+			var conditions = new List<Func<T, bool>>();
+
+			foreach (var (condition, branchBuilderAction) in branches)
+			{
+				var branchBuilder = new TokenBuilder(ParserBuilder);
+				branchBuilderAction(branchBuilder);
+				if (!branchBuilder.CanBeBuilt)
+					throw new ParserBuildingException("Branch token pattern cannot be empty.");
+
+				branchPatterns.Add(branchBuilder.BuildingPattern.Value);
+				conditions.Add(condition);
+			}
+
+			Or<string, BuildableTokenPattern> defaultBranchToken = default;
+
+			if (defaultBranch != null)
+			{
+				var defaultBranchBuilder = new TokenBuilder(ParserBuilder);
+				defaultBranch(defaultBranchBuilder);
+				if (!defaultBranchBuilder.CanBeBuilt)
+					throw new ParserBuildingException("Default branch token pattern cannot be empty.");
+				defaultBranchToken = defaultBranchBuilder.BuildingPattern.Value;
+			}
+
+			Func<object?, int> selector = param =>
+			{
+				if (param is T typedParam)
+				{
+					for (int i = 0; i < conditions.Count; i++)
+					{
+						if (conditions[i](typedParam))
+							return i;
+					}
+				}
+				return -1;
+			};
+
+			return Token(new BuildableSwitchTokenPattern
+			{
+				Selector = selector,
+				Branches = branchPatterns,
+				DefaultBranch = defaultBranchToken
+			});
+		}
+
+		/// <summary>
+		/// Adds a token pattern that matches one of multiple patterns based on parser parameter.
+		/// </summary>
+		/// <param name="branches">The builder actions for the branches paired with conditions.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if any builder action have not added any elements.</exception>
+		public TokenBuilder Switch(params (Func<object?, bool>, Action<TokenBuilder>)[] branches)
+		{
+			return Switch(null, branches);
+		}
+
+		/// <summary>
+		/// Adds a token pattern that matches one of multiple patterns based on parser parameter.
+		/// </summary>
+		/// <param name="branches">The builder actions for the branches paired with conditions.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if any builder action have not added any elements.</exception>
+		public TokenBuilder Switch<T>(params (Func<T, bool>, Action<TokenBuilder>)[] branches)
+		{
+			return Switch(null, branches);
 		}
 	}
 }

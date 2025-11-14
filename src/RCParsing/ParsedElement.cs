@@ -30,7 +30,7 @@ namespace RCParsing
 		public int length;
 
 		/// <summary>
-		/// The end index of the element in the input text.
+		/// The end exclusive index of the element in the input text.
 		/// </summary>
 		public readonly int endIndex => startIndex + length;
 

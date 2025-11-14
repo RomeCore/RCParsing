@@ -94,26 +94,6 @@ namespace RCParsing.Building
 		}
 
 		/// <summary>
-		/// Adds a 'spaces' token pattern to the current sequence and applies the skipping strategy to it.
-		/// </summary>
-		/// <param name="skippingStrategy">The skipping strategy that will be applied to token pattern.</param>
-		/// <returns>Current instance for method chaining.</returns>
-		public RuleBuilder RequiredSpaces(ParserSkippingStrategy skippingStrategy = ParserSkippingStrategy.TryParseThenSkipLazy)
-		{
-			return Spaces().ConfigureLast(c => c.SkippingStrategy(skippingStrategy));
-		}
-
-		/// <summary>
-		/// Adds a 'whitespaces' token pattern to the current sequence and applies the skipping strategy to it.
-		/// </summary>
-		/// <param name="skippingStrategy">The skipping strategy that will be applied to token pattern.</param>
-		/// <returns>Current instance for method chaining.</returns>
-		public RuleBuilder RequiredWhitespaces(ParserSkippingStrategy skippingStrategy = ParserSkippingStrategy.TryParseThenSkipLazy)
-		{
-			return Whitespaces().ConfigureLast(c => c.SkippingStrategy(skippingStrategy));
-		}
-
-		/// <summary>
 		/// Adds a sequence of literals to the current sequence.
 		/// </summary>
 		/// <remarks>

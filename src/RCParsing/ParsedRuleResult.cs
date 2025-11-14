@@ -73,11 +73,8 @@ namespace RCParsing
 	/// <remarks>
 	/// Also stores optimization flags.
 	/// </remarks>
-	public sealed class ParsedRuleResultOptimized : ParsedRuleResultBase
+	public sealed class ParsedRuleResultOptimized : ParsedRuleResultBase, IOptimizedParsedRuleResult
 	{
-		/// <summary>
-		/// Gets the optimization flags that used to optimize the parse tree.
-		/// </summary>
 		public ParseTreeOptimization Optimization { get; }
 
 		public override ParsedRuleResultBase this[int index] =>

@@ -8,6 +8,9 @@ using RCParsing.TokenPatterns;
 
 namespace RCParsing.Tests.Tokens
 {
+	/// <summary>
+	/// The token combinators tests. They can be used instead of rules for maximum performance.
+	/// </summary>
 	public class CombinatorTokensTests
 	{
 		[Fact]
@@ -252,6 +255,256 @@ namespace RCParsing.Tests.Tokens
 			Assert.Equal(5, error.Line);
 
 			Assert.True(parser.MatchesToken("value", "[90, 60, true, null]"));
+		}
+
+		[Fact]
+		public void IfElse_General()
+		{
+			var builder = new ParserBuilder();
+
+			builder.CreateToken("ctx_int_morethan")
+				.If<int>(
+					i => i > 5,
+					i => i.Identifier(),
+					e => e.AllText()
+				);
+			
+			builder.CreateToken("ctx_int_morethan_noelse")
+				.If<int>(
+					i => i > 5,
+					i => i.Identifier()
+				);
+
+			var parser = builder.Build();
+
+			var match = parser.TryMatchToken("ctx_int_morethan", "id 10", parameter: 10);
+			Assert.True(match.Success);
+			Assert.Equal(2, match.Length);
+
+			match = parser.TryMatchToken("ctx_int_morethan", "id 10", parameter: 5);
+			Assert.True(match.Success);
+			Assert.Equal(5, match.Length);
+
+			match = parser.TryMatchToken("ctx_int_morethan", "id 10", parameter: null);
+			Assert.True(match.Success);
+			Assert.Equal(5, match.Length);
+
+			match = parser.TryMatchToken("ctx_int_morethan_noelse", "id 10", parameter: 10);
+			Assert.True(match.Success);
+			Assert.Equal(2, match.Length);
+
+			match = parser.TryMatchToken("ctx_int_morethan_noelse", "id 10", parameter: 5);
+			Assert.False(match.Success);
+
+			match = parser.TryMatchToken("ctx_int_morethan_noelse", "id 10", parameter: null);
+			Assert.False(match.Success);
+		}
+
+		[Fact]
+		public void Optional_Fallback()
+		{
+			var builder = new ParserBuilder();
+
+			builder.CreateToken("optional_no_fallback")
+				.Optional(
+					b => b.Number<int>()
+				);
+
+			builder.CreateToken("optional_with_fallback")
+				.Optional(
+					b => b.Number<int>(),
+					fallbackValue: +397
+				);
+
+			var parser = builder.Build();
+
+			var match = parser.TryMatchToken("optional_no_fallback", "10");
+			Assert.True(match.Success);
+			Assert.Equal(10, match.IntermediateValue);
+
+			match = parser.TryMatchToken("optional_no_fallback", "abc");
+			Assert.True(match.Success);
+			Assert.Null(match.IntermediateValue);
+
+			match = parser.TryMatchToken("optional_with_fallback", "-397");
+			Assert.True(match.Success);
+			Assert.Equal(-397, match.IntermediateValue);
+
+			match = parser.TryMatchToken("optional_with_fallback", "abc");
+			Assert.True(match.Success);
+			Assert.Equal(+397, match.IntermediateValue);
+		}
+
+		[Fact]
+		public void TextUntil_General()
+		{
+			var builder = new ParserBuilder();
+
+			builder.CreateToken("simple")
+				.TextUntil(b => b.Literal(';'));
+
+			builder.CreateToken("faileof")
+				.TextUntil(b => b.Literal(';'), failOnEof: true);
+
+			builder.CreateToken("consume")
+				.TextUntil(b => b.Literal(';'), consumeStop: true);
+
+			builder.CreateToken("nonempty")
+				.TextUntil(b => b.Literal(';'), allowEmpty: false);
+
+			var parser = builder.Build();
+
+			var match = parser.TryMatchToken("simple", "abc;a");
+			Assert.True(match.Success);
+			Assert.Equal(3, match.Length);
+			Assert.Equal("abc", match.IntermediateValue);
+
+			match = parser.TryMatchToken("simple", "abc");
+			Assert.True(match.Success);
+			Assert.Equal(3, match.Length);
+			Assert.Equal("abc", match.IntermediateValue);
+
+
+			match = parser.TryMatchToken("faileof", "abc;a");
+			Assert.True(match.Success);
+			Assert.Equal(3, match.Length);
+			Assert.Equal("abc", match.IntermediateValue);
+
+			match = parser.TryMatchToken("faileof", "abc");
+			Assert.False(match.Success);
+
+
+			match = parser.TryMatchToken("consume", "abc;a");
+			Assert.True(match.Success);
+			Assert.Equal(4, match.Length);
+			Assert.Equal("abc;", match.IntermediateValue);
+
+			match = parser.TryMatchToken("consume", "abc");
+			Assert.True(match.Success);
+			Assert.Equal(3, match.Length);
+			Assert.Equal("abc", match.IntermediateValue);
+
+
+			match = parser.TryMatchToken("nonempty", "abc;a");
+			Assert.True(match.Success);
+			Assert.Equal(3, match.Length);
+			Assert.Equal("abc", match.IntermediateValue);
+
+			match = parser.TryMatchToken("nonempty", "abc");
+			Assert.True(match.Success);
+			Assert.Equal(3, match.Length);
+			Assert.Equal("abc", match.IntermediateValue);
+
+			match = parser.TryMatchToken("nonempty", ";a");
+			Assert.False(match.Success);
+
+			match = parser.TryMatchToken("nonempty", "");
+			Assert.False(match.Success);
+		}
+
+		[Fact]
+		public void TextUntil_Combinations()
+		{
+			var builder = new ParserBuilder();
+
+			builder.CreateToken("consume_faileof")
+				.TextUntil(b => b.Literal(';'), consumeStop: true, failOnEof: true);
+
+			builder.CreateToken("consume_empty")
+				.TextUntil(b => b.Literal(';'), consumeStop: true, allowEmpty: true);
+
+			builder.CreateToken("nonempty_faileof")
+				.TextUntil(b => b.Literal(';'), allowEmpty: false, failOnEof: true);
+
+			builder.CreateToken("all_flags")
+				.TextUntil(b => b.Literal(';'), allowEmpty: false, consumeStop: true, failOnEof: true);
+
+			builder.CreateToken("complex_stop")
+				.TextUntil(b => b.Choice(
+					b2 => b2.Literal("END"),
+					b2 => b2.Newline()
+				), allowEmpty: false, consumeStop: true);
+
+			builder.CreateToken("multi_char_stop")
+				.TextUntil(b => b.Literal("stop"), consumeStop: true);
+
+			builder.CreateToken("nonempty_noconsume")
+				.TextUntil(b => b.Literal(';'), allowEmpty: false, consumeStop: false);
+
+			var parser = builder.Build();
+
+			var match = parser.TryMatchToken("consume_faileof", "text;rest");
+			Assert.True(match.Success);
+			Assert.Equal(5, match.Length);
+			Assert.Equal("text;", match.IntermediateValue);
+
+			match = parser.TryMatchToken("consume_faileof", "text");
+			Assert.False(match.Success);
+
+			match = parser.TryMatchToken("consume_empty", ";rest");
+			Assert.True(match.Success);
+			Assert.Equal(1, match.Length);
+			Assert.Equal(";", match.IntermediateValue);
+
+			match = parser.TryMatchToken("consume_empty", "text;rest");
+			Assert.True(match.Success);
+			Assert.Equal(5, match.Length);
+			Assert.Equal("text;", match.IntermediateValue);
+
+			match = parser.TryMatchToken("nonempty_faileof", "text;rest");
+			Assert.True(match.Success);
+			Assert.Equal(4, match.Length);
+			Assert.Equal("text", match.IntermediateValue);
+
+			match = parser.TryMatchToken("nonempty_faileof", ";rest");
+			Assert.False(match.Success);
+
+			match = parser.TryMatchToken("nonempty_faileof", "text");
+			Assert.False(match.Success);
+
+			match = parser.TryMatchToken("all_flags", "text;rest");
+			Assert.True(match.Success);
+			Assert.Equal(5, match.Length);
+			Assert.Equal("text;", match.IntermediateValue);
+
+			match = parser.TryMatchToken("all_flags", ";rest");
+			Assert.False(match.Success);
+
+			match = parser.TryMatchToken("all_flags", "text");
+			Assert.False(match.Success);
+
+			match = parser.TryMatchToken("complex_stop", "some textENDmore");
+			Assert.True(match.Success);
+			Assert.Equal(12, match.Length);
+			Assert.Equal("some textEND", match.IntermediateValue);
+
+			match = parser.TryMatchToken("complex_stop", "some text\nmore");
+			Assert.True(match.Success);
+			Assert.Equal(10, match.Length);
+			Assert.Equal("some text\n", match.IntermediateValue);
+
+			match = parser.TryMatchToken("multi_char_stop", "hello stop world");
+			Assert.True(match.Success);
+			Assert.Equal(10, match.Length); // "hello stop"
+			Assert.Equal("hello stop", match.IntermediateValue);
+
+			match = parser.TryMatchToken("nonempty_noconsume", "text;rest");
+			Assert.True(match.Success);
+			Assert.Equal(4, match.Length);
+			Assert.Equal("text", match.IntermediateValue);
+
+			match = parser.TryMatchToken("nonempty_noconsume", ";rest");
+			Assert.False(match.Success);
+
+			match = parser.TryMatchToken("consume_empty", "");
+			Assert.True(match.Success);
+			Assert.Equal(0, match.Length);
+			Assert.Equal("", match.IntermediateValue);
+
+			match = parser.TryMatchToken("nonempty_noconsume", "text");
+			Assert.True(match.Success);
+			Assert.Equal(4, match.Length);
+			Assert.Equal("text", match.IntermediateValue);
 		}
 	}
 }

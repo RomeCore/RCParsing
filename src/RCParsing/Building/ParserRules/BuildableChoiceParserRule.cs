@@ -22,7 +22,6 @@ namespace RCParsing.Building.ParserRules
 		/// </summary>
 		public List<Or<string, BuildableParserRule>> Choices { get; } = new List<Or<string, BuildableParserRule>>();
 		public override IEnumerable<Or<string, BuildableParserRule>>? RuleChildren => Choices;
-		public override IEnumerable<Or<string, BuildableTokenPattern>>? TokenChildren => null;
 
 		public BuildableChoiceParserRule()
 		{

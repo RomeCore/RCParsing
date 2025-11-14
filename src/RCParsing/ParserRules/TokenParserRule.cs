@@ -51,7 +51,7 @@ namespace RCParsing.ParserRules
 			ParsedValueFactory ??= _pattern.DefaultParsedValueFactory;
 			if (Settings.isDefault)
 				Settings = _pattern.DefaultSettings;
-			if (ErrorRecovery.strategy == ErrorRecoveryStrategy.None)
+			if (ErrorRecovery == null)
 				ErrorRecovery = _pattern.DefaultErrorRecovery;
 		}
 

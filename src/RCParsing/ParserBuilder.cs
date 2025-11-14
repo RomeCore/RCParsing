@@ -262,11 +262,11 @@ namespace RCParsing
 			Dictionary<BuildableParserElement, int> elements = new();
 
 			// Maps for rules and tokens to their children dependencies
-			Dictionary<BuildableParserElement, (List<BuildableParserRule>?,
-				List<BuildableTokenPattern>?, List<BuildableParserRule?>, List<BuildableParserRule?>)> argMap = new();
+			Dictionary<BuildableParserElementBase, (List<BuildableParserRule>?,
+				List<BuildableTokenPattern>?, List<BuildableParserElementBase?>)> argMap = new();
 
 			// Queues to process rules and tokens breadth-first
-			Queue<BuildableParserElement> elementsToProcess = new();
+			Queue<BuildableParserElementBase> elementsToProcess = new();
 
 			// Pre-process the tokenizers
 			var tokenizers = BarrierTokenizers.Build();
@@ -288,58 +288,27 @@ namespace RCParsing
 				}
 			}
 
-			// Initialize processing queue and namedRules map with root rules
-			foreach (var rule in _rules)
-			{
-				if (!rule.Value.CanBeBuilt)
-					throw new ParserBuildingException($"Rule '{rule.Key}' cannot be built, because it's empty.");
-
-				// Detect circular references and resolve to the base rule
-				HashSet<string> checkedNames = new HashSet<string>();
-				var currentRule = rule.Value.BuildingRule.Value;
-
-				while (currentRule.VariantIndex != 1)
-				{
-					if (!checkedNames.Add(currentRule.Value1))
-						throw new ParserBuildingException($"Circular reference detected in rule '{rule.Key}': " +
-							$"{string.Join(" -> ", checkedNames.Append(currentRule.Value1).Select(n => $"'{n}'"))}");
-
-					if (_rules.TryGetValue(currentRule.Value1, out var nextRule))
-					{
-						if (!nextRule.CanBeBuilt)
-							throw new ParserBuildingException($"Rule '{currentRule.Value1}' cannot be built, because it's empty.");
-
-						currentRule = nextRule.BuildingRule.Value;
-					}
-					else
-					{
-						throw new ParserBuildingException($"Rule '{currentRule.Value1}' cannot be found.");
-					}
-				}
-
-				var brule = currentRule.Value2;
-				elementsToProcess.Enqueue(brule);
-				namedRules.Add(rule.Key, brule);
-			}
-
-			BuildableParserRule? mainRule = null;
-			_mainRuleBuilder?.BuildingRule?.Switch(
-				name =>
-				{
-					if (!namedRules.TryGetValue(name, out mainRule))
-						throw new ParserBuildingException($"Main rule '{name}' cannot be found.");
-				},
-				rule =>
-				{
-					elementsToProcess.Enqueue(mainRule = rule);
-				}
-			);
+			List<string> errors = new();
 
 			// Initialize processing queue and namedTokenPatterns map with root token patterns
+			var rules = new Dictionary<string, RuleBuilder>(_rules);
 			foreach (var pattern in _tokenPatterns)
 			{
 				if (!pattern.Value.CanBeBuilt)
-					throw new ParserBuildingException($"Token pattern '{pattern.Key}' cannot be built, because it's empty.");
+				{
+					errors.Add($"Token pattern '{pattern.Key}' cannot be built, because it's empty.");
+					continue;
+				}
+				if (!rules.ContainsKey(pattern.Key))
+				{
+					rules.Add(pattern.Key, new RuleBuilder
+					{
+						BuildingRule = new BuildableTokenParserRule
+						{
+							Child = pattern.Key
+						}
+					});
+				}
 
 				// Detect circular references and resolve to the base token pattern
 				HashSet<string> checkedNames = new HashSet<string>();
@@ -348,50 +317,91 @@ namespace RCParsing
 				while (currentPattern.VariantIndex != 1)
 				{
 					if (!checkedNames.Add(currentPattern.Value1))
-						throw new ParserBuildingException($"Circular reference detected in token pattern '{pattern.Key}': " +
+					{
+						errors.Add($"Direct circular reference detected in token pattern '{pattern.Key}': " +
 							$"{string.Join(" -> ", checkedNames.Append(currentPattern.Value1).Select(n => $"'{n}'"))}");
+						break;
+					}
 
 					if (_tokenPatterns.TryGetValue(currentPattern.Value1, out var nextPattern))
 					{
 						if (!nextPattern.CanBeBuilt)
-							throw new ParserBuildingException($"Token pattern '{currentPattern.Value1}' cannot be built, because it's empty.");
+							errors.Add($"Token pattern '{currentPattern.Value1}' cannot be built, because it's empty.");
 
 						currentPattern = nextPattern.BuildingPattern.Value;
 					}
 					else
 					{
-						throw new ParserBuildingException($"Token pattern '{currentPattern.Value1}' cannot be found.");
+						errors.Add($"Token pattern '{currentPattern.Value1}' cannot be found.");
 					}
 				}
 
-				var bpattern = currentPattern.Value2;
-				elementsToProcess.Enqueue(bpattern);
-				namedTokenPatterns.Add(pattern.Key, bpattern);
+				if (currentPattern.VariantIndex == 1)
+				{
+					var bpattern = currentPattern.Value2;
+					elementsToProcess.Enqueue(bpattern);
+					namedTokenPatterns.Add(pattern.Key, bpattern);
+				}
 			}
 
-			// Process global parser settings child rules
-			List<BuildableParserRule?> parserSettingsRuleChildren = new();
-			foreach (var ruleChild in _settingsBuilder.RuleChildren)
+			// Initialize processing queue and namedRules map with root rules
+			foreach (var rule in rules)
 			{
-				if (!ruleChild.HasValue)
+				if (!rule.Value.CanBeBuilt)
 				{
-					parserSettingsRuleChildren.Add(null);
+					errors.Add($"Rule '{rule.Key}' cannot be built, because it's empty.");
 					continue;
 				}
 
-				ruleChild.Value.Switch(name =>
+				// Detect circular references and resolve to the base rule
+				HashSet<string> checkedNames = new HashSet<string>();
+				var currentRule = rule.Value.BuildingRule.Value;
+
+				while (currentRule.VariantIndex != 1)
 				{
-					if (namedRules.TryGetValue(name, out var namedRule))
-						parserSettingsRuleChildren.Add(namedRule);
+					if (!checkedNames.Add(currentRule.Value1))
+					{
+						errors.Add($"Direct circular reference detected in rule '{rule.Key}': " +
+							$"{string.Join(" -> ", checkedNames.Append(currentRule.Value1).Select(n => $"'{n}'"))}");
+						break;
+					}
+
+					if (_rules.TryGetValue(currentRule.Value1, out var nextRule))
+					{
+						if (!nextRule.CanBeBuilt)
+							errors.Add($"Rule '{currentRule.Value1}' cannot be built, because it's empty.");
+
+						currentRule = nextRule.BuildingRule.Value;
+					}
 					else
-						throw new ParserBuildingException($"Unknown rule reference '{name}' found in settings rule.");
-				}, brule =>
+					{
+						errors.Add($"Rule '{currentRule.Value1}' cannot be found.");
+					}
+				}
+
+				if (currentRule.VariantIndex == 1)
 				{
-					parserSettingsRuleChildren.Add(brule);
+					var brule = currentRule.Value2;
 					elementsToProcess.Enqueue(brule);
-				});
+					namedRules.Add(rule.Key, brule);
+				}
 			}
 
+			BuildableParserRule? mainRule = null;
+			_mainRuleBuilder?.BuildingRule?.Switch(
+				name =>
+				{
+					if (!namedRules.TryGetValue(name, out mainRule))
+						errors.Add($"Main rule '{name}' cannot be found.");
+				},
+				rule =>
+				{
+					elementsToProcess.Enqueue(mainRule = rule);
+				}
+			);
+
+			// Process global parser settings child rules
+			elementsToProcess.Enqueue(_settingsBuilder);
 			int mainRuleId = -1;
 
 			// Process all rules and tokens in the queue, assign IDs and collect dependencies
@@ -399,20 +409,22 @@ namespace RCParsing
 			{
 				// Register an ID if it's not already registered
 				var element = elementsToProcess.Dequeue();
-				if (elements.ContainsKey(element))
+				if (element is BuildableParserElement _element && elements.ContainsKey(_element))
 					continue;
 
 				if (element is BuildableParserRule rule)
 				{
 					if (Equals(element, mainRule))
 						mainRuleId = ruleCounter;
-					elements.Add(element, ruleCounter++);
+					elements.Add(rule, ruleCounter++);
 				}
 				else if (element is BuildableTokenPattern pattern)
-					elements.Add(element, tokenCounter++);
+				{
+					elements.Add(pattern, tokenCounter++);
+				}
 
 				// Queue child rules for processing
-				List<BuildableParserRule>? ruleChildrenToArgs = null;
+				List<BuildableParserRule?> ruleChildrenToArgs = null;
 				var children = element.RuleChildren;
 				if (children != null)
 				{
@@ -421,10 +433,12 @@ namespace RCParsing
 					{
 						ruleChild.Switch(name =>
 						{
-							if (namedRules.TryGetValue(name, out var namedRule))
+							if (name == null)
+								ruleChildrenToArgs.Add(null);
+							else if (namedRules.TryGetValue(name, out var namedRule))
 								ruleChildrenToArgs.Add(namedRule);
 							else
-								throw new ParserBuildingException($"Unknown rule reference '{name}'.");
+								errors.Add($"Unknown rule reference '{name}'.");
 						}, brule =>
 						{
 							ruleChildrenToArgs.Add(brule);
@@ -434,7 +448,7 @@ namespace RCParsing
 				}
 
 				// Queue child token patterns for processing
-				List<BuildableTokenPattern>? tokenChildrenToArgs = null;
+				List<BuildableTokenPattern?> tokenChildrenToArgs = null;
 				var tokenChildren = element.TokenChildren;
 				if (tokenChildren != null)
 				{
@@ -443,10 +457,12 @@ namespace RCParsing
 					{
 						tokenChild.Switch(name =>
 						{
-							if (namedTokenPatterns.TryGetValue(name, out var namedPattern))
+							if (name == null)
+								tokenChildrenToArgs.Add(null);
+							else if (namedTokenPatterns.TryGetValue(name, out var namedPattern))
 								tokenChildrenToArgs.Add(namedPattern);
 							else
-								throw new ParserBuildingException($"Unknown token pattern reference '{name}'.");
+								errors.Add($"Unknown token pattern reference '{name}'.");
 						}, bpattern =>
 						{
 							tokenChildrenToArgs.Add(bpattern);
@@ -456,54 +472,31 @@ namespace RCParsing
 				}
 
 				// Queue child settings rules for processing
-				List<BuildableParserRule?> settingsRuleChildrenToArgs = new();
-				foreach (var ruleChild in element.Settings.RuleChildren)
+				List<BuildableParserElementBase?> elementChildrenToArgs = new();
+				var elementChildren = element.ElementChildren;
+				if (elementChildren != null)
 				{
-					if (!ruleChild.HasValue)
+					foreach (var elementChild in elementChildren)
 					{
-						settingsRuleChildrenToArgs.Add(null);
-						continue;
+						if (elementChild != null)
+							elementsToProcess.Enqueue(elementChild);
+						elementChildrenToArgs.Add(elementChild);
 					}
-
-					ruleChild.Value.Switch(name =>
-					{
-						if (namedRules.TryGetValue(name, out var namedRule))
-							settingsRuleChildrenToArgs.Add(namedRule);
-						else
-							throw new ParserBuildingException($"Unknown rule reference '{name}'.");
-					}, brule =>
-					{
-						settingsRuleChildrenToArgs.Add(brule);
-						elementsToProcess.Enqueue(brule);
-					});
-				}
-
-				// Queue child error recovery rules for processing
-				List<BuildableParserRule?> errorRecoveryRuleChildrenToArgs = new();
-				foreach (var ruleChild in element.ErrorRecovery.RuleChildren)
-				{
-					if (!ruleChild.HasValue)
-					{
-						errorRecoveryRuleChildrenToArgs.Add(null);
-						continue;
-					}
-
-					ruleChild.Value.Switch(name =>
-					{
-						if (namedRules.TryGetValue(name, out var namedRule))
-							errorRecoveryRuleChildrenToArgs.Add(namedRule);
-						else
-							throw new ParserBuildingException($"Unknown rule reference '{name}'.");
-					}, brule =>
-					{
-						errorRecoveryRuleChildrenToArgs.Add(brule);
-						elementsToProcess.Enqueue(brule);
-					});
 				}
 
 				// Register dependencies for building
-				argMap[element] = (ruleChildrenToArgs, tokenChildrenToArgs,
-					settingsRuleChildrenToArgs, errorRecoveryRuleChildrenToArgs);
+				argMap[element] = (ruleChildrenToArgs, tokenChildrenToArgs, elementChildrenToArgs);
+			}
+
+			if (errors.Count > 0)
+			{
+				string message;
+				if (errors.Count > 1)
+					message = "One or more errors occured during parser building:"
+						+ Environment.NewLine + string.Join(Environment.NewLine, errors);
+				else
+					message = errors[0];
+				throw new ParserBuildingException(message);
 			}
 
 			// Prepare the names map for quick lookup of elements to names
@@ -517,9 +510,29 @@ namespace RCParsing
 				int id,
 				List<int>? ruleChildren,
 				List<int>? tokenChildren,
-				List<int> settingsRuleChildren,
-				List<int> errorRecoveryRuleChildren,
+				List<object?>? elementChildren,
 				List<string> aliases)> finalMap = new();
+
+			Dictionary<BuildableParserElementBase, object?> elementBases = new();
+
+			HashSet<IInitializeAfterBuild> toInitialize = new();
+
+			object? BuildElementBase(BuildableParserElementBase? element)
+			{
+				if (element == null)
+					return null;
+
+				var (_ruleChildren, _tokenChildren, _elementChildren) = argMap[element];
+
+				var ruleChildren = _ruleChildren?.Select(r => r == null ? -1 : elements[r]).ToList();
+				var tokenChildren = _tokenChildren?.Select(p => p == null ? -1 : elements[p]).ToList();
+				var elementChildren = _elementChildren?.Select(e => BuildElementBase(e)).ToList();
+
+				var builtElement = element.Build(ruleChildren, tokenChildren, elementChildren);
+				if (builtElement is IInitializeAfterBuild iib)
+					toInitialize.Add(iib);
+				return builtElement;
+			}
 
 			// Fill the final map
 			foreach (var elem in elements)
@@ -527,27 +540,26 @@ namespace RCParsing
 				var element = elem.Key;
 				var id = elem.Value;
 
-				var (_ruleChildren, _tokenChildren, _settingsRuleChildren, _errorRecoveryRuleChildren) = argMap[element];
+				var (_ruleChildren, _tokenChildren, _elementChildren) = argMap[element];
 
-				var ruleChildren = _ruleChildren?.Select(r => elements[r]).ToList();
-				var tokenChildren = _tokenChildren?.Select(p => elements[p]).ToList();
-				var settingsRuleChildren = _settingsRuleChildren.Select(r => r == null ? -1 : elements[r]).ToList();
-				var errorRecoveryRuleChildren = _errorRecoveryRuleChildren.Select(r => r == null ? -1 : elements[r]).ToList();
+				var ruleChildren = _ruleChildren?.Select(r => r == null ? -1 : elements[r]).ToList();
+				var tokenChildren = _tokenChildren?.Select(p => p == null ? -1 : elements[p]).ToList();
+				var elementChildren = _elementChildren?.Select(e => BuildElementBase(e)).ToList();
 				var aliases = new List<string>();
 
-				if (names.TryGetValue(element, out var _aliases))
+				if (element is BuildableParserElement _element && names.TryGetValue(_element, out var _aliases))
 					aliases.AddRange(_aliases);
 
-				finalMap.Add((element, id, ruleChildren, tokenChildren, settingsRuleChildren, errorRecoveryRuleChildren, aliases));
+				finalMap.Add((element, id, ruleChildren, tokenChildren, elementChildren, aliases));
 			}
 
-			ParserRule[] resultRules = new ParserRule[elements.Count(e => e.Key is BuildableParserRule)];
-			TokenPattern[] resultTokenPatterns = new TokenPattern[elements.Count(e => e.Key is BuildableTokenPattern)];
+			ParserRule[] resultRules = new ParserRule[ruleCounter];
+			TokenPattern[] resultTokenPatterns = new TokenPattern[tokenCounter];
 
 			// Build the final parser settings with resolved child rules
-			var (mainSettings, globalSettings, initFlagsFactory) = _settingsBuilder.Build(parserSettingsRuleChildren
-				.Select(r => r == null ? -1 : elements[r]).ToList());
-
+			(ParserMainSettings mainSettings, ParserSettings globalSettings, Func<ParserElement, ParserInitFlags> initFlagsFactory) =
+				((ParserMainSettings, ParserSettings, Func<ParserElement, ParserInitFlags>))BuildElementBase(_settingsBuilder);
+			
 			// Release the final map to the result arrays
 			foreach (var elem in finalMap)
 			{
@@ -555,40 +567,34 @@ namespace RCParsing
 				var id = elem.id;
 				var ruleChildren = elem.ruleChildren;
 				var tokenChildren = elem.tokenChildren;
-				var settingsRuleChildren = elem.settingsRuleChildren;
-				var errorRecoveryRuleChildren = elem.errorRecoveryRuleChildren;
+				var elementChildren = elem.elementChildren;
 				var aliases = elem.aliases;
 
-				var builtElement = element.Build(ruleChildren, tokenChildren);
+				var builtElement = (ParserElement)element.Build(ruleChildren, tokenChildren, elementChildren);
+				if (builtElement is IInitializeAfterBuild iib)
+					toInitialize.Add(iib);
 
 				builtElement.Id = id;
 				builtElement.Aliases = aliases.ToArray().AsReadOnlyList();
 
-				var elementSettings = element.Settings;
-				var builtSettings = elementSettings.Build(settingsRuleChildren);
-
-				var elementErrorRecovery = element.ErrorRecovery;
-				var builtErrorRecovery = elementErrorRecovery.Build(errorRecoveryRuleChildren);
-
 				if (builtElement is ParserRule rule)
 				{
-					rule.ParsedValueFactory = element.ParsedValueFactory;
-					rule.Settings = builtSettings;
-					rule.ErrorRecovery = builtErrorRecovery;
 					resultRules[id] = rule;
 				}
 				else if (builtElement is TokenPattern pattern)
 				{
-					pattern.DefaultParsedValueFactory = element.ParsedValueFactory;
-					pattern.DefaultSettings = builtSettings;
-					pattern.DefaultErrorRecovery = builtErrorRecovery;
 					resultTokenPatterns[id] = pattern;
 				}
 			}
 
 			// Return the fully built parser instance with rules and token patterns
-			return new Parser(resultTokenPatterns, resultRules,
+			var parser = new Parser(resultTokenPatterns, resultRules,
 				tokenizers, mainSettings, globalSettings, mainRuleId, initFlagsFactory);
+
+			foreach (var iib in toInitialize)
+				iib.Initialize(parser);
+
+			return parser;
 		}
 	}
 }

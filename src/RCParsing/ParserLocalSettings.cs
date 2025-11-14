@@ -20,17 +20,7 @@ namespace RCParsing
 		public ParserSettingMode skippingStrategyUseMode;
 
 		/// <inheritdoc cref="ParserSettings.skippingStrategy"/>
-		public ParserSkippingStrategy skippingStrategy;
-
-
-
-		/// <summary>
-		/// Defines an override mode for <see cref="skipRule"/> setting.
-		/// </summary>
-		public ParserSettingMode skipRuleUseMode;
-
-		/// <inheritdoc cref="ParserSettings.skipRule"/>
-		public int skipRule;
+		public SkipStrategy skippingStrategy;
 
 
 
@@ -64,9 +54,7 @@ namespace RCParsing
 		{
 			return isDefault == other.isDefault &&
 				   skippingStrategyUseMode == other.skippingStrategyUseMode &&
-				   skippingStrategy == other.skippingStrategy &&
-				   skipRuleUseMode == other.skipRuleUseMode &&
-				   skipRule == other.skipRule &&
+				   Equals(skippingStrategy, other.skippingStrategy) &&
 				   errorHandlingUseMode == other.errorHandlingUseMode &&
 				   errorHandling == other.errorHandling &&
 				   ignoreBarriersUseMode == other.ignoreBarriersUseMode &&
@@ -78,9 +66,7 @@ namespace RCParsing
 			int hash = 17;
 			hash = hash * 397 + isDefault.GetHashCode();
 			hash = hash * 397 + skippingStrategyUseMode.GetHashCode();
-			hash = hash * 397 + skippingStrategy.GetHashCode();
-			hash = hash * 397 + skipRuleUseMode.GetHashCode();
-			hash = hash * 397 + skipRule.GetHashCode();
+			hash = hash * 397 + skippingStrategy?.GetHashCode() ?? 0;
 			hash = hash * 397 + errorHandlingUseMode.GetHashCode();
 			hash = hash * 397 + errorHandling.GetHashCode();
 			hash = hash * 397 + ignoreBarriersUseMode.GetHashCode();

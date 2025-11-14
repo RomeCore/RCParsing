@@ -237,9 +237,9 @@ namespace RCParsing.Utils
 			switch (VariantIndex)
 			{
 				case 0:
-					return (hc * 377) ^ _value1?.GetHashCode() ?? 0;
+					return (hc * 397) ^ _value1?.GetHashCode() ?? 0;
 				case 1:
-					return (hc * 377) ^ _value2?.GetHashCode() ?? 0;
+					return (hc * 397) ^ _value2?.GetHashCode() ?? 0;
 				default:
 					return hc;
 			}

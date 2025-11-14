@@ -265,7 +265,7 @@ namespace RCParsing.Building
 		/// <param name="recoveryConfigAction">The error recovery configuration action.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		/// <exception cref="ParserBuildingException">Thrown if the parser rule is not set or it is a direct reference to a named rule.</exception>
-		public RuleBuilder Recovery(Action<ErrorRecoveryBuilder> recoveryConfigAction)
+		public RuleBuilder Recovery(Action<ErrorRecoveryStrategyBuilder> recoveryConfigAction)
 		{
 			if (BuildingRule?.AsT2() is BuildableParserRule rule)
 				recoveryConfigAction(rule.ErrorRecovery);
@@ -280,7 +280,7 @@ namespace RCParsing.Building
 		/// <param name="recoveryConfigAction">The error recovery configuration action.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		/// <exception cref="ParserBuildingException">Thrown if the parser rule is not set or it is a direct reference to a named rule.</exception>
-		public RuleBuilder RecoveryLast(Action<ErrorRecoveryBuilder> recoveryConfigAction)
+		public RuleBuilder RecoveryLast(Action<ErrorRecoveryStrategyBuilder> recoveryConfigAction)
 		{
 			if (BuildingRule?.AsT2() is BuildableSequenceParserRule sequenceRule)
 			{
@@ -749,6 +749,279 @@ namespace RCParsing.Building
 		{
 			return RepeatSeparated(builderAction, separatorBuilderAction, 1, -1, allowTrailingSeparator,
 				includeSeparatorsInResult);
+		}
+
+		/// <summary>
+		/// Adds a conditional rule that chooses between two branches based on parser parameter.
+		/// </summary>
+		/// <param name="condition">The parser parameter condition function that determines which branch to take.</param>
+		/// <param name="trueBuilder">The rule builder action for the true branch.</param>
+		/// <param name="falseBuilder">The rule builder action for the false branch.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if builder actions have not added any elements.</exception>
+		public RuleBuilder If(Func<object?, bool> condition, Action<RuleBuilder> trueBuilder, Action<RuleBuilder>? falseBuilder = null)
+		{
+			var trueBranchBuilder = new RuleBuilder(ParserBuilder);
+			trueBuilder(trueBranchBuilder);
+			if (!trueBranchBuilder.CanBeBuilt)
+				throw new ParserBuildingException("True branch rule cannot be empty.");
+
+			var falseBranchBuilder = new RuleBuilder(ParserBuilder);
+			if (falseBuilder != null)
+			{
+				falseBuilder(falseBranchBuilder);
+				if (!falseBranchBuilder.CanBeBuilt)
+					throw new ParserBuildingException("False branch rule cannot be empty.");
+			}
+
+			return Rule(new BuildableIfParserRule
+			{
+				Condition = condition,
+				TrueBranch = trueBranchBuilder.BuildingRule.Value,
+				FalseBranch = falseBranchBuilder.BuildingRule ?? default
+			});
+		}
+
+		/// <summary>
+		/// Adds a conditional rule that chooses between two branches based on parser parameter.
+		/// </summary>
+		/// <param name="condition">The parser parameter condition function that determines which branch to take.</param>
+		/// <param name="trueBuilder">The rule builder action for the true branch.</param>
+		/// <param name="falseBuilder">The rule builder action for the false branch.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if builder actions have not added any elements.</exception>
+		public RuleBuilder If<T>(Func<T, bool> condition, Action<RuleBuilder> trueBuilder, Action<RuleBuilder>? falseBuilder = null)
+		{
+			var trueBranchBuilder = new RuleBuilder(ParserBuilder);
+			trueBuilder(trueBranchBuilder);
+			if (!trueBranchBuilder.CanBeBuilt)
+				throw new ParserBuildingException("True branch rule cannot be empty.");
+
+			var falseBranchBuilder = new RuleBuilder(ParserBuilder);
+			if (falseBuilder != null)
+			{
+				falseBuilder(falseBranchBuilder);
+				if (!falseBranchBuilder.CanBeBuilt)
+					throw new ParserBuildingException("False branch rule cannot be empty.");
+			}
+
+			return Rule(new BuildableIfParserRule
+			{
+				Condition = p => p is T t && condition(t),
+				TrueBranch = trueBranchBuilder.BuildingRule.Value,
+				FalseBranch = falseBranchBuilder.BuildingRule ?? default
+			});
+		}
+
+		/// <summary>
+		/// Adds a switch rule that chooses between multiple branches based on parser parameter.
+		/// </summary>
+		/// <param name="selector">The selector function that determines which branch to take, returns index.</param>
+		/// <param name="defaultBranch">The builder for the default branch.</param>
+		/// <param name="branches">The builder actions for the branches.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if any builder action have not added any elements.</exception>
+		public RuleBuilder Switch(Func<object?, int> selector, Action<RuleBuilder>? defaultBranch, params Action<RuleBuilder>[] branches)
+		{
+			var branchRules = new List<Or<string, BuildableParserRule>>();
+
+			foreach (var branchBuilderAction in branches)
+			{
+				var branchBuilder = new RuleBuilder(ParserBuilder);
+				branchBuilderAction(branchBuilder);
+				if (!branchBuilder.CanBeBuilt)
+					throw new ParserBuildingException("Branch rule cannot be empty.");
+
+				branchRules.Add(branchBuilder.BuildingRule.Value);
+			}
+
+			Or<string, BuildableParserRule> defaultBranchRule = default;
+
+			if (defaultBranch != null)
+			{
+				var defaultBranchBuilder = new RuleBuilder(ParserBuilder);
+				defaultBranch(defaultBranchBuilder);
+				if (!defaultBranchBuilder.CanBeBuilt)
+					throw new ParserBuildingException("Default branch rule cannot be empty.");
+				defaultBranchRule = defaultBranchBuilder.BuildingRule.Value;
+			}
+
+			return Rule(new BuildableSwitchParserRule
+			{
+				Selector = selector,
+				Branches = branchRules,
+				DefaultBranch = defaultBranchRule
+			});
+		}
+
+		/// <summary>
+		/// Adds a switch rule that chooses between multiple branches based on parser parameter.
+		/// </summary>
+		/// <param name="selector">The selector function that determines which branch to take, returns index.</param>
+		/// <param name="defaultBranch">The builder for the default branch.</param>
+		/// <param name="branches">The builder actions for the branches.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if any builder action have not added any elements.</exception>
+		public RuleBuilder Switch<T>(Func<T, int> selector, Action<RuleBuilder>? defaultBranch, params Action<RuleBuilder>[] branches)
+		{
+			var branchRules = new List<Or<string, BuildableParserRule>>();
+
+			foreach (var branchBuilderAction in branches)
+			{
+				var branchBuilder = new RuleBuilder(ParserBuilder);
+				branchBuilderAction(branchBuilder);
+				if (!branchBuilder.CanBeBuilt)
+					throw new ParserBuildingException("Branch rule cannot be empty.");
+
+				branchRules.Add(branchBuilder.BuildingRule.Value);
+			}
+
+			Or<string, BuildableParserRule> defaultBranchRule = default;
+
+			if (defaultBranch != null)
+			{
+				var defaultBranchBuilder = new RuleBuilder(ParserBuilder);
+				defaultBranch(defaultBranchBuilder);
+				if (!defaultBranchBuilder.CanBeBuilt)
+					throw new ParserBuildingException("Default branch rule cannot be empty.");
+				defaultBranchRule = defaultBranchBuilder.BuildingRule.Value;
+			}
+
+			return Rule(new BuildableSwitchParserRule
+			{
+				Selector = p => p is T t ? selector(t) : -1,
+				Branches = branchRules,
+				DefaultBranch = defaultBranchRule
+			});
+		}
+
+		/// <summary>
+		/// Adds a switch rule that chooses between multiple branches based on parser parameter.
+		/// </summary>
+		/// <param name="defaultBranch">The builder for the default branch.</param>
+		/// <param name="branches">The builder actions for the branches paired with conditions.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if any builder action have not added any elements.</exception>
+		public RuleBuilder Switch(Action<RuleBuilder>? defaultBranch, params (Func<object?, bool>, Action<RuleBuilder>)[] branches)
+		{
+			var branchRules = new List<Or<string, BuildableParserRule>>();
+			var conditions = new List<Func<object?, bool>>();
+
+			foreach (var (condition, branchBuilderAction) in branches)
+			{
+				var branchBuilder = new RuleBuilder(ParserBuilder);
+				branchBuilderAction(branchBuilder);
+				if (!branchBuilder.CanBeBuilt)
+					throw new ParserBuildingException("Branch rule cannot be empty.");
+
+				branchRules.Add(branchBuilder.BuildingRule.Value);
+				conditions.Add(condition);
+			}
+
+			Or<string, BuildableParserRule> defaultBranchRule = default;
+
+			if (defaultBranch != null)
+			{
+				var defaultBranchBuilder = new RuleBuilder(ParserBuilder);
+				defaultBranch(defaultBranchBuilder);
+				if (!defaultBranchBuilder.CanBeBuilt)
+					throw new ParserBuildingException("Default branch rule cannot be empty.");
+				defaultBranchRule = defaultBranchBuilder.BuildingRule.Value;
+			}
+
+			Func<object?, int> selector = param =>
+			{
+				for (int i = 0; i < conditions.Count; i++)
+				{
+					if (conditions[i](param))
+						return i;
+				}
+				return -1;
+			};
+
+			return Rule(new BuildableSwitchParserRule
+			{
+				Selector = selector,
+				Branches = branchRules,
+				DefaultBranch = defaultBranchRule
+			});
+		}
+
+		/// <summary>
+		/// Adds a switch rule that chooses between multiple branches based on parser parameter.
+		/// </summary>
+		/// <param name="defaultBranch">The builder for the default branch.</param>
+		/// <param name="branches">The builder actions for the branches paired with conditions.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if any builder action have not added any elements.</exception>
+		public RuleBuilder Switch<T>(Action<RuleBuilder>? defaultBranch, params (Func<T, bool>, Action<RuleBuilder>)[] branches)
+		{
+			var branchRules = new List<Or<string, BuildableParserRule>>();
+			var conditions = new List<Func<T, bool>>();
+
+			foreach (var (condition, branchBuilderAction) in branches)
+			{
+				var branchBuilder = new RuleBuilder(ParserBuilder);
+				branchBuilderAction(branchBuilder);
+				if (!branchBuilder.CanBeBuilt)
+					throw new ParserBuildingException("Branch rule cannot be empty.");
+
+				branchRules.Add(branchBuilder.BuildingRule.Value);
+				conditions.Add(condition);
+			}
+
+			Or<string, BuildableParserRule> defaultBranchRule = default;
+
+			if (defaultBranch != null)
+			{
+				var defaultBranchBuilder = new RuleBuilder(ParserBuilder);
+				defaultBranch(defaultBranchBuilder);
+				if (!defaultBranchBuilder.CanBeBuilt)
+					throw new ParserBuildingException("Default branch rule cannot be empty.");
+				defaultBranchRule = defaultBranchBuilder.BuildingRule.Value;
+			}
+
+			Func<object?, int> selector = param =>
+			{
+				if (param is T typedParam)
+				{
+					for (int i = 0; i < conditions.Count; i++)
+					{
+						if (conditions[i](typedParam))
+							return i;
+					}
+				}
+				return -1;
+			};
+
+			return Rule(new BuildableSwitchParserRule
+			{
+				Selector = selector,
+				Branches = branchRules,
+				DefaultBranch = defaultBranchRule
+			});
+		}
+
+		/// <summary>
+		/// Adds a switch rule that chooses between multiple branches based on parser parameter.
+		/// </summary>
+		/// <param name="branches">The builder actions for the branches paired with conditions.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if any builder action have not added any elements.</exception>
+		public RuleBuilder Switch(params (Func<object?, bool>, Action<RuleBuilder>)[] branches)
+		{
+			return Switch(null, branches);
+		}
+
+		/// <summary>
+		/// Adds a switch rule that chooses between multiple branches based on parser parameter.
+		/// </summary>
+		/// <param name="branches">The builder actions for the branches paired with conditions.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		/// <exception cref="ParserBuildingException">Thrown if any builder action have not added any elements.</exception>
+		public RuleBuilder Switch<T>(params (Func<T, bool>, Action<RuleBuilder>)[] branches)
+		{
+			return Switch<T>(null, branches);
 		}
 	}
 }

@@ -15,8 +15,7 @@ namespace RCParsing.Tests
 			builder.Settings.SkipWhitespaces();
 
 			builder.CreateRule("statement")
-				.Literal("var")
-				.RequiredWhitespaces()
+				.Keyword("var")
 				.Identifier()
 				.Literal('=')
 				.Identifier()

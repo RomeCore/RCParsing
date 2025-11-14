@@ -1,14 +1,19 @@
 ﻿namespace RCParsing
 {
 	/// <summary>
-	/// Defines how parser should handle skipping of rules.
+	/// Defines a type of simple builtin skipping strategy.
 	/// </summary>
 	public enum ParserSkippingStrategy
 	{
 		/// <summary>
-		/// Parser will always ignore the skip-rule and try to parse the target rule. Default behavior.
+		/// Parser will always try to parse the target rule directly. Default behavior.
 		/// </summary>
 		Default = 0,
+
+		/// <summary>
+		/// Parser will try to skip whitespaces before parsing the target rule.
+		/// </summary>
+		Whitespaces,
 
 		/// <summary>
 		/// Parser will try to skip the skip-rule once before parsing the target rule.

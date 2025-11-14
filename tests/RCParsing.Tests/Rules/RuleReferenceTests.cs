@@ -111,5 +111,51 @@ namespace RCParsing.Tests.Rules
 
 			Assert.True(parser.GetRule("rule1").Id == parser.GetRule("rule2").Id);
 		}
+		
+		[Fact]
+		public void RuleDeduplication_Advanced()
+		{
+			var builder = new ParserBuilder();
+
+			builder.CreateRule("rule1")
+				.LongestChoice(
+					b => b.OneOrMore(b => b.Literal("abc")),
+					b => b.Optional(b => b.Repeat(b => b.Number<int>(), 10, 15))
+				);
+
+			builder.CreateRule("rule2")
+				.LongestChoice(
+					b => b.OneOrMore(b => b.Literal("abc")),
+					b => b.Optional(b => b.Repeat(b => b.Number<int>(), 10, 15))
+				);
+
+			var parser = builder.Build();
+
+			Assert.True(parser.GetRule("rule1").Id == parser.GetRule("rule2").Id);
+
+			// Literal + Number
+			Assert.Equal(2, parser.TokenPatterns.Count);
+
+			// LongestChoice, OneOrMore, Optional, Repeat + 2 tokens
+			Assert.Equal(6, parser.Rules.Count);
+		}
+
+		[Fact]
+		public void AutoTokenRuleCreation()
+		{
+			var builder = new ParserBuilder();
+
+			builder.CreateToken("token")
+				.Literal("something");
+
+			var parser = builder.Build();
+
+			Assert.Single(parser.TokenPatterns);
+			Assert.Single(parser.Rules);
+
+			var result = parser.TryParseRule("token", "something");
+			Assert.True(result.Success);
+			Assert.Equal(9, result.Length);
+		}
 	}
 }

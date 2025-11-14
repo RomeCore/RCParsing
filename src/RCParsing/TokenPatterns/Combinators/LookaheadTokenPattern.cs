@@ -76,10 +76,9 @@ namespace RCParsing.TokenPatterns.Combinators
 		public override int GetHashCode()
 		{
 			int hashCode = base.GetHashCode();
-			hashCode = hashCode * -1521134295 + Child.GetHashCode();
-			hashCode = hashCode * -1521134295 + IsPositive.GetHashCode();
+			hashCode = hashCode * 397 + Child.GetHashCode();
+			hashCode = hashCode * 397 + IsPositive.GetHashCode();
 			return hashCode;
 		}
 	}
-
 }

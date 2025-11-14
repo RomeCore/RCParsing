@@ -9,14 +9,9 @@ namespace RCParsing
 	public struct ParserSettings : IEquatable<ParserSettings>
 	{
 		/// <summary>
-		/// The skipping strategy to use when parsing rules. Default is to try skip before parsing the target rule.
+		/// The skipping strategy to use when parsing rules.
 		/// </summary>
-		public ParserSkippingStrategy skippingStrategy;
-
-		/// <summary>
-		/// The rule ID to skip before parsing a specific rule. If set to -1, no rules are skipped.
-		/// </summary>
-		public int skipRule;
+		public SkipStrategy skippingStrategy;
 
 		/// <summary>
 		/// The error handling mode to use when parsing.
@@ -53,13 +48,6 @@ namespace RCParsing
 				this.skippingStrategy, localSettings.skippingStrategy, globalSettings.skippingStrategy,
 				localSettings.skippingStrategyUseMode,
 				ref forLocal.skippingStrategy, ref forChildren.skippingStrategy
-			);
-
-			// ---- skipRule ----
-			ApplySetting(
-				this.skipRule, localSettings.skipRule, globalSettings.skipRule,
-				localSettings.skipRuleUseMode,
-				ref forLocal.skipRule, ref forChildren.skipRule
 			);
 
 			// ---- errorHandling ----
@@ -126,8 +114,7 @@ namespace RCParsing
 
 		public readonly bool Equals(ParserSettings other)
 		{
-			return skippingStrategy == other.skippingStrategy &&
-				   skipRule == other.skipRule &&
+			return Equals(skippingStrategy, other.skippingStrategy) &&
 				   errorHandling == other.errorHandling &&
 				   ignoreBarriers == other.ignoreBarriers;
 		}
@@ -135,8 +122,7 @@ namespace RCParsing
 		public override readonly int GetHashCode()
 		{
 			int hash = 17;
-			hash = hash * 397 + skippingStrategy.GetHashCode();
-			hash = hash * 397 + skipRule.GetHashCode();
+			hash = hash * 397 + skippingStrategy?.GetHashCode() ?? 0;
 			hash = hash * 397 + errorHandling.GetHashCode();
 			hash = hash * 397 + ignoreBarriers.GetHashCode();
 			return hash;

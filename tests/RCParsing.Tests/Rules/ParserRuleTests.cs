@@ -226,7 +226,7 @@ namespace RCParsing.Tests.Rules
 				.TransformSelect(0);
 
 			var jsonParser = builder.Build(); // <-- Here is the horryfying deduplication algorithm that builds the parser!
-
+			
 			var json =
 			"""
 			{

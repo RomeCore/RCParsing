@@ -64,13 +64,143 @@ namespace RCParsing.Tests
 		}
 
 		[Fact]
-		public void JSONIncrementalParsing()
+		public void JSONIncrementalParsing_LazyAST()
 		{
 			var builder = new ParserBuilder();
 
 			builder.Settings
 				.Skip(r => r.Rule("skip"), ParserSkippingStrategy.SkipBeforeParsingGreedy)
 				.UseLazyAST();
+
+			builder.CreateRule("skip")
+				.Choice(
+					b => b.Whitespaces(),
+					b => b.Literal("//").TextUntil('\n', '\r'))
+				.ConfigureForSkip();
+
+			builder.CreateToken("string")
+				.Literal('"')
+				.EscapedTextPrefix(prefix: '\\', '\\', '\"')
+				.Literal('"')
+				.Pass(index: 1);
+
+			builder.CreateToken("number")
+				.Number<double>();
+
+			builder.CreateToken("boolean")
+				.LiteralChoice("true", "false").Transform(v => v.Text == "true");
+
+			builder.CreateToken("null")
+				.Literal("null").Transform(v => null);
+
+			builder.CreateRule("value")
+				.Choice(
+					c => c.Token("string"),
+					c => c.Token("number"),
+					c => c.Token("boolean"),
+					c => c.Token("null"),
+					c => c.Rule("array"),
+					c => c.Rule("object")
+				);
+
+			builder.CreateRule("array")
+				.Literal("[")
+				.ZeroOrMoreSeparated(v => v.Rule("value"), s => s.Literal(","),
+					allowTrailingSeparator: true, includeSeparatorsInResult: false)
+					.TransformLast(v => v.SelectArray())
+				.Literal("]")
+				.TransformSelect(1);
+
+			builder.CreateRule("object")
+				.Literal("{")
+				.ZeroOrMoreSeparated(v => v.Rule("pair"), s => s.Literal(","),
+					allowTrailingSeparator: true, includeSeparatorsInResult: false)
+					.TransformLast(v => v.SelectValues<KeyValuePair<string, object>>().ToDictionary(k => k.Key, v => v.Value))
+				.Literal("}")
+				.TransformSelect(1);
+
+			builder.CreateRule("pair")
+				.Token("string")
+				.Literal(":")
+				.Rule("value")
+				.Transform(v => KeyValuePair.Create(v.GetValue<string>(0), v.GetValue(2)));
+
+			builder.CreateMainRule("content")
+				.Rule("value")
+				.EOF()
+				.TransformSelect(0);
+
+			var jsonParser = builder.Build();
+
+			var json =
+			"""
+			{
+				"id": 1,
+				"name": "Sample Data",
+				"created": "2023-01-01T00:00:00", // This is a comment
+				"tags": ["tag1", "tag2", "tag3"],
+				"isActive": true,
+				"nested": {
+					"value": 123.456,
+					"description": "Nested description"
+				}
+			}
+			""";
+
+			var ast = jsonParser.Parse(json);
+			var value = ast.Value as Dictionary<string, object>;
+			var tags = value!["tags"] as object[];
+			var name = value!["name"] as string;
+			var nestedObj = value!["nested"] as Dictionary<string, object>;
+
+			var originalNestedObject = new Dictionary<string, object>
+			{
+				["value"] = 123.456,
+				["description"] = "Nested description"
+			};
+
+			Assert.Equal(["tag1", "tag2", "tag3"], tags);
+			Assert.Equal(originalNestedObject, nestedObj);
+
+			var changedJson =
+			"""
+			{
+				"id": 1,
+				"name": "Sample Data",
+				"created": "2023-01-01T00:00:00", // This is a comment
+				"tags": { "nested": ["tag1", "tag2", "tag3"] },
+				"isActive": true,
+				"nested": {
+					"value": 123.456,
+					"description": "Nested description"
+				}
+			}
+			""";
+
+			var changedAst = ast.Reparsed(changedJson);
+			var changedValue = changedAst.Value as Dictionary<string, object>;
+			var changedTags = changedValue!["tags"] as Dictionary<string, object>;
+			var changedName = changedValue!["name"] as string;
+			var changedNestedObj = changedValue!["nested"] as Dictionary<string, object>;
+
+			var originalTagsObject = new Dictionary<string, object>
+			{
+				["nested"] = new object[] { "tag1", "tag2", "tag3" }
+			};
+
+			Assert.Equal(originalTagsObject, changedTags);
+			Assert.Same(name, changedName);
+			Assert.Same(nestedObj, changedNestedObj);
+		}
+
+		[Fact]
+		public void JSONIncrementalParsing_PrecalculatedAST()
+		{
+			var builder = new ParserBuilder();
+
+			builder.Settings
+				.Skip(r => r.Rule("skip"), ParserSkippingStrategy.SkipBeforeParsingGreedy)
+				.UsePrecalculatedAST();
 
 			builder.CreateRule("skip")
 				.Choice(

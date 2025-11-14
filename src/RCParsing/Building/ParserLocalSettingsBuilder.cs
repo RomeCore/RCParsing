@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using System.Runtime;
 using System.Text;
+using RCParsing.Building.SkipStrategies;
 using RCParsing.Utils;
 
 namespace RCParsing.Building
@@ -10,30 +13,22 @@ namespace RCParsing.Building
 	/// <summary>
 	/// The local settings builder for the parser elements.
 	/// </summary>
-	public class ParserLocalSettingsBuilder
+	public class ParserLocalSettingsBuilder : BuildableParserElementBase
 	{
 		private ParserLocalSettings _settings = new();
-		private Or<string, BuildableParserRule>? _skipRule = null;
+		private BuildableSkipStrategy? _skipStrategy = null;
 
-		/// <summary>
-		/// Gets the children of the settings builder.
-		/// </summary>
-		public IEnumerable<Or<string, BuildableParserRule>?> RuleChildren =>
-			new Or<string, BuildableParserRule>?[] { _skipRule };
+		public override IEnumerable<BuildableParserElementBase?>? ElementChildren => 
+			new[] { _skipStrategy };
 
-		/// <summary>
-		/// Builds the settings for parser.
-		/// </summary>
-		/// <param name="ruleChildren">The list of rule children IDs.</param>
-		/// <returns>The built settings for parser.</returns>
-		public ParserLocalSettings Build(List<int> ruleChildren)
+		public override object? Build(List<int>? ruleChildren,
+			List<int>? tokenChildren, List<object?>? elementChildren)
 		{
 			var result = _settings;
-			result.skipRule = ruleChildren[0];
+			result.skippingStrategy = elementChildren[0] as SkipStrategy;
 
 			result.isDefault =
 				result.skippingStrategyUseMode == ParserSettingMode.InheritForSelfAndChildren &&
-				result.skipRuleUseMode == ParserSettingMode.InheritForSelfAndChildren &&
 				result.errorHandlingUseMode == ParserSettingMode.InheritForSelfAndChildren &&
 				result.ignoreBarriersUseMode == ParserSettingMode.InheritForSelfAndChildren;
 
@@ -44,23 +39,40 @@ namespace RCParsing.Building
 		{
 			return obj is ParserLocalSettingsBuilder other &&
 				   _settings.Equals(other._settings) && 
-				   _skipRule.Equals(other._skipRule);
+				   Equals(_skipStrategy, other._skipStrategy);
 		}
 
 		public override int GetHashCode()
 		{
 			int hashCode = 17;
 			hashCode = hashCode * 397 + _settings.GetHashCode();
-			hashCode = hashCode * 397 + _skipRule?.GetHashCode() ?? 0;
+			hashCode = hashCode * 397 + _skipStrategy?.GetHashCode() ?? 0;
 			return hashCode;
 		}
 
 
 		/// <summary>
-		/// Sets the skip rule that will be skipped before parsing the current rule.
+		/// Sets the skip rule and builtin skip strategy.
+		/// </summary>
+		/// <param name="builderAction">The action to build the skip strategy.</param>
+		/// <param name="overrideMode">The override mode for the skip rule and skipping strategy setting.</param>
+		/// <returns>This instance for method chaining.</returns>
+		public ParserLocalSettingsBuilder Skip(Action<SkipStrategyBuilder> builderAction,
+			ParserSettingMode overrideMode = ParserSettingMode.LocalForSelfAndChildren)
+		{
+			var builder = new SkipStrategyBuilder();
+			builderAction(builder);
+
+			_skipStrategy = builder.BuildingSkipStrategy;
+			_settings.skippingStrategyUseMode = overrideMode;
+			return this;
+		}
+
+		/// <summary>
+		/// Sets the skip rule and builtin skip strategy.
 		/// </summary>
 		/// <param name="builderAction">The action to build the skip rule.</param>
-		/// <param name="skippingStrategy">The skipping strategy to use.</param>
+		/// <param name="skippingStrategy">The builtin skipping strategy to use.</param>
 		/// <param name="overrideMode">The override mode for the skip rule and skipping strategy setting.</param>
 		/// <returns>This instance for method chaining.</returns>
 		public ParserLocalSettingsBuilder Skip(Action<RuleBuilder> builderAction,
@@ -69,25 +81,52 @@ namespace RCParsing.Building
 		{
 			var builder = new RuleBuilder();
 			builderAction(builder);
-			_skipRule = builder.BuildingRule;
-			_settings.skipRuleUseMode = overrideMode;
-			_settings.skippingStrategy = skippingStrategy;
+
+			_skipStrategy = new BuildableSimpleSkipStrategy
+			{
+				Strategy = skippingStrategy,
+				SkipRule = builder.BuildingRule,
+			};
 			_settings.skippingStrategyUseMode = overrideMode;
 			return this;
 		}
 
 		/// <summary>
-		/// Sets the skipping strategy for the current rule.
+		/// Sets the builtin skip strategy without skip-rule.
 		/// </summary>
-		/// <param name="skippingStrategy">The skipping strategy to use.</param>
-		/// <param name="overrideMode">The override mode for the skipping strategy setting.</param>
+		/// <param name="skippingStrategy">The builtin skipping strategy to use.</param>
+		/// <param name="overrideMode">The override mode for the skip rule and skipping strategy setting.</param>
 		/// <returns>This instance for method chaining.</returns>
-		public ParserLocalSettingsBuilder SkippingStrategy(ParserSkippingStrategy skippingStrategy,
+		public ParserLocalSettingsBuilder Skip(ParserSkippingStrategy skippingStrategy,
 			ParserSettingMode overrideMode = ParserSettingMode.LocalForSelfAndChildren)
 		{
-			_settings.skippingStrategy = skippingStrategy;
+			_skipStrategy = new BuildableSimpleSkipStrategy
+			{
+				Strategy = skippingStrategy,
+				SkipRule = null,
+			};
 			_settings.skippingStrategyUseMode = overrideMode;
 			return this;
+		}
+
+		/// <summary>
+		/// Sets the whitespaces skip token and <see cref="ParserSkippingStrategy.SkipBeforeParsing"/> strategy.
+		/// </summary>
+		/// <param name="overrideMode">The override mode for the skip rule and skipping strategy setting.</param>
+		/// <returns>This instance for method chaining.</returns>
+		public ParserLocalSettingsBuilder SkipWhitespaces(ParserSettingMode overrideMode = ParserSettingMode.LocalForSelfAndChildren)
+		{
+			return Skip(r => r.Whitespaces(), overrideMode: overrideMode);
+		}
+
+		/// <summary>
+		/// Sets the whitespaces skip strategy that directly skips whitespace characters before parsing.
+		/// </summary>
+		/// <param name="overrideMode">The override mode for the skip rule and skipping strategy setting.</param>
+		/// <returns>This instance for method chaining.</returns>
+		public ParserLocalSettingsBuilder SkipWhitespacesOptimized(ParserSettingMode overrideMode = ParserSettingMode.LocalForSelfAndChildren)
+		{
+			return Skip(ParserSkippingStrategy.Whitespaces, overrideMode: overrideMode);
 		}
 
 		/// <summary>
@@ -97,10 +136,12 @@ namespace RCParsing.Building
 		/// <returns>This instance for method chaining.</returns>
 		public ParserLocalSettingsBuilder NoSkipping(ParserSettingMode overrideMode = ParserSettingMode.LocalForSelfAndChildren)
 		{
-			_settings.skippingStrategy = ParserSkippingStrategy.Default;
+			_skipStrategy = new BuildableSimpleSkipStrategy
+			{
+				Strategy = ParserSkippingStrategy.Default,
+				SkipRule = null,
+			};
 			_settings.skippingStrategyUseMode = overrideMode;
-			_skipRule = null;
-			_settings.skipRuleUseMode = overrideMode;
 			return this;
 		}
 

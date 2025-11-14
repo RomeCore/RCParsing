@@ -103,7 +103,8 @@ namespace RCParsing.ParserRules
 					rules ??= new ParsedRule[_rules.Length];
 					parsedRule.occurency = i;
 					rules[i] = parsedRule;
-					context.position = parsedRule.startIndex + parsedRule.length;
+					if (parsedRule.length > 0)
+						context.position = parsedRule.startIndex + parsedRule.length;
 					context.passedBarriers = parsedRule.passedBarriers;
 				}
 

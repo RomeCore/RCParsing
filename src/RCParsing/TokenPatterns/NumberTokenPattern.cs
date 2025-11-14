@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.Text;
 
 namespace RCParsing.TokenPatterns
 {
@@ -72,7 +70,7 @@ namespace RCParsing.TokenPatterns
 	}
 
 	/// <summary>
-	/// Represents the flags that can be used to modify the behavior of the number token pattern.
+	/// Represents the flags that can be used to modify the behavior of the <see cref="NumberTokenPattern"/>.
 	/// </summary>
 	[Flags]
 	public enum NumberFlags
@@ -149,21 +147,77 @@ namespace RCParsing.TokenPatterns
 		/// Allows decimal point in the number.
 		/// </summary>
 		DecimalPoint = 1 << 1,
+		
+		/// <summary>
+		/// Allows group separators in the number, like "1'099'321".
+		/// </summary>
+		GroupSeparators = 1 << 2,
 
 		/// <summary>
 		/// Allows exponent part for a scientific notation.
 		/// </summary>
-		Exponent = 1 << 2,
+		Exponent = 1 << 3,
 
 		/// <summary>
 		/// Allows implicit integer part before the decimal point. For example, ".5" is treated as "0.5".
 		/// </summary>
-		ImplicitIntegerPart = 1 << 3,
+		ImplicitIntegerPart = 1 << 4,
 
 		/// <summary>
 		/// Allows implicit fractional part after the decimal point. For example, "5." is treated as "5.0".
 		/// </summary>
-		ImplicitFractionalPart = 1 << 4,
+		ImplicitFractionalPart = 1 << 5,
+	}
+
+	/// <summary>
+	/// Represents a range of allowed count of group separators in a row while parsing a <see cref="NumberTokenPattern"/>.
+	/// </summary>
+	public struct NumberGroupOptions
+	{
+		/// <summary>
+		/// The separator character.
+		/// </summary>
+		public char Separator { get; set; }
+
+		/// <summary>
+		/// Allow leading separators?
+		/// </summary>
+		public bool AllowLeadingSeparator { get => LeadingMinSize == 0; set => LeadingMinSize = value ? 0 : LeadingMinSize > 0 ? LeadingMinSize : 1; }
+
+		/// <summary>
+		/// Allow trailing separators?
+		/// </summary>
+		public bool AllowTrailingSeparator { get; set; }
+
+		/// <summary>
+		/// Minimum count of separators in one group.
+		/// </summary>
+		public int MinSeparators { get; set; }
+
+		/// <summary>
+		/// Maximum count of separators in one group.
+		/// </summary>
+		public int MaxSeparators { get; set; }
+
+		/// <summary>
+		/// Minimum size of leading group, can be 0 to allow leading separators.
+		/// </summary>
+		public int LeadingMinSize { get; set; }
+
+		/// <summary>
+		/// Maximum size of leading group.
+		/// </summary>
+		public int LeadingMaxSize { get; set; }
+
+		/// <summary>
+		/// Minimum size of groups.
+		/// </summary>
+		public int MinSize { get; set; }
+
+		/// <summary>
+		/// Maximum size of groups.
+		/// </summary>
+		public int MaxSize { get; set; }
 	}
 
 	/// <summary>
@@ -172,24 +226,39 @@ namespace RCParsing.TokenPatterns
 	public class NumberTokenPattern : TokenPattern
 	{
 		/// <summary>
-		/// Gets the type of number that this pattern matches.
+		/// Gets the target type of number that intermediate value will be converted to.
 		/// </summary>
 		public NumberType NumberType { get; }
 
 		/// <summary>
-		/// Gets the number flags that apply to this pattern.
+		/// Gets the number flags that affects parsing behaviour.
 		/// </summary>
 		public NumberFlags Flags { get; }
 
 		/// <summary>
+		/// Gets the decimal point character.
+		/// </summary>
+		public char DecimalPoint { get; }
+		
+		/// <summary>
+		/// Gets the group separator character.
+		/// </summary>
+		public char GroupSeparator { get; }
+
+		/// <summary>
 		/// Initializes a new instance of the <see cref="NumberTokenPattern"/> class.
 		/// </summary>
-		/// <param name="numberType">The type of number that this pattern matches.</param>
-		/// <param name="flags">The number flags that apply to this pattern.</param>
-		public NumberTokenPattern(NumberType numberType, NumberFlags flags)
+		/// <param name="numberType">The target type of number that intermediate value will be converted to.</param>
+		/// <param name="flags">The number flags that affects parsing behaviour.</param>
+		/// <param name="decimalPoint">The decimal point character.</param>
+		/// <param name="groupSeparator">The group separator character.</param>
+		public NumberTokenPattern(NumberType numberType, NumberFlags flags,
+			char decimalPoint = '.', char groupSeparator = '_')
 		{
 			NumberType = numberType;
 			Flags = flags;
+			DecimalPoint = decimalPoint;
+			GroupSeparator = groupSeparator;
 		}
 
 		protected override HashSet<char>? FirstCharsCore
@@ -205,7 +274,7 @@ namespace RCParsing.TokenPatterns
 					set.Add('-');
 				}
 				if ((Flags & NumberFlags.DecimalPoint) != 0 && (Flags & NumberFlags.ImplicitIntegerPart) != 0)
-					set.Add('.');
+					set.Add(DecimalPoint);
 				return set;
 			}
 		}
@@ -224,32 +293,72 @@ namespace RCParsing.TokenPatterns
 				return ParsedElement.Fail;
 			}
 			int startPos = position;
+			var flags = Flags;
 
-			bool positiveSign = true;
-			if ((Flags & NumberFlags.Signed) != 0)
+			bool isNegative = false;
+			if ((flags & NumberFlags.Signed) != 0)
 			{
 				if (input[position] == '-')
 				{
-					positiveSign = false;
+					isNegative = true;
 					position++;
 				}
 				else if (input[position] == '+')
 				{
-					positiveSign = true;
+					isNegative = false;
 					position++;
 				}
 			}
 
-			int integerPart = 0; int digit; int integerDigitCount = 0;
-			double fractionalPart = 0; int fractionalDigitCount = 0; double fractionalPower = 10;
-			int exponentPart = 0; int exponentDigitCount = 0; bool positiveExponent = true;
+			ulong integerPart = 0; int digit; int integerDigitCount = 0;
+			double fractionalPart = 0;  int fractionalDigitCount = 0; double fractionalPower = 10;
+			int exponentPart = 0; int exponentDigitCount = 0; bool negativeExponent = false;
 
 			// Parse the integer part of the number.
-			while (position < barrierPosition && (digit = input[position] - '0') >= 0 && digit <= 9)
+			try
 			{
-				integerPart = integerPart * 10 + digit;
-				integerDigitCount++;
-				position++;
+				checked
+				{
+					if ((flags & NumberFlags.GroupSeparators) != 0)
+					{
+						var groupSeparator = GroupSeparator;
+						int lastDigitPosition = position;
+						while (position < barrierPosition)
+						{
+							if ((digit = input[position] - '0') >= 0 && digit <= 9)
+							{
+								integerPart = integerPart * 10 + (uint)digit;
+								integerDigitCount++;
+								position++;
+								lastDigitPosition = position;
+							}
+							else if (integerDigitCount > 0 && input[position] == groupSeparator)
+							{
+								position++;
+							}
+							else
+							{
+								break;
+							}
+						}
+						position = lastDigitPosition;
+					}
+					else
+					{
+						while (position < barrierPosition && (digit = input[position] - '0') >= 0 && digit <= 9)
+						{
+							integerPart = integerPart * 10 + (uint)digit;
+							integerDigitCount++;
+							position++;
+						}
+					}
+				}
+			}
+			catch (OverflowException)
+			{
+				if (startPos >= furthestError.position)
+					furthestError = new ParsingError(startPos, 0, "Integer literal is too large.", Id, true);
+				return ParsedElement.Fail;
 			}
 
 			// Integer position = position after optional sign and digits.
@@ -257,16 +366,45 @@ namespace RCParsing.TokenPatterns
 			if (position == barrierPosition) goto check;
 
 			// Parse the fractional part of the number.
-			if ((Flags & NumberFlags.DecimalPoint) != 0 &&
-				position < barrierPosition && input[position] == '.')
+			if ((flags & NumberFlags.DecimalPoint) != 0 &&
+				position < barrierPosition && input[position] == DecimalPoint)
 			{
 				position++; // Consume the '.'
-				while (position < barrierPosition && (digit = input[position] - '0') >= 0 && digit <= 9)
+
+				if ((flags & NumberFlags.GroupSeparators) != 0)
 				{
-					fractionalPart += digit / fractionalPower;
-					fractionalPower *= 10;
-					fractionalDigitCount++;
-					position++;
+					var groupSeparator = GroupSeparator;
+					int lastDigitPosition = position;
+					while (position < barrierPosition)
+					{
+						if ((digit = input[position] - '0') >= 0 && digit <= 9)
+						{
+							fractionalPart += digit / fractionalPower;
+							fractionalPower *= 10;
+							fractionalDigitCount++;
+							position++;
+							lastDigitPosition = position;
+						}
+						else if (fractionalDigitCount > 0 && input[position] == groupSeparator)
+						{
+							position++;
+						}
+						else
+						{
+							break;
+						}
+					}
+					position = lastDigitPosition;
+				}
+				else
+				{
+					while (position < barrierPosition && (digit = input[position] - '0') >= 0 && digit <= 9)
+					{
+						fractionalPart += digit / fractionalPower;
+						fractionalPower *= 10;
+						fractionalDigitCount++;
+						position++;
+					}
 				}
 			}
 
@@ -275,7 +413,7 @@ namespace RCParsing.TokenPatterns
 			if (position == barrierPosition) goto check;
 
 			// Parse the exponent part of the number.
-			if ((Flags & NumberFlags.Exponent) != 0 &&
+			if ((flags & NumberFlags.Exponent) != 0 &&
 				position < barrierPosition && (input[position] == 'e' || input[position] == 'E'))
 			{
 				// Consume the 'e' or 'E'
@@ -284,22 +422,47 @@ namespace RCParsing.TokenPatterns
 
 				if (input[position] == '-')
 				{
-					positiveExponent = false;
+					negativeExponent = true;
 					position++;
 				}
 				else if (input[position] == '+')
 				{
-					positiveExponent = true;
+					negativeExponent = false;
 					position++;
 				}
 
-				if (position == barrierPosition) goto check;
-
-				while (position < barrierPosition && (digit = input[position] - '0') >= 0 && digit <= 9)
+				if ((flags & NumberFlags.GroupSeparators) != 0)
 				{
-					exponentPart = exponentPart * 10 + digit;
-					exponentDigitCount++;
-					position++;
+					var groupSeparator = GroupSeparator;
+					int lastDigitPosition = position;
+					while (position < barrierPosition)
+					{
+						if ((digit = input[position] - '0') >= 0 && digit <= 9)
+						{
+							exponentPart = exponentPart * 10 + digit;
+							exponentDigitCount++;
+							position++;
+							lastDigitPosition = position;
+						}
+						else if (fractionalDigitCount > 0 && input[position] == groupSeparator)
+						{
+							position++;
+						}
+						else
+						{
+							break;
+						}
+					}
+					position = lastDigitPosition;
+				}
+				else
+				{
+					while (position < barrierPosition && (digit = input[position] - '0') >= 0 && digit <= 9)
+					{
+						exponentPart = exponentPart * 10 + digit;
+						exponentDigitCount++;
+						position++;
+					}
 				}
 			}
 
@@ -318,7 +481,7 @@ namespace RCParsing.TokenPatterns
 			}
 
 			// ".x" is allowed only if ImplicitIntegerPart is enabled.
-			if (integerDigitCount == 0 && (Flags & NumberFlags.ImplicitIntegerPart) == 0)
+			if (integerDigitCount == 0 && (flags & NumberFlags.ImplicitIntegerPart) == 0)
 			{
 				if (position >= furthestError.position)
 					furthestError = new ParsingError(startPos, 0, "Implicit integer part is not allowed.", Id, true);
@@ -326,14 +489,14 @@ namespace RCParsing.TokenPatterns
 			}
 
 			// "x." is allowed only if ImplicitFractionalPart is enabled.
-			if (fractionalDigitCount == 0 && (Flags & NumberFlags.ImplicitFractionalPart) == 0)
+			if (fractionalDigitCount == 0 && (flags & NumberFlags.ImplicitFractionalPart) == 0)
 			{
 				length = integerPosition - startPos;
 				goto calculation;
 			}
 
 			// Backtrack
-			if (exponentDigitCount == 0 && (Flags & NumberFlags.Exponent) != 0)
+			if (exponentDigitCount == 0 && (flags & NumberFlags.Exponent) != 0)
 			{
 				length = fractionalPosition - startPos;
 				goto calculation;
@@ -341,74 +504,173 @@ namespace RCParsing.TokenPatterns
 
 		calculation:
 
-			if (!calculateIntermediateValue)
-				return new ParsedElement(startPos, length);
-
-			// Calculate the result based on the parsed number.
-			double result = integerPart + fractionalPart;
-			if (!positiveSign)
-				result = -result;
-
-			// Apply the exponent part if it exists.
-			if (exponentDigitCount > 0)
-			{
-				int exp = positiveExponent ? exponentPart : -exponentPart;
-				result *= Math.Pow(10, exp);
-			}
+			if (negativeExponent)
+				exponentPart = -exponentPart;
 
 			// Convert the result to the appropriate type based on the number type.
 			object? value = null;
-			switch (NumberType)
+			try
 			{
-				case NumberType.PreferSimpler:
-					if (fractionalPosition > integerPosition)
-						value = (float)result;
-					else
-						value = (int)result;
-					break;
-
-				case NumberType.Byte:
-					value = (byte)result;
-					break;
-				case NumberType.SignedByte:
-					value = (sbyte)result;
-					break;
-
-				case NumberType.UnsignedShort:
-					value = (ushort)result;
-					break;
-				case NumberType.Short:
-					value = (short)result;
-					break;
-
-				case NumberType.UnsignedInteger:
-					value = (uint)result;
-					break;
-				case NumberType.Integer:
-					value = (int)result;
-					break;
-
-				case NumberType.UnsignedLong:
-					value = (ulong)result;
-					break;
-				case NumberType.Long:
-					value = (long)result;
-					break;
-
-				case NumberType.Float:
-					value = (float)result;
-					break;
-
-				case NumberType.Double:
-					value = result;
-					break;
-
-				case NumberType.Decimal:
-					value = (decimal)result;
-					break;
+				value = ConvertToTargetType(fractionalPosition > integerPosition,
+					integerPart, fractionalPart, isNegative, exponentPart);
+			}
+			catch (OverflowException)
+			{
+				if (startPos >= furthestError.position)
+					furthestError = new ParsingError(startPos, 0, "Numeric literal is out of range for the target type.", Id, true);
+				return ParsedElement.Fail;
 			}
 
 			return new ParsedElement(startPos, length, value);
+		}
+
+		private object ConvertToTargetType(bool hasFractionalPart, ulong integerPart, double fractionalPart, bool isNegative, int exponentPart)
+		{
+			switch (NumberType)
+			{
+				case NumberType.PreferSimpler:
+					if (hasFractionalPart)
+					{
+						checked
+						{
+							float _value_F = (float)(integerPart + fractionalPart);
+							if (isNegative)
+								_value_F = -_value_F;
+							if (exponentPart != 0)
+								_value_F *= (float)Math.Pow(10, exponentPart);
+							return _value_F;
+						}
+					}
+					else
+					{
+						checked
+						{
+							int _value_I = isNegative ? (int)-(long)integerPart : (int)integerPart;
+							if (isNegative)
+								_value_I = -_value_I;
+							if (exponentPart != 0)
+								_value_I *= (int)Math.Pow(10, exponentPart);
+							return _value_I;
+						}
+					}
+
+				case NumberType.Byte:
+					checked
+					{
+						if (isNegative)
+							throw new OverflowException();
+						byte _valueB = (byte)integerPart;
+						if (exponentPart != 0)
+							_valueB *= (byte)Math.Pow(10, exponentPart);
+						return _valueB;
+					}
+
+				case NumberType.SignedByte:
+					checked
+					{
+						sbyte _valueSB = isNegative ? (sbyte)-(long)integerPart : (sbyte)integerPart;
+						if (exponentPart != 0)
+							_valueSB *= (sbyte)Math.Pow(10, exponentPart);
+						return _valueSB;
+					}
+
+				case NumberType.UnsignedShort:
+					checked
+					{
+						if (isNegative)
+							throw new OverflowException();
+						ushort _valueUS = (ushort)integerPart;
+						if (exponentPart != 0)
+							_valueUS *= (ushort)Math.Pow(10, exponentPart);
+						return _valueUS;
+					}
+
+				case NumberType.Short:
+					checked
+					{
+						short _valueS = isNegative ? (short)-(long)integerPart : (short)integerPart;
+						if (exponentPart != 0)
+							_valueS *= (short)Math.Pow(10, exponentPart);
+						return _valueS;
+					}
+
+				case NumberType.UnsignedInteger:
+					checked
+					{
+						if (isNegative)
+							throw new OverflowException();
+						uint _valueUI = (uint)integerPart;
+						if (exponentPart != 0)
+							_valueUI *= (uint)Math.Pow(10, exponentPart);
+						return _valueUI;
+					}
+
+				case NumberType.Integer:
+					checked
+					{
+						int _valueI = isNegative ? (int)-(long)integerPart : (int)integerPart;
+						if (exponentPart != 0)
+							_valueI *= (int)Math.Pow(10, exponentPart);
+						return _valueI;
+					}
+
+				case NumberType.UnsignedLong:
+					checked
+					{
+						if (isNegative)
+							throw new OverflowException();
+						ulong _valueUL = integerPart;
+						if (exponentPart != 0)
+							_valueUL *= (ulong)Math.Pow(10, exponentPart);
+						return _valueUL;
+					}
+
+				case NumberType.Long:
+					checked
+					{
+						if (exponentPart != 0)
+							integerPart *= (ulong)Math.Pow(10, exponentPart);
+						if (isNegative)
+						{
+							if (integerPart == 9223372036854775808)
+								return long.MinValue;
+							else
+								return -(long)integerPart;
+						}
+						else
+							return (long)integerPart;
+					}
+
+				case NumberType.Float:
+					float _valueF = (float)(integerPart + fractionalPart);
+					if (isNegative)
+						_valueF = -_valueF;
+					if (exponentPart != 0)
+						_valueF *= (float)Math.Pow(10, exponentPart);
+					return _valueF;
+
+				case NumberType.Double:
+					double _valueD = integerPart + fractionalPart;
+					if (isNegative)
+						_valueD = -_valueD;
+					if (exponentPart != 0)
+						_valueD *= Math.Pow(10, exponentPart);
+					return _valueD;
+
+				case NumberType.Decimal:
+					checked
+					{
+						decimal _valueDc = (decimal)(integerPart + fractionalPart);
+						if (isNegative)
+							_valueDc = -_valueDc;
+						if (exponentPart != 0)
+							_valueDc *= (decimal)Math.Pow(10, exponentPart);
+						return _valueDc;
+					}
+
+				default:
+					throw new InvalidOperationException($"Unsupported NumberType: {NumberType}.");
+			}
 		}
 
 		public override string ToStringOverride(int remainingDepth)
@@ -421,7 +683,9 @@ namespace RCParsing.TokenPatterns
 			return base.Equals(obj) &&
 				   obj is NumberTokenPattern other &&
 				   NumberType == other.NumberType &&
-				   Flags == other.Flags;
+				   Flags == other.Flags &&
+				   DecimalPoint == other.DecimalPoint &&
+				   GroupSeparator == other.GroupSeparator;
 		}
 
 		public override int GetHashCode()
@@ -429,8 +693,10 @@ namespace RCParsing.TokenPatterns
 			unchecked
 			{
 				int hash = base.GetHashCode();
-				hash = (hash * 397) ^ NumberType.GetHashCode();
-				hash = (hash * 397) ^ Flags.GetHashCode();
+				hash = (hash * 397) + NumberType.GetHashCode();
+				hash = (hash * 397) + Flags.GetHashCode();
+				hash = (hash * 397) + DecimalPoint.GetHashCode();
+				hash = (hash * 397) + GroupSeparator.GetHashCode();
 				return hash;
 			}
 		}

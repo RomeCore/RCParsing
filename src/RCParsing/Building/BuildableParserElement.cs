@@ -6,12 +6,12 @@ using RCParsing.Utils;
 namespace RCParsing.Building
 {
 	/// <summary>
-	/// Represents a parser element that can be built. This is an abstract base class for both token patterns and rules.
+	/// Represents a parser element (rule or token) that can be built. This is an abstract base class for both token patterns and rules.
 	/// </summary>
 	/// <remarks>
 	/// Its recommended to implement the Equals and GetHashCode methods to remove redudancy when compiling parser.
 	/// </remarks>
-	public abstract class BuildableParserElement
+	public abstract class BuildableParserElement : BuildableParserElementBase<ParserElement>
 	{
 		/// <summary>
 		/// Gets the parsed value factory associated with this parser element. <br/>
@@ -29,17 +29,10 @@ namespace RCParsing.Building
 		/// Gets the error recovery builder for this parser element. <br/>
 		/// For rules it will be applied directly; for tokens it will be applied to parent rule.
 		/// </summary>
-		public ErrorRecoveryBuilder ErrorRecovery { get; } = new ErrorRecoveryBuilder();
+		public ErrorRecoveryStrategyBuilder ErrorRecovery { get; } = new ErrorRecoveryStrategyBuilder();
 
-		/// <summary>
-		/// Gets the rule children of this parser element. Each child can be name reference or a buildable parser rule.
-		/// </summary>
-		public abstract IEnumerable<Or<string, BuildableParserRule>>? RuleChildren { get; }
-
-		/// <summary>
-		/// Gets the token children of this parser element. Each child can be a name reference or a buildable token pattern.
-		/// </summary>
-		public abstract IEnumerable<Or<string, BuildableTokenPattern>>? TokenChildren { get; }
+		public override IEnumerable<BuildableParserElementBase?>? ElementChildren =>
+			new BuildableParserElementBase?[] { Settings, ErrorRecovery };
 
 		/// <summary>
 		/// Builds the parser element with the given children.
@@ -48,6 +41,30 @@ namespace RCParsing.Building
 		/// <param name="tokenChildren">The token children IDs to build the parser element with.</param>
 		/// <returns>The built parser element.</returns>
 		public abstract ParserElement Build(List<int>? ruleChildren, List<int>? tokenChildren);
+
+		public override ParserElement BuildTyped(List<int>? ruleChildren,
+			List<int>? tokenChildren, List<object?>? elementChildren)
+		{
+			var element = Build(ruleChildren, tokenChildren);
+
+			var builtSettings = (ParserLocalSettings)elementChildren[0];
+			var builtErrorRecovery = (ErrorRecoveryStrategy)elementChildren[1];
+
+			if (element is ParserRule rule)
+			{
+				rule.ParsedValueFactory = ParsedValueFactory;
+				rule.Settings = builtSettings;
+				rule.ErrorRecovery = builtErrorRecovery;
+			}
+			else if (element is TokenPattern pattern)
+			{
+				pattern.DefaultParsedValueFactory = ParsedValueFactory;
+				pattern.DefaultSettings = builtSettings;
+				pattern.DefaultErrorRecovery = builtErrorRecovery;
+			}
+
+			return element;
+		}
 
 		public override bool Equals(object? obj)
 		{

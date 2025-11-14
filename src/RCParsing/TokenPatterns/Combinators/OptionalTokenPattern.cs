@@ -16,12 +16,19 @@ namespace RCParsing.TokenPatterns.Combinators
 		public int Child { get; }
 
 		/// <summary>
+		/// The fallback intermadiate value that will be returned when child fails.
+		/// </summary>
+		public object? FallbackValue { get; }
+
+		/// <summary>
 		/// Initializes a new instance of the <see cref="OptionalTokenPattern"/> class.
 		/// </summary>
 		/// <param name="child">The token pattern ID that this optional pattern wraps.</param>
-		public OptionalTokenPattern(int child)
+		/// <param name="fallbackValue">The fallback intermadiate value that will be returned when child fails.</param>
+		public OptionalTokenPattern(int child, object? fallbackValue)
 		{
 			Child = child;
+			FallbackValue = fallbackValue;
 		}
 
 		protected override HashSet<char> FirstCharsCore => GetTokenPattern(Child).FirstChars;
@@ -46,8 +53,7 @@ namespace RCParsing.TokenPatterns.Combinators
 				calculateIntermediateValue, ref furthestError);
 			if (token.success)
 				return token;
-			else
-				return new ParsedElement(position, 0);
+			return new ParsedElement(position, 0, FallbackValue);
 		}
 
 
@@ -63,13 +69,15 @@ namespace RCParsing.TokenPatterns.Combinators
 		{
 			return base.Equals(obj) &&
 				   obj is OptionalTokenPattern pattern &&
-				   Child == pattern.Child;
+				   Child == pattern.Child &&
+				   Equals(FallbackValue, pattern.FallbackValue);
 		}
 
 		public override int GetHashCode()
 		{
 			int hashCode = base.GetHashCode();
-			hashCode = hashCode * -1521134295 + Child.GetHashCode();
+			hashCode = hashCode * 397 + Child.GetHashCode();
+			hashCode = hashCode * 397 + FallbackValue?.GetHashCode() ?? 0;
 			return hashCode;
 		}
 	}

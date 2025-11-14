@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using RCParsing.Utils;
 
@@ -85,20 +86,18 @@ namespace RCParsing.ParserRules
 
 		public override string ToStringOverride(int remainingDepth)
 		{
-			string alias = Aliases.Count > 0 ? $" '{Aliases.Last()}'" : string.Empty;
 			string prefix = IsPositive ? "&" : "!";
 			if (remainingDepth <= 0)
-				return $"{prefix}{alias}...";
-			return $"{prefix}{alias}: {GetRule(Rule).ToString(remainingDepth - 1)}";
+				return $"{prefix}Lookahead...";
+			return $"{prefix}Lookahead: {GetRule(Rule).ToString(remainingDepth - 1)}";
 		}
 
 		public override string ToStackTraceString(int remainingDepth, int childIndex)
 		{
-			string alias = Aliases.Count > 0 ? $" '{Aliases.Last()}'" : string.Empty;
 			string prefix = IsPositive ? "&" : "!";
 			if (remainingDepth <= 0)
-				return $"{prefix}{alias}...";
-			return $"{prefix}{alias}: {GetRule(Rule).ToString(remainingDepth - 1)} <-- here";
+				return $"{prefix}Lookahead...";
+			return $"{prefix}Lookahead: {GetRule(Rule).ToString(remainingDepth - 1)} <-- here";
 		}
 
 		public override bool Equals(object? obj)
@@ -112,10 +111,9 @@ namespace RCParsing.ParserRules
 		public override int GetHashCode()
 		{
 			int hashCode = base.GetHashCode();
-			hashCode = hashCode * -1521134295 + Rule.GetHashCode();
-			hashCode = hashCode * -1521134295 + IsPositive.GetHashCode();
+			hashCode = hashCode * 397 + Rule.GetHashCode();
+			hashCode = hashCode * 397 + IsPositive.GetHashCode();
 			return hashCode;
 		}
 	}
-
 }

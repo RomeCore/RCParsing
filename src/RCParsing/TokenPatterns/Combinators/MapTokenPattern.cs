@@ -28,7 +28,7 @@ namespace RCParsing.TokenPatterns.Combinators
 		public MapTokenPattern(int child, Func<object?, object?> mapper)
 		{
 			Child = child;
-			Mapper = mapper;
+			Mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
 		}
 
 		protected override HashSet<char> FirstCharsCore => GetTokenPattern(Child).FirstChars;
@@ -52,16 +52,14 @@ namespace RCParsing.TokenPatterns.Combinators
 				return _child.Match(input, position, barrierPosition, parserParameter,
 					false, ref furthestError);
 
-			var initialPosition = position;
 			var child = _child.Match(input, position, barrierPosition, parserParameter,
 				calculateIntermediateValue, ref furthestError);
 
 			if (!child.success)
 				return ParsedElement.Fail;
 
-			position = child.startIndex + child.length;
-			var mappedValue = Mapper(child.intermediateValue);
-			return new ParsedElement(initialPosition, position - initialPosition, mappedValue);
+			child.intermediateValue = Mapper(child.intermediateValue);
+			return child;
 		}
 
 
@@ -85,8 +83,7 @@ namespace RCParsing.TokenPatterns.Combinators
 		{
 			int hashCode = base.GetHashCode();
 			hashCode = hashCode * 397 + Child.GetHashCode();
-			if (Mapper != null)
-				hashCode = hashCode * 397 + Mapper.GetHashCode();
+			hashCode = hashCode * 397 + Mapper.GetHashCode();
 			return hashCode;
 		}
 	}

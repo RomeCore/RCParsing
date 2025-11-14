@@ -235,7 +235,7 @@ namespace RCParsing.Tests.Tokens
 		public void LiteralChoice_FailsOnEmptyInput()
 		{
 			var builder = new ParserBuilder();
-			builder.CreateToken("kw").LiteralChoice(new[] { "a", "b", "c" });
+			builder.CreateToken("kw").LiteralChoice("a", "b", "c");
 
 			var parser = builder.Build();
 			var tokenResult = parser.TryMatchToken("kw", "");
@@ -536,6 +536,35 @@ namespace RCParsing.Tests.Tokens
 			var parser = builder.Build();
 			var tokenResult = parser.TryMatchToken("num", "abc");
 			Assert.False(tokenResult.Success);
+		}
+
+		[Fact(DisplayName = "AllText token matches all input")]
+		public void AllTextToken_MatchesAllInput()
+		{
+			var builder = new ParserBuilder();
+			builder.CreateToken("all").AllText();
+
+			var parser = builder.Build();
+			var tokenResult = parser.TryMatchToken("all", "abc123");
+			Assert.True(tokenResult.Success);
+			Assert.Equal(6, tokenResult.Length);
+
+			tokenResult = parser.TryMatchToken("all", "");
+			Assert.True(tokenResult.Success);
+			Assert.Equal(0, tokenResult.Length);
+		}
+
+		[Fact]
+		public void LiteralChoice_CustomIntermediateValues()
+		{
+			var builder = new ParserBuilder();
+			builder.CreateToken("boolean")
+				.LiteralChoice(("true", true), ("false", false));
+
+			var parser = builder.Build();
+			var result = parser.MatchToken("boolean", "true");
+			Assert.True(result.Success);
+			Assert.True((bool)result.IntermediateValue!);
 		}
 	}
 }

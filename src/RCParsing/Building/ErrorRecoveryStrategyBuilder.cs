@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
+using RCParsing.Building.ErrorRecoveryStrategies;
 using RCParsing.Utils;
 
 namespace RCParsing.Building
@@ -8,46 +10,32 @@ namespace RCParsing.Building
 	/// <summary>
 	/// Represents a buildable error recovery mechanism for parsing rules.
 	/// </summary>
-	public class ErrorRecoveryBuilder
+	public class ErrorRecoveryStrategyBuilder : BuildableParserElementBase<ErrorRecoveryStrategy>
 	{
-		private ErrorRecovery _recovery = new();
-		private Or<string, BuildableParserRule>? _anchorRule = null;
-		private Or<string, BuildableParserRule>? _stopRule = null;
-
 		/// <summary>
-		/// Gets the children of the settings builder.
+		/// Gets or sets the error recovery strategy being built.
 		/// </summary>
-		public IEnumerable<Or<string, BuildableParserRule>?> RuleChildren =>
-			new Or<string, BuildableParserRule>?[] { _anchorRule, _stopRule };
+		public BuildableErrorRecoveryStrategy? BuildingErrorRecovery { get; set; }
 
-		/// <summary>
-		/// Builds the error recovery for parser.
-		/// </summary>
-		/// <param name="ruleChildren">The list of rule children IDs.</param>
-		/// <returns>The built error recovery for parser.</returns>
-		public ErrorRecovery Build(List<int> ruleChildren)
+		public override IEnumerable<BuildableParserElementBase?>? ElementChildren =>
+			new[] { BuildingErrorRecovery };
+
+		public override ErrorRecoveryStrategy BuildTyped(List<int>? ruleChildren,
+			List<int>? tokenChildren, List<object?>? elementChildren)
 		{
-			var result = _recovery;
-			result.anchorRule = ruleChildren[0];
-			result.stopRule = ruleChildren[1];
-
-			return result;
+			return elementChildren[0] as ErrorRecoveryStrategy;
 		}
 
-		public override bool Equals(object? obj)
+		public override bool Equals(object obj)
 		{
-			return obj is ErrorRecoveryBuilder other &&
-				   _recovery.Equals(other._recovery) &&
-				   _anchorRule.Equals(other._anchorRule) &&
-				   _stopRule.Equals(other._stopRule);
+			return obj is ErrorRecoveryStrategyBuilder other &&
+				Equals(BuildingErrorRecovery, other.BuildingErrorRecovery);
 		}
 
 		public override int GetHashCode()
 		{
 			int hashCode = 17;
-			hashCode = hashCode * 397 + _recovery.GetHashCode();
-			hashCode = hashCode * 397 + _anchorRule?.GetHashCode() ?? 0;
-			hashCode = hashCode * 397 + _stopRule?.GetHashCode() ?? 0;
+			hashCode = hashCode * 397 + BuildingErrorRecovery?.GetHashCode() ?? 0;
 			return hashCode;
 		}
 
@@ -55,11 +43,12 @@ namespace RCParsing.Building
 		/// Sets the recovery strategy to 'None' and clears any previously set anchor or stop rules.
 		/// </summary>
 		/// <returns>Current instance for method chaining.</returns>
-		public ErrorRecoveryBuilder NoRecovery()
+		public ErrorRecoveryStrategyBuilder NoRecovery()
 		{
-			_recovery.strategy = ErrorRecoveryStrategy.None;
-			_anchorRule = null;
-			_stopRule = null;
+			BuildingErrorRecovery = new BuildableLeafErrorRecoveryStrategy
+			{
+				Strategy = ErrorRecoveryStrategy.NoRecovery
+			};
 			return this;
 		}
 
@@ -68,11 +57,12 @@ namespace RCParsing.Building
 		/// and clears any previously set anchor or stop rules.
 		/// </summary>
 		/// <returns>Current instance for method chaining.</returns>
-		public ErrorRecoveryBuilder FindNext()
+		public ErrorRecoveryStrategyBuilder FindNext()
 		{
-			_recovery.strategy = ErrorRecoveryStrategy.FindNext;
-			_anchorRule = null;
-			_stopRule = null;
+			BuildingErrorRecovery = new BuildableLeafErrorRecoveryStrategy
+			{
+				Strategy = ErrorRecoveryStrategy.FindNext
+			};
 			return this;
 		}
 
@@ -83,15 +73,15 @@ namespace RCParsing.Building
 		/// <param name="stopBuilderAction">Action that configures the stop rule.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		/// <exception cref="ParserBuildingException">Thrown if the stop rule cannot be built.</exception>
-		public ErrorRecoveryBuilder FindNextUntil(Action<RuleBuilder> stopBuilderAction)
+		public ErrorRecoveryStrategyBuilder FindNextUntil(Action<RuleBuilder> stopBuilderAction)
 		{
-			_recovery.strategy = ErrorRecoveryStrategy.FindNext;
-			_anchorRule = null;
-
 			var stopBuilder = new RuleBuilder();
 			stopBuilderAction(stopBuilder);
-			_stopRule = stopBuilder.BuildingRule;
 
+			BuildingErrorRecovery = new BuildableFindNextErrorRecoveryStrategy
+			{
+				StopRule = stopBuilder.BuildingRule
+			};
 			return this;
 		}
 
@@ -102,19 +92,18 @@ namespace RCParsing.Building
 		/// <param name="repeat">Whether to repeat the search if another error occurs when skipping.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		/// <exception cref="ParserBuildingException">Thrown if the anchor rule cannot be built.</exception>
-		public ErrorRecoveryBuilder SkipUntil(Action<RuleBuilder> anchorBuilderAction, bool repeat = false)
+		public ErrorRecoveryStrategyBuilder SkipUntil(Action<RuleBuilder> anchorBuilderAction, bool repeat = false)
 		{
-			_recovery.strategy = ErrorRecoveryStrategy.SkipUntilAnchor;
-			_recovery.repeatSkip = repeat;
-
 			var anchorBuilder = new RuleBuilder();
 			anchorBuilderAction(anchorBuilder);
 			if (!anchorBuilder.CanBeBuilt)
 				throw new ParserBuildingException("Anchor rule must be set for SkipUntilAnchor recovery strategy.");
-			_anchorRule = anchorBuilder.BuildingRule;
 
-			_stopRule = null;
-
+			BuildingErrorRecovery = new BuildableSkipUntilAnchorErrorRecoveryStrategy
+			{
+				AnchorRule = anchorBuilder.BuildingRule.Value,
+				RepeatSkip = repeat
+			};
 			return this;
 		}
 
@@ -127,7 +116,7 @@ namespace RCParsing.Building
 		/// <param name="repeat">Whether to repeat the search if another error occurs when skipping.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		/// <exception cref="ParserBuildingException">Thrown if the anchor rule cannot be built.</exception>
-		public ErrorRecoveryBuilder SkipUntil(Action<RuleBuilder> anchorBuilderAction,
+		public ErrorRecoveryStrategyBuilder SkipUntil(Action<RuleBuilder> anchorBuilderAction,
 			Action<RuleBuilder> stopBuilderAction, bool repeat = false)
 		{
 			var anchorBuilder = new RuleBuilder();
@@ -135,14 +124,15 @@ namespace RCParsing.Building
 			if (!anchorBuilder.CanBeBuilt)
 				throw new ParserBuildingException("Anchor rule must be set for SkipUntilAnchor recovery strategy.");
 
-			_recovery.strategy = ErrorRecoveryStrategy.SkipUntilAnchor;
-			_recovery.repeatSkip = repeat;
-			_anchorRule = anchorBuilder.BuildingRule;
-
 			var stopBuilder = new RuleBuilder();
 			stopBuilderAction(stopBuilder);
-			_stopRule = stopBuilder.BuildingRule;
 
+			BuildingErrorRecovery = new BuildableSkipUntilAnchorErrorRecoveryStrategy
+			{
+				AnchorRule = anchorBuilder.BuildingRule.Value,
+				StopRule = stopBuilder.BuildingRule,
+				RepeatSkip = repeat
+			};
 			return this;
 		}
 
@@ -154,18 +144,18 @@ namespace RCParsing.Building
 		/// <param name="repeat">Whether to repeat the search if another error occurs when skipping.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		/// <exception cref="ParserBuildingException">Thrown if the anchor rule cannot be built.</exception>
-		public ErrorRecoveryBuilder SkipAfter(Action<RuleBuilder> anchorBuilderAction, bool repeat = false)
+		public ErrorRecoveryStrategyBuilder SkipAfter(Action<RuleBuilder> anchorBuilderAction, bool repeat = false)
 		{
 			var anchorBuilder = new RuleBuilder();
 			anchorBuilderAction(anchorBuilder);
 			if (!anchorBuilder.CanBeBuilt)
 				throw new ParserBuildingException("Anchor rule must be set for SkipAfterAnchor recovery strategy.");
 
-			_recovery.strategy = ErrorRecoveryStrategy.SkipAfterAnchor;
-			_recovery.repeatSkip = repeat;
-			_anchorRule = anchorBuilder.BuildingRule;
-			_stopRule = null;
-
+			BuildingErrorRecovery = new BuildableSkipAfterAnchorErrorRecoveryStrategy
+			{
+				AnchorRule = anchorBuilder.BuildingRule.Value,
+				RepeatSkip = repeat
+			};
 			return this;
 		}
 
@@ -178,7 +168,7 @@ namespace RCParsing.Building
 		/// <param name="repeat">Whether to repeat the search if another error occurs when skipping.</param>
 		/// <returns>Current instance for method chaining.</returns>
 		/// <exception cref="ParserBuildingException">Thrown if the anchor rule cannot be built.</exception>
-		public ErrorRecoveryBuilder SkipAfter(Action<RuleBuilder> anchorBuilderAction,
+		public ErrorRecoveryStrategyBuilder SkipAfter(Action<RuleBuilder> anchorBuilderAction,
 			Action<RuleBuilder> stopBuilderAction, bool repeat = false)
 		{
 			var anchorBuilder = new RuleBuilder();
@@ -186,14 +176,15 @@ namespace RCParsing.Building
 			if (!anchorBuilder.CanBeBuilt)
 				throw new ParserBuildingException("Anchor rule must be set for SkipAfterAnchor recovery strategy.");
 
-			_recovery.strategy = ErrorRecoveryStrategy.SkipAfterAnchor;
-			_recovery.repeatSkip = repeat;
-			_anchorRule = anchorBuilder.BuildingRule;
-
 			var stopBuilder = new RuleBuilder();
 			stopBuilderAction(stopBuilder);
-			_stopRule = stopBuilder.BuildingRule;
 
+			BuildingErrorRecovery = new BuildableSkipAfterAnchorErrorRecoveryStrategy
+			{
+				AnchorRule = anchorBuilder.BuildingRule.Value,
+				StopRule = stopBuilder.BuildingRule,
+				RepeatSkip = repeat
+			};
 			return this;
 		}
 	}

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -23,6 +24,11 @@ namespace RCParsing.TokenPatterns
 		/// Gets the set of literal strings to match.
 		/// </summary>
 		public IReadOnlyList<string> Literals { get; }
+		
+		/// <summary>
+		/// Gets the set of literal strings to match mapped with intermediate values.
+		/// </summary>
+		public IReadOnlyList<KeyValuePair<string, object?>> LiteralsMap { get; }
 
 		/// <summary>
 		/// Gets the comparer used for matching.
@@ -39,23 +45,36 @@ namespace RCParsing.TokenPatterns
 		/// </summary>
 		/// <param name="literals">The collection of literal strings to match.</param>
 		/// <param name="comparer">The comparer to use for matching.</param>
-		public LiteralChoiceTokenPattern(IEnumerable<string> literals, StringComparer? comparer = null)
+		public LiteralChoiceTokenPattern(IEnumerable<string> literals,
+			StringComparer? comparer = null)
+			: this(literals?.Select(l => new KeyValuePair<string, object?>(l, l)), comparer)
+		{
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="LiteralChoiceTokenPattern"/> class.
+		/// </summary>
+		/// <param name="literals">The collection of literal strings to match mapped with intermediate values.</param>
+		/// <param name="comparer">The comparer to use for matching.</param>
+		public LiteralChoiceTokenPattern(IEnumerable<KeyValuePair<string, object?>> literals,
+			StringComparer? comparer = null)
 		{
 			if (literals == null)
 				throw new ArgumentNullException(nameof(literals));
 
 			Comparer = comparer ?? StringComparer.Ordinal;
 			CharComparer = new CharComparer(Comparer);
-			Literals = literals.ToList().AsReadOnlyList();
+			LiteralsMap = literals.Distinct().ToList().AsReadOnly();
 
-			if (Literals.Count == 0)
+			if (LiteralsMap.Count == 0)
 				throw new ArgumentException("Literals collection is empty.", nameof(literals));
-			if (Literals.Any(l => string.IsNullOrEmpty(l)))
+			if (LiteralsMap.Any(l => string.IsNullOrEmpty(l.Key)))
 				throw new ArgumentException("One of literals is null or empty.", nameof(literals));
 
+			Literals = LiteralsMap.Select(l => l.Key).ToList().AsReadOnly();
+
 			_comparerWasSet = comparer != null;
-			_root = new Trie(Literals.Select(l => new KeyValuePair<string, object?>(l, l)),
-				comparer.IsDefaultIgnoreCase() ? CharComparer : null);
+			_root = new Trie(LiteralsMap, comparer.IsDefaultCaseSensitive() || comparer == null ? null : CharComparer);
 		}
 
 		protected override HashSet<char> FirstCharsCore => Comparer.IsDefaultCaseSensitive() ?
@@ -69,9 +88,9 @@ namespace RCParsing.TokenPatterns
 		public override ParsedElement Match(string input, int position, int barrierPosition,
 			object? parserParameter, bool calculateIntermediateValue, ref ParsingError furthestError)
 		{
-			if (_root.TryGetLongestMatch(input, position, barrierPosition, out var matchedLiteral, out int matchedLength))
+			if (_root.TryGetLongestMatch(input, position, barrierPosition, out var intermediateValue, out int matchedLength))
 			{
-				return new ParsedElement(position, matchedLength, matchedLiteral);
+				return new ParsedElement(position, matchedLength, intermediateValue);
 			}
 
 			if (position >= furthestError.position)

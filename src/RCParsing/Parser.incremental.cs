@@ -18,16 +18,17 @@ namespace RCParsing
 
 			EmitBarriers(ref context);
 
-			var settings = GlobalSettings;
-			var rule = GetRule(root.ruleId);
-			rule.AdvanceContext(ref context, ref settings, out var childSettings);
-
-			return ParseIncrementally(context, settings, childSettings, root, change, root.version + 1);
+			return ParseIncrementally(context, GlobalSettings, root, change, root.version + 1);
 		}
 
 		internal ParsedRule ParseIncrementally(ParserContext context, ParserSettings settings,
-			ParserSettings childSettings, ParsedRule node, TextChange change, int newVersion)
+			ParsedRule node, TextChange change, int newVersion)
 		{
+			var rule = _rules[node.ruleId];
+			var ruleContext = context;
+			var ruleSettings = settings;
+			rule.AdvanceContext(ref ruleContext, ref ruleSettings, out var ruleChildSettings);
+
 			// First, we will find a child that entirely contains the change,
 			// but if we have multiple or zero target children, we invalidate the entire node
 
@@ -59,14 +60,7 @@ namespace RCParsing
 			if (entireChilds == 1 && partialChilds == 0)
 			{
 				var targetChild = node.children[targetChildIndex];
-				var childRule = _rules[targetChild.ruleId];
-				var _settings = childSettings;
-				var childContext = context;
-
-				childContext.position = targetChild.startIndex;
-				childRule.AdvanceContext(ref childContext, ref _settings, out var _childSettings);
-
-				var newChild = ParseIncrementally(childContext, _settings, _childSettings,
+				var newChild = ParseIncrementally(ruleContext, ruleChildSettings,
 					targetChild, change, newVersion);
 
 				bool startIndexIsOk = targetChild.startIndex == newChild.startIndex;
@@ -98,18 +92,28 @@ namespace RCParsing
 
 			// Try to use the special strategy to parse this node (if implemented).
 
-			var rule = _rules[node.ruleId];
-			var specialReparsed = rule.ParseIncrementallyInternal(context,
-				settings, childSettings, node, change, newVersion);
+			ruleContext.position = node.startIndex;
+			var specialReparsed = rule.ParseIncrementallyInternal(ruleContext,
+				ruleSettings, ruleChildSettings, node, change, newVersion);
 			if (specialReparsed.success)
 				return specialReparsed;
 
 			// Otherwise, we invalidate and reparse the current node.
 
-			context.position = node.startIndex;
-			var parsedRule = Parse(rule, ref context, ref settings, ref childSettings, canRecover: true);
-			parsedRule = parsedRule.ChangeVersion(newVersion);
-			return parsedRule;
+			var skipStrategy = ruleSettings.skippingStrategy ?? SkipStrategy.NoSkipping;
+			var result = skipStrategy.ParseWithSkip(context, settings,
+				rule, ruleContext, ruleSettings, ruleChildSettings);
+
+			if (result.success)
+			{
+				result = result.ChangeVersion(newVersion);
+				return result;
+			}
+
+			var recovery = rule.ErrorRecovery ?? ErrorRecoveryStrategy.NoRecovery;
+			result = recovery.TryRecover(context, settings, rule, ruleContext, ruleSettings, ruleChildSettings);
+			result = result.ChangeVersion(newVersion);
+			return result;
 		}
 	}
 }

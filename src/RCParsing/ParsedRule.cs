@@ -36,7 +36,7 @@ namespace RCParsing
 		public int length { readonly get => element.length; set => element.length = value; }
 
 		/// <summary>
-		/// The end index of the rule in the input text.
+		/// The end exclusive index of the rule in the input text.
 		/// </summary>
 		public readonly int endIndex => element.endIndex;
 

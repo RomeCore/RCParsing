@@ -21,7 +21,7 @@ namespace RCParsing
 					return ruleId * 397 + position + passedBarriers * 397 * 397;
 				}
 			}
-			public override bool Equals(object? obj)
+			public readonly override bool Equals(object? obj)
 			{
 				return obj is RuleInfoTuple tuple && Equals(tuple);
 			}

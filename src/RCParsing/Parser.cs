@@ -246,6 +246,9 @@ namespace RCParsing
 		/// <returns>A new parser context initialized with the provided input string.</returns>
 		public ParserContext CreateContext(string input, int startIndex, object? parameter = null)
 		{
+			if (startIndex < 0 || startIndex > input.Length)
+				throw new ArgumentOutOfRangeException(nameof(startIndex));
+
 			return new ParserContext(this, input, parameter)
 			{
 				position = startIndex
@@ -262,6 +265,11 @@ namespace RCParsing
 		/// <returns>A new parser context initialized with the provided input string.</returns>
 		public ParserContext CreateContext(string input, int startIndex, int length, object? parameter = null)
 		{
+			if (startIndex < 0 || startIndex > input.Length)
+				throw new ArgumentOutOfRangeException(nameof(startIndex));
+			if (length < 0 || startIndex + length > input.Length)
+				throw new ArgumentOutOfRangeException(nameof(length));
+
 			return new ParserContext(this, input, parameter)
 			{
 				position = startIndex,

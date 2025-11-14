@@ -427,7 +427,7 @@ namespace RCParsing.Tests
 
 			builder.CreateToken("boolean")
 				.LiteralChoice("true", "false").Transform(
-				v =>  v.Text == "true"
+					v =>  v.Text == "true"
 				);
 
 			builder.CreateToken("number")

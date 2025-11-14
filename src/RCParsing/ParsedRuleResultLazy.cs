@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
@@ -12,18 +13,11 @@ using RCParsing.Utils;
 namespace RCParsing
 {
 	/// <summary>
-	/// Represents the result of a parsed rule.
+	/// Represents the result of a parsed rule that stores calculated values that can be reused.
 	/// </summary>
-	/// <remarks>
-	/// This is a entirely lazy wrapper around <see cref="ParsedRule"/>.
-	/// </remarks>
-	public sealed class ParsedRuleResultLazy : ParsedRuleResultBase
+	public sealed class ParsedRuleResultLazy : ParsedRuleResultBase, IOptimizedParsedRuleResult
 	{
-		/// <summary>
-		/// Gets the optimization flags that used to optimize the parse tree.
-		/// </summary>
 		public ParseTreeOptimization Optimization { get; }
-
 		public override ParsedRuleResultBase? Parent { get; }
 
 		/// <summary>
@@ -67,8 +61,8 @@ namespace RCParsing
 				if (_valueConstructed)
 					return _value;
 
-				_value = Rule.ParsedValueFactory?.Invoke(this) ?? null;
 				_valueConstructed = true;
+				_value = Rule.ParsedValueFactory?.Invoke(this);
 				return _value;
 			}
 		}

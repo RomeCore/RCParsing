@@ -35,13 +35,12 @@ namespace RCParsing
 		/// <summary>
 		/// Gets the error recovery strategy associated with this rule.
 		/// </summary>
-		public ErrorRecovery ErrorRecovery { get; internal set; } = default;
+		public ErrorRecoveryStrategy? ErrorRecovery { get; internal set; } = null;
 
 		/// <summary>
 		/// Gets a value indicating whether this rule can be used directly without using parser.
 		/// </summary>
-		public virtual bool CanBeInlined => Settings.isDefault &&
-			ErrorRecovery.strategy == ErrorRecoveryStrategy.None;
+		public virtual bool CanBeInlined => Settings.isDefault && ErrorRecovery == null;
 
 		/// <summary>
 		/// Gets a value indicating whether this rule can recover from errors.
@@ -74,7 +73,7 @@ namespace RCParsing
 		{
 			base.Initialize(initFlags);
 
-			CanRecover = ErrorRecovery.strategy != ErrorRecoveryStrategy.None;
+			CanRecover = ErrorRecovery != null;
 		}
 
 		/// <summary>
@@ -229,7 +228,7 @@ namespace RCParsing
 			int hashCode = base.GetHashCode();
 			hashCode = hashCode * 397 + ParsedValueFactory?.GetHashCode() ?? 0;
 			hashCode = hashCode * 397 + Settings.GetHashCode();
-			hashCode = hashCode * 397 + ErrorRecovery.GetHashCode();
+			hashCode = hashCode * 397 + ErrorRecovery?.GetHashCode() ?? 0;
 			return hashCode;
 		}
 	}
