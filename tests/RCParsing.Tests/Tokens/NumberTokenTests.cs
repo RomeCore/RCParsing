@@ -524,7 +524,8 @@ namespace RCParsing.Tests.Tokens
 			};
 
 			builder.CreateToken("custom_base")
-				.IntegerNumber<long>(10, customMappings);
+				.IntegerNumber<long>(IntegerNumberFlags.GroupSeparators | IntegerNumberFlags.Signed,
+					10, customMappings, groupSeparator: '_');
 
 			var parser = builder.Build();
 
@@ -539,6 +540,18 @@ namespace RCParsing.Tests.Tokens
 			Assert.True(res.Success);
 			Assert.Equal(4, res.Length);
 			Assert.Equal(1295L, res.GetIntermediateValue<long>()); // 35*36 + 35
+
+			// Base 36 with maximum digit and groups
+			res = parser.TryMatchToken("custom_base", "0z_z_z bc");
+			Assert.True(res.Success);
+			Assert.Equal(6, res.Length);
+			Assert.Equal(1295L, res.GetIntermediateValue<long>());
+
+			// Base 36 with maximum digit, sign and groups
+			res = parser.TryMatchToken("custom_base", "-0z0_z_z bc");
+			Assert.True(res.Success);
+			Assert.Equal(8, res.Length);
+			Assert.Equal(-1295L, res.GetIntermediateValue<long>());
 		}
 
 		[Fact]

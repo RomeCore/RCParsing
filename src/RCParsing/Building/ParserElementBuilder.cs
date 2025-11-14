@@ -1818,6 +1818,20 @@ namespace RCParsing.Building
 		{
 			return Token(new EscapedTextTokenPattern(escapingStrategy, allowsEmpty, consumeStopSequence));
 		}
+
+		/// <summary>
+		/// Adds an escaped text token to the current sequence with escaping strategy.
+		/// </summary>
+		/// <param name="escapingStrategies">The collection of escaping strategies to use.</param>
+		/// <param name="allowsEmpty">Indicates whether empty strings are allowed as valid matches.</param>
+		/// <param name="consumeStopSequence">Indicates whether need to capture/consume the stop sequence for match.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T EscapedText(IEnumerable<EscapingStrategy> escapingStrategies,
+			bool allowsEmpty = true, bool consumeStopSequence = false)
+		{
+			var combinedStrat = new CombinedEscapingStrategy(escapingStrategies);
+			return Token(new EscapedTextTokenPattern(combinedStrat, allowsEmpty, consumeStopSequence));
+		}
 		
 		/// <summary>
 		/// Adds an escaped text token to the current sequence with custom escape mappings, forbidden sequences, and string comparer.

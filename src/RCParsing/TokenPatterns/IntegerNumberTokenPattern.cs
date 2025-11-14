@@ -272,6 +272,7 @@ namespace RCParsing.TokenPatterns
 				position++;
 				lastDigitPos = position;
 			}
+			position = lastDigitPos;
 
 			if (lastDigitPos == startPosition)
 			{
@@ -312,74 +313,58 @@ namespace RCParsing.TokenPatterns
 			switch (NumberType)
 			{
 				case IntegerNumberType.Byte:
+					if (isNegative)
+						throw new OverflowException();
+					checked
 					{
-						if (isNegative)
-							throw new OverflowException();
-						checked
-						{
-							return (byte)unsignedAccumulator;
-						}
+						return (byte)unsignedAccumulator;
 					}
 				case IntegerNumberType.SignedByte:
+					checked
 					{
-						checked
-						{
-							return isNegative ? (sbyte)-(byte)unsignedAccumulator : (sbyte)unsignedAccumulator;
-						}
+						return isNegative ? (sbyte)-(byte)unsignedAccumulator : (sbyte)unsignedAccumulator;
 					}
 				case IntegerNumberType.UnsignedShort:
+					if (isNegative)
+						throw new OverflowException();
+					checked
 					{
-						if (isNegative)
-							throw new OverflowException();
-						checked
-						{
-							return (ushort)unsignedAccumulator;
-						}
+						return (ushort)unsignedAccumulator;
 					}
 				case IntegerNumberType.Short:
+					checked
 					{
-						checked
-						{
-							return isNegative ? (short)-(ushort)unsignedAccumulator : (short)unsignedAccumulator;
-						}
+						return isNegative ? (short)-(ushort)unsignedAccumulator : (short)unsignedAccumulator;
 					}
 				case IntegerNumberType.UnsignedInteger:
+					if (isNegative)
+						throw new OverflowException();
+					checked
 					{
-						if (isNegative)
-							throw new OverflowException();
-						checked
-						{
-							return (uint)unsignedAccumulator;
-						}
+						return (uint)unsignedAccumulator;
 					}
 				case IntegerNumberType.Integer:
+					checked
 					{
-						checked
-						{
-							return isNegative ? (int)-(uint)unsignedAccumulator : (int)unsignedAccumulator;
-						}
+						return isNegative ? (int)-(uint)unsignedAccumulator : (int)unsignedAccumulator;
 					}
 				case IntegerNumberType.UnsignedLong:
+					if (isNegative)
+						throw new OverflowException();
+					checked
 					{
-						if (isNegative)
-							throw new OverflowException();
-						checked
-						{
-							return unsignedAccumulator;
-						}
+						return unsignedAccumulator;
 					}
 				case IntegerNumberType.Long:
+					checked
 					{
-						checked
+						if (isNegative)
 						{
-							if (isNegative)
-							{
-								if (unsignedAccumulator == 9223372036854775808)
-									return long.MinValue;
-								return -(long)unsignedAccumulator;
-							}
-							return (long)unsignedAccumulator;
+							if (unsignedAccumulator == 9223372036854775808)
+								return long.MinValue;
+							return -(long)unsignedAccumulator;
 						}
+						return (long)unsignedAccumulator;
 					}
 				default:
 					throw new InvalidOperationException($"Unsupported IntegerNumberType: {NumberType}.");
