@@ -847,7 +847,7 @@ The future development of `RCParsing` is focused on:
 
 ### Contributions are welcome!
 
-This framework is born recently (2 months ago) and some little features may not be tested and be buggy.
+This framework is born recently (4 months ago) and some little features may not be tested and be buggy.
 
 If you have an idea about this project, you can report it to `Issues`.  
 For contributing code, please fork the repository and make your changes in a new branch. Once you're ready, create a pull request to merge your changes into the main branch. Pull requests should include a clear description of what was changed and why.
