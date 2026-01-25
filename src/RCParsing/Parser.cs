@@ -187,7 +187,7 @@ namespace RCParsing
 		{
 			if (id >= 0 && id < _tokenPatterns.Length)
 				return _tokenPatterns[id];
-			throw new ArgumentOutOfRangeException(nameof(id), "Invalid token pattern ID.");
+			throw new ArgumentOutOfRangeException(nameof(id), $"Invalid token pattern ID: {id}.");
 		}
 
 		/// <summary>
@@ -213,7 +213,7 @@ namespace RCParsing
 		{
 			if (id >= 0 && id < _rules.Length)
 				return _rules[id];
-			throw new ArgumentOutOfRangeException(nameof(id), "Invalid rule ID.");
+			throw new ArgumentOutOfRangeException(nameof(id), $"Invalid rule ID: {id}.");
 		}
 
 		/// <summary>

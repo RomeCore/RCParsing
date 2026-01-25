@@ -186,7 +186,7 @@ namespace RCParsing.Tests.Rules
 				.Number<double>(TokenPatterns.NumberFlags.StrictScientific);
 
 			builder.CreateToken("boolean")
-				.LiteralChoice(["true", "false"]).Transform(v => v.Text == "true"); // LiteralChoice uses Trie
+				.LiteralChoice("true", "false").Transform(v => v.Text == "true"); // LiteralChoice uses Trie
 
 			builder.CreateToken("null")
 				.Literal("null").Transform(v => null);

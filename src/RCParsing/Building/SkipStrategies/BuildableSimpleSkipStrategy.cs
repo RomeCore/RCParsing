@@ -25,12 +25,24 @@ namespace RCParsing.Building.SkipStrategies
 
 
 		public override IEnumerable<Or<string, BuildableParserRule>>? RuleChildren =>
-			Strategy == ParserSkippingStrategy.Default || Strategy == ParserSkippingStrategy.Whitespaces
-				? null
-				: new[] { SkipRule ?? default };
+			new[] { SkipRule ?? default };
 
 		public override SkipStrategy BuildTyped(List<int>? ruleChildren, List<int>? tokenChildren, List<object?>? elementChildren)
 		{
+			if (ruleChildren[0] == -1)
+				switch (Strategy)
+				{
+					case ParserSkippingStrategy.SkipBeforeParsing:
+					case ParserSkippingStrategy.SkipBeforeParsingGreedy:
+					case ParserSkippingStrategy.SkipBeforeParsingLazy:
+					case ParserSkippingStrategy.TryParseThenSkip:
+					case ParserSkippingStrategy.TryParseThenSkipGreedy:
+					case ParserSkippingStrategy.TryParseThenSkipLazy:
+					case ParserSkippingStrategy.TryParseNonEmptyThenSkip:
+					case ParserSkippingStrategy.TryParseNonEmptyThenSkipGreedy:
+					case ParserSkippingStrategy.TryParseNonEmptyThenSkipLazy:
+						throw new ParserBuildingException($"Skipping sule is not set for this strategy type: {Strategy}.");
+				}
 			switch (Strategy)
 			{
 				case ParserSkippingStrategy.Default:
