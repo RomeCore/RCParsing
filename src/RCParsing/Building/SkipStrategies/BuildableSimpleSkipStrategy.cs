@@ -25,9 +25,7 @@ namespace RCParsing.Building.SkipStrategies
 
 
 		public override IEnumerable<Or<string, BuildableParserRule>>? RuleChildren =>
-			Strategy == ParserSkippingStrategy.Default || Strategy == ParserSkippingStrategy.Whitespaces
-				? null
-				: new[] { SkipRule ?? default };
+			new[] { SkipRule ?? default };
 
 		public override SkipStrategy BuildTyped(List<int>? ruleChildren, List<int>? tokenChildren, List<object?>? elementChildren)
 		{
