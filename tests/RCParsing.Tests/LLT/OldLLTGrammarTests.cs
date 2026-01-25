@@ -11,7 +11,7 @@ namespace RCParsing.Tests.LLT
 	/// <summary>
 	/// The tests for parsing grammar for LLT (Large Language Template) language.
 	/// </summary>
-	public class LLTGrammarTests
+	public class OldLLTGrammarTests
 	{
 		private static readonly Parser _parser, _optParser;
 
@@ -392,7 +392,7 @@ namespace RCParsing.Tests.LLT
 			DeclareMainRules(builder);
 		}
 
-		static LLTGrammarTests()
+		static OldLLTGrammarTests()
 		{
 			var builder = new ParserBuilder();
 			FillWithRules(builder);
