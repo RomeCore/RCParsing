@@ -1,13 +1,9 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Data;
 using System.Linq;
-using System.Text;
 using RCParsing.Building;
 using RCParsing.Building.ParserRules;
 using RCParsing.Building.TokenPatterns;
-using RCParsing.ParserRules;
 using RCParsing.TokenPatterns;
 using RCParsing.Utils;
 
@@ -69,7 +65,6 @@ namespace RCParsing
 		{
 			if (_tokenPatterns.ContainsKey(name))
 				throw new ArgumentException($"Token with name '{name}' already exists.");
-
 			var token = new TokenBuilder();
 			_tokenPatterns[name] = token;
 			return token;
@@ -115,6 +110,33 @@ namespace RCParsing
 		}
 
 		/// <summary>
+		/// Renames a token pattern. If the new name already exists, it will not be renamed and <see langword="false"/> will be returned.
+		/// </summary>
+		/// <param name="oldName">The current name of the token pattern.</param>
+		/// <param name="newName">The new name for the token pattern. Must be unique among all token patterns.</param>
+		/// <returns><see langword="true"/> if the token pattern was successfully renamed; otherwise, <see langword="false"/>.</returns>
+		public bool RenameToken(string oldName, string newName)
+		{
+			if (!_tokenPatterns.TryGetValue(oldName, out var token))
+				return false;
+			if (_tokenPatterns.ContainsKey(newName))
+				return false;
+			_tokenPatterns.Remove(oldName);
+			_tokenPatterns[newName] = token;
+			return true;
+		}
+
+		/// <summary>
+		/// Removes a token pattern by its name. If the token pattern does not exist, it will not be removed and <see langword="false"/> will be returned.
+		/// </summary>
+		/// <param name="name">The name of the token pattern to remove.</param>
+		/// <returns><see langword="true"/> if the token pattern was successfully removed; otherwise, <see langword="false"/>.</returns>
+		public bool RemoveToken(string name)
+		{
+			return _tokenPatterns.Remove(name);
+		}
+
+		/// <summary>
 		/// Creates a rule builder and registers it under the given name.
 		/// </summary>
 		/// <param name="name">The name of the rule. Will be bound to rule as alias in the built parser.</param>
@@ -124,7 +146,6 @@ namespace RCParsing
 		{
 			if (_rules.ContainsKey(name))
 				throw new ArgumentException($"Rule with name '{name}' already exists.");
-
 			var rule = new RuleBuilder();
 			_rules[name] = rule;
 			return rule;
@@ -170,6 +191,33 @@ namespace RCParsing
 		}
 
 		/// <summary>
+		/// Renames a rule. If the new name already exists, it will not be renamed and <see langword="false"/> will be returned.
+		/// </summary>
+		/// <param name="oldName">The current name of the rule.</param>
+		/// <param name="newName">The new name for the rule. Must be unique among all rules.</param>
+		/// <returns><see langword="true"/> if the rule was successfully renamed; otherwise, <see langword="false"/>.</returns>
+		public bool RenameRule(string oldName, string newName)
+		{
+			if (!_rules.TryGetValue(oldName, out var rule))
+				return false;
+			if (_rules.ContainsKey(newName))
+				return false;
+			_rules.Remove(oldName);
+			_rules[newName] = rule;
+			return true;
+		}
+
+		/// <summary>
+		/// Removes a rule by its name. If the rule does not exist, it will not be removed and <see langword="false"/> will be returned.
+		/// </summary>
+		/// <param name="name">The name of the rule to remove.</param>
+		/// <returns><see langword="true"/> if the rule was successfully removed; otherwise, <see langword="false"/>.</returns>
+		public bool RemoveRule(string name)
+		{
+			return _rules.Remove(name);
+		}
+
+		/// <summary>
 		/// Creates a rule builder and registers it as the main rule.
 		/// </summary>
 		/// <remarks>
@@ -181,7 +229,6 @@ namespace RCParsing
 		{
 			if (_mainRuleBuilder != null)
 				throw new ArgumentException("Main rule has already been set.");
-
 			_mainRuleBuilder = new RuleBuilder();
 			return _mainRuleBuilder;
 		}
@@ -201,7 +248,6 @@ namespace RCParsing
 				throw new ArgumentException("Main rule has already been set.");
 			if (_rules.ContainsKey(name))
 				throw new ArgumentException($"Rule with name '{name}' already exists.");
-
 			_mainRuleBuilder = new RuleBuilder();
 			_rules[name] = _mainRuleBuilder;
 			return _mainRuleBuilder;
@@ -228,6 +274,74 @@ namespace RCParsing
 			if (_mainRuleBuilder != null)
 				return _mainRuleBuilder;
 			return null;
+		}
+
+		/// <summary>
+		/// Gets or creates the main rule builder. If no main rule exists, it will be created and returned.
+		/// </summary>
+		/// <returns>A <see cref="RuleBuilder"/> instance for building the main rule.</returns>
+		public RuleBuilder? GetOrCreateMainRule()
+		{
+			if (_mainRuleBuilder != null)
+				return _mainRuleBuilder;
+			_mainRuleBuilder = new RuleBuilder();
+			return _mainRuleBuilder;
+		}
+
+		/// <summary>
+		/// Gets the main rule name. If no main rule exists or the main rule has no name, it will return <see langword="null"/>.
+		/// </summary>
+		/// <returns>The name of the main rule or <see langword="null"/> if no main rule exists.</returns>
+		public string? GetMainRuleName()
+		{
+			if (_mainRuleBuilder == null)
+				return null;
+			return _rules.FirstOrDefault(r => r.Value == _mainRuleBuilder).Key;
+		}
+
+		/// <summary>
+		/// Renames the main rule. If the new name already exists, it will not be renamed and <see langword="false"/> will be returned.
+		/// </summary>
+		/// <param name="name">The new name for the main rule. Must be unique among all rules.</param>
+		/// <returns><see langword="true"/> if the main rule was successfully renamed; otherwise, <see langword="false"/>.</returns>
+		public bool NameMainRule(string name)
+		{
+			if (_mainRuleBuilder == null)
+				return false;
+			if (_rules.ContainsKey(name))
+				return false;
+			var oldName = _rules.FirstOrDefault(r => r.Value == _mainRuleBuilder).Key;
+			if (oldName != null)
+				_rules.Remove(oldName);
+			_rules[name] = _mainRuleBuilder;
+			return true;
+		}
+
+		/// <summary>
+		/// Removes the name from main rule. If main rule not exists or the main rule has no name, name will not be removed and <see langword="false"/> will be returned.
+		/// </summary>
+		/// <returns><see langword="true"/> if the name was successfully removed; otherwise, <see langword="false"/>.</returns>
+		public bool RemoveMainRuleName()
+		{
+			if (_mainRuleBuilder == null)
+				return false;
+			var oldName = _rules.FirstOrDefault(r => r.Value == _mainRuleBuilder).Key;
+			return oldName != null && _rules.Remove(oldName);
+		}
+
+		/// <summary>
+		/// Removes the main rule completely. If no main rule exists, it will not be removed and <see langword="false"/> will be returned.
+		/// </summary>
+		/// <returns><see langword="true"/> if the main rule was successfully removed; otherwise, <see langword="false"/>.</returns>
+		public bool RemoveMainRule()
+		{
+			if (_mainRuleBuilder == null)
+				return false;
+			var oldName = _rules.FirstOrDefault(r => r.Value == _mainRuleBuilder).Key;
+			if (oldName != null)
+				_rules.Remove(oldName);
+			_mainRuleBuilder = null;
+			return true;
 		}
 
 
