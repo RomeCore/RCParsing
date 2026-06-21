@@ -93,7 +93,7 @@ namespace RCParsing.ParserRules
 
 			ParsedRule Parse(ref ParserContext context, ref ParserSettings settings, ref ParserSettings childSettings)
 			{
-				var initialPosition = context.position;
+				int initialPosition = -1;
 
 				// Put some parameters from heap to stack for max performance
 				int minCount = MinCount, maxCount = MaxCount;
@@ -112,7 +112,7 @@ namespace RCParsing.ParserRules
 					// If minCount == 0 — OK: empty sequence
 					if (minCount == 0)
 					{
-						return new ParsedRule(Id, initialPosition, 0, context.passedBarriers, Array.Empty<ParsedRule>());
+						return new ParsedRule(Id, context.position, 0, context.passedBarriers, Array.Empty<ParsedRule>());
 					}
 					else
 					{
@@ -129,9 +129,10 @@ namespace RCParsing.ParserRules
 					return ParsedRule.Fail;
 				}
 
-				var elements = new List<ParsedRule>();
+				initialPosition = firstElement.startIndex;
 				int count = 1;
-				firstElement.occurency = elements.Count;
+				firstElement.occurency = 0;
+				var elements = new List<ParsedRule>();
 				elements.Add(firstElement);
 				context.position = firstElement.startIndex + firstElement.length;
 				context.passedBarriers = firstElement.passedBarriers;

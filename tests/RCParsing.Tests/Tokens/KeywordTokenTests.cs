@@ -18,7 +18,7 @@ namespace RCParsing.Tests.Tokens
 
 			var parser = builder.Build();
 
-			Assert.True(parser.MatchesToken("1", "keyword", out var matchedLen));
+			Assert.True(parser.MatchesToken("1", "keyword", out int matchedLen));
 			Assert.Equal(7, matchedLen);
 
 			Assert.True(parser.MatchesToken("1", "KEYWORD", out matchedLen));
@@ -42,7 +42,7 @@ namespace RCParsing.Tests.Tokens
 
 			var parser = builder.Build();
 
-			Assert.True(parser.MatchesToken("1", "keyword", out var matchedLen));
+			Assert.True(parser.MatchesToken("1", "keyword", out int matchedLen));
 			Assert.Equal(7, matchedLen);
 
 			Assert.True(parser.MatchesToken("1", "KEYWORD", out matchedLen));
@@ -83,7 +83,7 @@ namespace RCParsing.Tests.Tokens
 			var parser = builder.Build();
 
 			// Russian - Cyrillic
-			Assert.True(parser.MatchesToken("1", "привет", out var matchedLen));
+			Assert.True(parser.MatchesToken("1", "привет", out int matchedLen));
 			Assert.Equal(6, matchedLen); // 6 characters in "Привет"
 			Assert.True(parser.MatchesToken("1", "ПРИВЕТ", out matchedLen));
 			Assert.Equal(6, matchedLen);
@@ -134,7 +134,7 @@ namespace RCParsing.Tests.Tokens
 			var parser = builder.Build();
 
 			// Mixed languages - token 1
-			Assert.True(parser.MatchesToken("1", "привет", out var matchedLen));
+			Assert.True(parser.MatchesToken("1", "привет", out int matchedLen));
 			Assert.Equal(6, matchedLen);
 			Assert.True(parser.MatchesToken("1", "ПРИВЕТ", out matchedLen));
 			Assert.Equal(6, matchedLen);

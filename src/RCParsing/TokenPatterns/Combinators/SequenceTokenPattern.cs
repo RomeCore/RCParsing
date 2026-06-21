@@ -86,7 +86,7 @@ namespace RCParsing.TokenPatterns.Combinators
 		{
 			if (calculateIntermediateValue && PassageFunction != null)
 			{
-				var initialPosition = position;
+				var initialPosition = -1;
 				object?[]? intermediateValues = null;
 
 				for (int i = 0; i < _patterns.Length; i++)
@@ -96,18 +96,23 @@ namespace RCParsing.TokenPatterns.Combinators
 					if (!token.success)
 						return ParsedElement.Fail;
 
+					if (initialPosition == -1)
+						initialPosition = token.startIndex;
+
 					intermediateValues ??= new object?[_patterns.Length];
 					intermediateValues[i] = token.intermediateValue;
 					position = token.startIndex + token.length;
 				}
 
+				if (initialPosition == -1)
+					initialPosition = position;
 				var intermediateValue = PassageFunction(intermediateValues);
 
 				return new ParsedElement(initialPosition, position - initialPosition, intermediateValue);
 			}
 			else
 			{
-				var initialPosition = position;
+				var initialPosition = -1;
 
 				for (int i = 0; i < _patterns.Length; i++)
 				{
@@ -116,8 +121,14 @@ namespace RCParsing.TokenPatterns.Combinators
 					if (!token.success)
 						return ParsedElement.Fail;
 
+					if (initialPosition == -1)
+						initialPosition = token.startIndex;
+
 					position = token.startIndex + token.length;
 				}
+
+				if (initialPosition == -1)
+					initialPosition = position;
 
 				return new ParsedElement(initialPosition, position - initialPosition);
 			}

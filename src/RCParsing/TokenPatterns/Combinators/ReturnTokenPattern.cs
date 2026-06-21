@@ -49,13 +49,11 @@ namespace RCParsing.TokenPatterns.Combinators
 				return _child.Match(input, position, barrierPosition, parserParameter,
 					false, ref furthestError);
 
-			var initialPosition = position;
 			var child = _child.Match(input, position, barrierPosition, parserParameter,
 				false, ref furthestError);
 			if (!child.success)
 				return ParsedElement.Fail;
-			position = child.startIndex + child.length;
-			return new ParsedElement(initialPosition, position - initialPosition, Value);
+			return new ParsedElement(child.startIndex, child.length, Value);
 		}
 
 

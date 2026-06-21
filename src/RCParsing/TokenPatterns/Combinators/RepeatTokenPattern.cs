@@ -71,7 +71,7 @@ namespace RCParsing.TokenPatterns.Combinators
 		{
 			if (PassageFunction == null || !calculateIntermediateValue)
 			{
-				var initialPosition = position;
+				var initialPosition = -1;
 				int count = 0;
 
 				for (int i = 0; i < MaxCount || MaxCount == -1; i++)
@@ -83,12 +83,18 @@ namespace RCParsing.TokenPatterns.Combinators
 						break;
 					}
 
+					if (initialPosition == -1)
+						initialPosition = matchedToken.startIndex;
+
 					position = matchedToken.startIndex + matchedToken.length;
 					count++;
 				}
 
 				if (count < MinCount)
 					return ParsedElement.Fail;
+
+				if (initialPosition == -1)
+					initialPosition = position;
 
 				return new ParsedElement(initialPosition, position - initialPosition);
 			}

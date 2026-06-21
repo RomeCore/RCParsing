@@ -108,13 +108,14 @@ namespace RCParsing.TokenPatterns.Combinators
 			if (maxCount == 0)
 				return new ParsedElement(position, 0, null);
 
-			var initialPosition = position;
+			var initialPosition = -1;
 			var firstElement = _token.Match(input, position, barrierPosition, parserParameter,
 				false, ref furthestError);
+
 			if (!firstElement.success)
 			{
 				if (minCount == 0)
-					return new ParsedElement(initialPosition, position - initialPosition);
+					return new ParsedElement(position, 0);
 				else
 					return ParsedElement.Fail;
 			}
@@ -123,6 +124,7 @@ namespace RCParsing.TokenPatterns.Combinators
 				return ParsedElement.Fail;
 
 			int count = 1;
+			initialPosition = firstElement.startIndex;
 			position = firstElement.startIndex + firstElement.length;
 
 			while (maxCount == -1 || count < maxCount || (allowTrailing && count == maxCount))

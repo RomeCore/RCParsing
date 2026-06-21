@@ -112,8 +112,14 @@ namespace RCParsing
 
 			var recovery = rule.ErrorRecovery ?? ErrorRecoveryStrategy.NoRecovery;
 			result = recovery.TryRecover(context, settings, rule, ruleContext, ruleSettings, ruleChildSettings);
-			result = result.ChangeVersion(newVersion);
-			return result;
+
+			if (result.success)
+			{
+				result = result.ChangeVersion(newVersion);
+				return result;
+			}
+
+			return ParsedRule.Fail;
 		}
 	}
 }
