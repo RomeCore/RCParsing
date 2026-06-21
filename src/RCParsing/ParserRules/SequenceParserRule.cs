@@ -88,7 +88,7 @@ namespace RCParsing.ParserRules
 
 			ParsedRule Parse(ref ParserContext context, ref ParserSettings settings, ref ParserSettings childSettings)
 			{
-				var startIndex = context.position;
+				var initialPosition = -1;
 				ParsedRule[]? rules = null;
 
 				for (int i = 0; i < parseFunctions.Length; i++)
@@ -100,6 +100,9 @@ namespace RCParsing.ParserRules
 						return ParsedRule.Fail;
 					}
 
+					if (initialPosition == -1)
+						initialPosition = parsedRule.startIndex;
+
 					rules ??= new ParsedRule[_rules.Length];
 					parsedRule.occurency = i;
 					rules[i] = parsedRule;
@@ -108,7 +111,10 @@ namespace RCParsing.ParserRules
 					context.passedBarriers = parsedRule.passedBarriers;
 				}
 
-				return new ParsedRule(Id, startIndex, context.position - startIndex,
+				if (initialPosition == -1)
+					initialPosition = context.position;
+
+				return new ParsedRule(Id, initialPosition, context.position - initialPosition,
 					context.passedBarriers, rules);
 			};
 

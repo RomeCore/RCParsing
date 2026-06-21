@@ -42,23 +42,13 @@ namespace RCParsing.TokenPatterns.Combinators
 		public override ParsedElement Match(string input, int position, int barrierPosition,
 			object? parserParameter, bool calculateIntermediateValue, ref ParsingError furthestError)
 		{
-			var initialPosition = position;
-
 			// Skip any whitespace characters
 			while (position < barrierPosition && char.IsWhiteSpace(input[position]))
 				position++;
 
 			// Match the child pattern at the new position
-			var result = _pattern.Match(input, position, barrierPosition, parserParameter,
+			return _pattern.Match(input, position, barrierPosition, parserParameter,
 				calculateIntermediateValue, ref furthestError);
-
-			if (!result.success)
-				return ParsedElement.Fail;
-
-			// Calculate the total length including skipped whitespace
-			var totalLength = (result.startIndex + result.length) - initialPosition;
-
-			return new ParsedElement(initialPosition, totalLength, result.intermediateValue);
 		}
 
 		public override string ToStringOverride(int remainingDepth)

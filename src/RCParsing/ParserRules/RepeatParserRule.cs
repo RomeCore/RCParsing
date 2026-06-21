@@ -65,7 +65,7 @@ namespace RCParsing.ParserRules
 			ParsedRule Parse(ref ParserContext context, ref ParserSettings settings, ref ParserSettings childSettings)
 			{
 				var rules = new List<ParsedRule>();
-				var initialPosition = context.position;
+				var initialPosition = -1;
 				ParsedRule parsedRule = default;
 
 				for (int i = 0; i < this.MaxCount || this.MaxCount == -1; i++)
@@ -78,6 +78,9 @@ namespace RCParsing.ParserRules
 					if (!parsedRule.success)
 						break;
 
+					if (initialPosition == -1)
+						initialPosition = parsedRule.startIndex;
+
 					context.position = parsedRule.startIndex + parsedRule.length;
 					context.passedBarriers = parsedRule.passedBarriers;
 					parsedRule.occurency = i;
@@ -89,6 +92,9 @@ namespace RCParsing.ParserRules
 					RecordError(ref context, ref settings, $"Expected at least {MinCount} repetitions of child rule, but found {rules.Count}.");
 					return ParsedRule.Fail;
 				}
+
+				if (initialPosition == -1)
+					initialPosition = context.position;
 
 				return new ParsedRule(Id, initialPosition, context.position - initialPosition,
 					context.passedBarriers, null, rules);

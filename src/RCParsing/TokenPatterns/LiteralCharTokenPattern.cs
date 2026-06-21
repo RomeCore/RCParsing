@@ -52,7 +52,7 @@ namespace RCParsing.TokenPatterns
 		public override ParsedElement Match(string input, int position, int barrierPosition,
 			object? parserParameter, bool calculateIntermediateValue, ref ParsingError furthestError)
 		{
-			if (position + 1 > barrierPosition)
+			if (position >= barrierPosition)
 			{
 				return ParsedElement.Fail;
 			}

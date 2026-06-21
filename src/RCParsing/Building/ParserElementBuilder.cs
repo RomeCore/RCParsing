@@ -1389,7 +1389,16 @@ namespace RCParsing.Building
 		{
 			return Token(new EmptyTokenPattern());
 		}
-		
+
+		/// <summary>
+		/// Adds an any character token to the current sequence. It matches any single character, and returns it as intermediate value.
+		/// </summary>
+		/// <returns>Current instance for method chaining.</returns>
+		public T AnyChar()
+		{
+			return Token(new AnyCharTokenPattern());
+		}
+
 		/// <summary>
 		/// Adds a fail token to the current sequence. It always fails.
 		/// </summary>
@@ -2004,6 +2013,21 @@ namespace RCParsing.Building
 		public T TextUntil(params string[] forbidden)
 		{
 			return Token(EscapedTextTokenPattern.CreateUntil(forbidden));
+		}
+
+		// The pizdec
+
+		/// <summary>
+		/// Adds a token pattern that uses an entire parser for matching.
+		/// The parser will be invoked as a token in the current sequence.
+		/// </summary>
+		/// <param name="matchParser">The parser to use for matching.</param>
+		/// <param name="ruleAlias">The alias for the rule to parse. If null, uses the main rule of the parser.</param>
+		/// <param name="tokenAlias">Optional token alias to match instead of a rule. If both this and ruleAlias are null, uses main rule.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public T Parser(Parser matchParser, string? ruleAlias = null, string? tokenAlias = null)
+		{
+			return Token(new ParserTokenPattern(matchParser, ruleAlias, tokenAlias));
 		}
 	}
 }

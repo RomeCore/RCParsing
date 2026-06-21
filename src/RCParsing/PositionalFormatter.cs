@@ -107,6 +107,28 @@ namespace RCParsing
 		{
 			Decompose(str, position, out int lineStart, out int lineLength, out int lineNumber, out int columnNumber, out int visualColumnNumber);
 
+			return Format(str, lineStart, lineLength, lineNumber, columnNumber, visualColumnNumber);
+		}
+
+		/// <summary>
+		/// Extracts a line containing a specified position in a text and formats it for display.
+		/// </summary>
+		/// <remarks>
+		/// Useful for debugging and displaying errors in a user-friendly manner.
+		/// </remarks>
+		/// <param name="str">The input text.</param>
+		/// <param name="lineStart">The zero-based index of the start of the line.</param>
+		/// <param name="lineLength">The length of the line.</param>
+		/// <param name="lineNumber">The one-based index of the line number.</param>
+		/// <param name="columnNumber">The one-based index of the column number.</param>
+		/// <param name="visualColumnNumber">The one-based index of the visual column number.</param>
+		/// <returns>
+		/// A formatted string containing the line at the specified position
+		/// along with line number and column information for the specified position.
+		/// </returns>
+		/// <exception cref="ArgumentOutOfRangeException">Thrown if the specified position is out of range for the input text.</exception>
+		public static string Format(string str, int lineStart, int lineLength, int lineNumber, int columnNumber, int visualColumnNumber)
+		{
 			string lineAndColumn = $"line {lineNumber}, column {columnNumber}";
 
 			string pointerLine;

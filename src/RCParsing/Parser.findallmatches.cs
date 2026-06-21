@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using RCParsing.Utils;
 
 namespace RCParsing
 {
@@ -313,7 +314,7 @@ namespace RCParsing
 		/// <returns>The input string with all matches replaced.</returns>
 		public string ReplaceAllMatches(string input, Func<ParsedRuleResultBase, string> replacementSelector)
 		{
-			return ReplaceAllMatches(input, null, replacementSelector);
+			return ReplaceAllMatches(input, parameter: null, replacementSelector);
 		}
 
 		/// <summary>
@@ -357,7 +358,7 @@ namespace RCParsing
 		/// <returns>The input string with all matches replaced.</returns>
 		public string ReplaceAllMatches(string ruleAlias, string input, Func<ParsedRuleResultBase, string> replacementSelector)
 		{
-			return ReplaceAllMatches(ruleAlias, input, fallbackReplacement: null, replacementSelector);
+			return ReplaceAllMatches(ruleAlias, input, parameter: null, replacementSelector);
 		}
 
 		/// <summary>
@@ -400,7 +401,7 @@ namespace RCParsing
 		/// <returns>The input string with all matches replaced.</returns>
 		public string ReplaceAllMatches<T>(string input, Func<T?, string> replacementSelector)
 		{
-			return ReplaceAllMatches(input, null, replacementSelector);
+			return ReplaceAllMatches(input, parameter: null, replacementSelector);
 		}
 
 		/// <summary>
@@ -465,7 +466,7 @@ namespace RCParsing
 
 		/// <summary>
 		/// Splits the input string into substrings by all non-overlapping matches of the specified rule.
-		/// Works similarly to <see cref="System.Text.RegularExpressions.Regex.Split(string)"/>.
+		/// Works similarly to <see cref="Regex.Split(string)"/>.
 		/// </summary>
 		/// <param name="ruleId">The rule ID to use as a delimiter.</param>
 		/// <param name="context">Parser context for the input.</param>
@@ -561,6 +562,402 @@ namespace RCParsing
 				throw new ArgumentException("Invalid rule alias", nameof(ruleAlias));
 
 			return Split(ruleId, context);
+		}
+
+
+
+		/// <summary>
+		/// Splits the input string into segments by all non-overlapping matches of the specified rule.
+		/// Works similarly to <see cref="Regex.Split(string)"/>.
+		/// </summary>
+		/// <param name="ruleId">The rule ID to use as a delimiter.</param>
+		/// <param name="context">Parser context for the input.</param>
+		/// <returns>An enumerable sequence of segments between matches.</returns>
+		internal IEnumerable<StringSegment> SplitSegments(int ruleId, ParserContext context)
+		{
+			if (context.parser != this)
+				throw new InvalidOperationException("Parser context is not associated with this parser.");
+
+			EmitBarriers(ref context);
+
+			var input = context.input;
+
+			// Non-overlapping: the same as ReplaceAllMatches (overlap = false).
+			var matches = FindAllMatches(ruleId, context, GlobalSettings, overlap: false);
+
+			var currentIndex = context.position;
+
+			foreach (var match in matches)
+			{
+				var start = match.startIndex;
+				var length = match.length;
+
+				if (start < currentIndex)
+					continue;
+
+				// Segment before match.
+				yield return new StringSegment(input, currentIndex, start - currentIndex);
+
+				currentIndex = start + length;
+			}
+
+			// Tail after last match.
+			if (currentIndex < context.maxPosition)
+				yield return new StringSegment(input, currentIndex, context.maxPosition - currentIndex);
+		}
+
+		/// <summary>
+		/// Splits the input string into segments by all non-overlapping matches of the main rule.
+		/// Works similarly to <see cref="Regex.Split(string)"/>.
+		/// </summary>
+		/// <param name="input">The input text to split.</param>
+		/// <param name="parameter">Optional parameter to pass to the parser.</param>
+		/// <returns>An enumerable sequence of segments between matches.</returns>
+		public IEnumerable<StringSegment> SplitSegments(string input, object? parameter = null)
+		{
+			if (_mainRuleId == -1)
+				throw new InvalidOperationException("Main rule is not set.");
+
+			var context = new ParserContext(this, input, parameter);
+			return SplitSegments(_mainRuleId, context);
+		}
+
+		/// <summary>
+		/// Splits the input represented by the specified context into segments by
+		/// all non-overlapping matches of the main rule.
+		/// </summary>
+		/// <param name="context">The parser context to use for parsing.</param>
+		/// <returns>An enumerable sequence of segments between matches.</returns>
+		public IEnumerable<StringSegment> SplitSegments(ParserContext context)
+		{
+			if (_mainRuleId == -1)
+				throw new InvalidOperationException("Main rule is not set.");
+
+			return SplitSegments(_mainRuleId, context);
+		}
+
+		/// <summary>
+		/// Splits the input string into segments by all non-overlapping matches of the specified rule.
+		/// </summary>
+		/// <param name="ruleAlias">The alias for the parser rule to use as a delimiter.</param>
+		/// <param name="input">The input text to split.</param>
+		/// <param name="parameter">Optional parameter to pass to the parser.</param>
+		/// <returns>An enumerable sequence of segments between matches.</returns>
+		public IEnumerable<StringSegment> SplitSegments(string ruleAlias, string input, object? parameter = null)
+		{
+			if (!_rulesAliases.TryGetValue(ruleAlias, out var ruleId))
+				throw new ArgumentException("Invalid rule alias", nameof(ruleAlias));
+
+			var context = new ParserContext(this, input, parameter);
+			return SplitSegments(ruleId, context);
+		}
+
+		/// <summary>
+		/// Splits the input represented by the specified context into segments by
+		/// all non-overlapping matches of the specified rule.
+		/// </summary>
+		/// <param name="ruleAlias">The alias for the parser rule to use as a delimiter.</param>
+		/// <param name="context">The parser context to use for parsing.</param>
+		/// <returns>An enumerable sequence of segments between matches.</returns>
+		public IEnumerable<StringSegment> SplitSegments(string ruleAlias, ParserContext context)
+		{
+			if (!_rulesAliases.TryGetValue(ruleAlias, out var ruleId))
+				throw new ArgumentException("Invalid rule alias", nameof(ruleAlias));
+
+			return SplitSegments(ruleId, context);
+		}
+
+
+
+		/// <summary>
+		/// Finds all matches of target rule, then returns sequence of segments between matches and matches themselves.
+		/// </summary>
+		/// <param name="ruleId">The rule ID to use as a delimiter.</param>
+		/// <param name="context">Parser context for the input.</param>
+		/// <returns>An enumerable sequence of segments between matches and matches.</returns>
+		internal IEnumerable<Or<StringSegment, ParsedRuleResultBase>> Scan(int ruleId, ParserContext context)
+		{
+			if (context.parser != this)
+				throw new InvalidOperationException("Parser context is not associated with this parser.");
+
+			EmitBarriers(ref context);
+
+			var input = context.input;
+
+			// Non-overlapping: the same as ReplaceAllMatches (overlap = false).
+			var matches = FindAllMatches(ruleId, context, GlobalSettings, overlap: false);
+
+			var currentIndex = context.position;
+
+			foreach (var match in matches)
+			{
+				var start = match.startIndex;
+				var length = match.length;
+
+				if (start < currentIndex)
+				{
+					var capturedMatch1 = match;
+					yield return CreateResult(ref context, ref capturedMatch1);
+					continue;
+				}
+
+				// Segment before match.
+				yield return new StringSegment(input, currentIndex, start - currentIndex);
+				currentIndex = start + length;
+
+				var capturedMatch2 = match;
+				yield return CreateResult(ref context, ref capturedMatch2);
+			}
+
+			// Tail after last match.
+			if (currentIndex < context.maxPosition)
+				yield return new StringSegment(input, currentIndex, context.maxPosition - currentIndex);
+		}
+
+		/// <summary>
+		/// Scans the input using the main rule, returning segments between matches and the matches themselves.
+		/// </summary>
+		/// <param name="context">The parser context to use for scanning.</param>
+		/// <returns>An enumerable sequence of segments between matches and matches.</returns>
+		public IEnumerable<Or<StringSegment, ParsedRuleResultBase>> Scan(ParserContext context)
+		{
+			if (context.parser != this)
+				throw new InvalidOperationException("Parser context is not associated with this parser.");
+			if (_mainRuleId == -1)
+				throw new InvalidOperationException("Main rule is not set.");
+
+			return Scan(_mainRuleId, context);
+		}
+
+		/// <summary>
+		/// Scans the input using the main rule, returning segments between matches and the matches themselves.
+		/// </summary>
+		/// <param name="input">The input text to scan.</param>
+		/// <param name="parameter">Optional parameter to pass to the parser.</param>
+		/// <returns>An enumerable sequence of segments between matches and matches.</returns>
+		public IEnumerable<Or<StringSegment, ParsedRuleResultBase>> Scan(string input, object? parameter = null)
+		{
+			if (_mainRuleId == -1)
+				throw new InvalidOperationException("Main rule is not set.");
+
+			var context = new ParserContext(this, input, parameter);
+			return Scan(_mainRuleId, context);
+		}
+
+		/// <summary>
+		/// Scans the input using the specified rule, returning segments between matches and the matches themselves.
+		/// </summary>
+		/// <param name="ruleAlias">The alias for the parser rule to use.</param>
+		/// <param name="context">The parser context to use for scanning.</param>
+		/// <returns>An enumerable sequence of segments between matches and matches.</returns>
+		public IEnumerable<Or<StringSegment, ParsedRuleResultBase>> Scan(string ruleAlias, ParserContext context)
+		{
+			if (context.parser != this)
+				throw new InvalidOperationException("Parser context is not associated with this parser.");
+			if (!_rulesAliases.TryGetValue(ruleAlias, out var ruleId))
+				throw new ArgumentException("Invalid rule alias", nameof(ruleAlias));
+
+			return Scan(ruleId, context);
+		}
+
+		/// <summary>
+		/// Scans the input using the specified rule, returning segments between matches and the matches themselves.
+		/// </summary>
+		/// <param name="ruleAlias">The alias for the parser rule to use.</param>
+		/// <param name="input">The input text to scan.</param>
+		/// <param name="parameter">Optional parameter to pass to the parser.</param>
+		/// <returns>An enumerable sequence of segments between matches and matches.</returns>
+		public IEnumerable<Or<StringSegment, ParsedRuleResultBase>> Scan(string ruleAlias, string input, object? parameter = null)
+		{
+			if (!_rulesAliases.TryGetValue(ruleAlias, out var ruleId))
+				throw new ArgumentException("Invalid rule alias", nameof(ruleAlias));
+
+			var context = new ParserContext(this, input, parameter);
+			return Scan(ruleId, context);
+		}
+
+		/// <summary>
+		/// Scans the input using the main rule, applying the specified factories to convert each segment into a uniform result type.
+		/// </summary>
+		/// <typeparam name="T">The type of the result.</typeparam>
+		/// <param name="context">The parser context to use for scanning.</param>
+		/// <param name="rawFactory">Factory to convert a <see cref="StringSegment"/> into <typeparamref name="T"/>.</param>
+		/// <param name="matchFactory">Factory to convert a <see cref="ParsedRuleResultBase"/> (parsed match) into <typeparamref name="T"/>.</param>
+		/// <returns>An enumerable sequence of converted results.</returns>
+		public IEnumerable<T> Scan<T>(ParserContext context,
+			  Func<StringSegment, T> rawFactory,
+			  Func<ParsedRuleResultBase, T> matchFactory)
+		{
+			foreach (var segment in Scan(context))
+			{
+				if (segment.VariantIndex == 0)
+					yield return rawFactory(segment.AsT1());
+				else
+					yield return matchFactory(segment.AsT2());
+			}
+		}
+
+		/// <summary>
+		/// Scans the input using the main rule, applying the specified factories to convert each segment into a uniform result type.
+		/// </summary>
+		/// <typeparam name="T">The type of the result.</typeparam>
+		/// <param name="input">The input text to scan.</param>
+		/// <param name="rawFactory">Factory to convert a <see cref="StringSegment"/> into <typeparamref name="T"/>.</param>
+		/// <param name="matchFactory">Factory to convert a <see cref="ParsedRuleResultBase"/> (parsed match) into <typeparamref name="T"/>.</param>
+		/// <param name="parameter">Optional parameter to pass to the parser.</param>
+		/// <returns>An enumerable sequence of converted results.</returns>
+		public IEnumerable<T> Scan<T>(string input,
+			  Func<StringSegment, T> rawFactory,
+			  Func<ParsedRuleResultBase, T> matchFactory,
+			  object? parameter = null)
+		{
+			foreach (var segment in Scan(input, parameter))
+			{
+				if (segment.VariantIndex == 0)
+					yield return rawFactory(segment.AsT1());
+				else
+					yield return matchFactory(segment.AsT2());
+			}
+		}
+
+		/// <summary>
+		/// Scans the input using the specified rule, applying the specified factories to convert each segment into a uniform result type.
+		/// </summary>
+		/// <typeparam name="T">The type of the result.</typeparam>
+		/// <param name="ruleAlias">The alias for the parser rule to use.</param>
+		/// <param name="context">The parser context to use for scanning.</param>
+		/// <param name="rawFactory">Factory to convert a <see cref="StringSegment"/> into <typeparamref name="T"/>.</param>
+		/// <param name="matchFactory">Factory to convert a <see cref="ParsedRuleResultBase"/> (parsed match) into <typeparamref name="T"/>.</param>
+		/// <returns>An enumerable sequence of converted results.</returns>
+		public IEnumerable<T> Scan<T>(string ruleAlias, ParserContext context,
+			  Func<StringSegment, T> rawFactory,
+			  Func<ParsedRuleResultBase, T> matchFactory)
+		{
+			foreach (var segment in Scan(ruleAlias, context))
+			{
+				if (segment.VariantIndex == 0)
+					yield return rawFactory(segment.AsT1());
+				else
+					yield return matchFactory(segment.AsT2());
+			}
+		}
+
+		/// <summary>
+		/// Scans the input using the specified rule, applying the specified factories to convert each segment into a uniform result type.
+		/// </summary>
+		/// <typeparam name="T">The type of the result.</typeparam>
+		/// <param name="ruleAlias">The alias for the parser rule to use.</param>
+		/// <param name="input">The input text to scan.</param>
+		/// <param name="rawFactory">Factory to convert a <see cref="StringSegment"/> into <typeparamref name="T"/>.</param>
+		/// <param name="matchFactory">Factory to convert a <see cref="ParsedRuleResultBase"/> (parsed match) into <typeparamref name="T"/>.</param>
+		/// <param name="parameter">Optional parameter to pass to the parser.</param>
+		/// <returns>An enumerable sequence of converted results.</returns>
+		public IEnumerable<T> Scan<T>(string ruleAlias, string input,
+			  Func<StringSegment, T> rawFactory,
+			  Func<ParsedRuleResultBase, T> matchFactory,
+			  object? parameter = null)
+		{
+			foreach (var segment in Scan(ruleAlias, input, parameter))
+			{
+				if (segment.VariantIndex == 0)
+					yield return rawFactory(segment.AsT1());
+				else
+					yield return matchFactory(segment.AsT2());
+			}
+		}
+
+		/// <summary>
+		/// Scans the input using the main rule, applying the specified factories to convert each segment into a discriminated union result.
+		/// </summary>
+		/// <typeparam name="T1">The type for raw text segments.</typeparam>
+		/// <typeparam name="T2">The type for parsed match results.</typeparam>
+		/// <param name="context">The parser context to use for scanning.</param>
+		/// <param name="rawFactory">Factory to convert a <see cref="StringSegment"/> into <typeparamref name="T1"/>.</param>
+		/// <param name="matchFactory">Factory to convert a <see cref="ParsedRuleResultBase"/> (parsed match) into <typeparamref name="T2"/>.</param>
+		/// <returns>An enumerable sequence of <see cref="Or{T1, T2}"/> values representing either raw text or a parsed match.</returns>
+		public IEnumerable<Or<T1, T2>> Scan<T1, T2>(ParserContext context,
+			  Func<StringSegment, T1> rawFactory,
+			  Func<ParsedRuleResultBase, T2> matchFactory)
+		{
+			foreach (var segment in Scan(context))
+			{
+				if (segment.VariantIndex == 0)
+					yield return rawFactory(segment.AsT1());
+				else
+					yield return matchFactory(segment.AsT2());
+			}
+		}
+
+		/// <summary>
+		/// Scans the input using the main rule, applying the specified factories to convert each segment into a discriminated union result.
+		/// </summary>
+		/// <typeparam name="T1">The type for raw text segments.</typeparam>
+		/// <typeparam name="T2">The type for parsed match results.</typeparam>
+		/// <param name="input">The input text to scan.</param>
+		/// <param name="rawFactory">Factory to convert a <see cref="StringSegment"/> into <typeparamref name="T1"/>.</param>
+		/// <param name="matchFactory">Factory to convert a <see cref="ParsedRuleResultBase"/> (parsed match) into <typeparamref name="T2"/>.</param>
+		/// <param name="parameter">Optional parameter to pass to the parser.</param>
+		/// <returns>An enumerable sequence of <see cref="Or{T1, T2}"/> values representing either raw text or a parsed match.</returns>
+		public IEnumerable<Or<T1, T2>> Scan<T1, T2>(string input,
+			  Func<StringSegment, T1> rawFactory,
+			  Func<ParsedRuleResultBase, T2> matchFactory,
+			  object? parameter = null)
+		{
+			foreach (var segment in Scan(input, parameter))
+			{
+				if (segment.VariantIndex == 0)
+					yield return rawFactory(segment.AsT1());
+				else
+					yield return matchFactory(segment.AsT2());
+			}
+		}
+
+		/// <summary>
+		/// Scans the input using the specified rule, applying the specified factories to convert each segment into a discriminated union result.
+		/// </summary>
+		/// <typeparam name="T1">The type for raw text segments.</typeparam>
+		/// <typeparam name="T2">The type for parsed match results.</typeparam>
+		/// <param name="ruleAlias">The alias for the parser rule to use.</param>
+		/// <param name="context">The parser context to use for scanning.</param>
+		/// <param name="rawFactory">Factory to convert a <see cref="StringSegment"/> into <typeparamref name="T1"/>.</param>
+		/// <param name="matchFactory">Factory to convert a <see cref="ParsedRuleResultBase"/> (parsed match) into <typeparamref name="T2"/>.</param>
+		/// <returns>An enumerable sequence of <see cref="Or{T1, T2}"/> values representing either raw text or a parsed match.</returns>
+		public IEnumerable<Or<T1, T2>> Scan<T1, T2>(string ruleAlias, ParserContext context,
+			  Func<StringSegment, T1> rawFactory,
+			  Func<ParsedRuleResultBase, T2> matchFactory)
+		{
+			foreach (var segment in Scan(ruleAlias, context))
+			{
+				if (segment.VariantIndex == 0)
+					yield return rawFactory(segment.AsT1());
+				else
+					yield return matchFactory(segment.AsT2());
+			}
+		}
+
+		/// <summary>
+		/// Scans the input using the specified rule, applying the specified factories to convert each segment into a discriminated union result.
+		/// </summary>
+		/// <typeparam name="T1">The type for raw text segments.</typeparam>
+		/// <typeparam name="T2">The type for parsed match results.</typeparam>
+		/// <param name="ruleAlias">The alias for the parser rule to use.</param>
+		/// <param name="input">The input text to scan.</param>
+		/// <param name="rawFactory">Factory to convert a <see cref="StringSegment"/> into <typeparamref name="T1"/>.</param>
+		/// <param name="matchFactory">Factory to convert a <see cref="ParsedRuleResultBase"/> (parsed match) into <typeparamref name="T2"/>.</param>
+		/// <param name="parameter">Optional parameter to pass to the parser.</param>
+		/// <returns>An enumerable sequence of <see cref="Or{T1, T2}"/> values representing either raw text or a parsed match.</returns>
+		public IEnumerable<Or<T1, T2>> Scan<T1, T2>(string ruleAlias, string input,
+			  Func<StringSegment, T1> rawFactory,
+			  Func<ParsedRuleResultBase, T2> matchFactory,
+			  object? parameter = null)
+		{
+			foreach (var segment in Scan(ruleAlias, input, parameter))
+			{
+				if (segment.VariantIndex == 0)
+					yield return rawFactory(segment.AsT1());
+				else
+					yield return matchFactory(segment.AsT2());
+			}
 		}
 	}
 }

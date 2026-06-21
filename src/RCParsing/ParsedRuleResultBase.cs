@@ -198,14 +198,16 @@ namespace RCParsing
 		/// </summary>
 		/// <typeparam name="T">The type of value to retrieve.</typeparam>
 		/// <returns>The intermediate value associated with this AST node.</returns>
-		public T GetIntermediateValue<T>() => (T)IntermediateValue;
+		public T GetIntermediateValue<T>() => IntermediateValue is T res ? res :
+			throw new SemanticException(this, $"Expected an intermediate value of type {typeof(T).Name} but got {IntermediateValue?.GetType().Name ?? "null"}.");
 
 		/// <summary>
 		/// Gets the intermediate value associated with child AST node at the specific index as an instance of type <typeparamref name="T"/>.
 		/// </summary>
 		/// <typeparam name="T">The type of value to retrieve.</typeparam>
 		/// <returns>The intermediate value associated with child AST node.</returns>
-		public T GetIntermediateValue<T>(int index) => (T)this[index].IntermediateValue;
+		public T GetIntermediateValue<T>(int index) => this[index].IntermediateValue is T res ? res :
+			throw new SemanticException(this[index], $"Expected an intermediate value of type {typeof(T).Name} but got {IntermediateValue?.GetType().Name ?? "null"}.");
 
 		/// <summary>
 		/// Tries to get the intermediate value associated with this AST node as an instance of type <typeparamref name="T"/>.
@@ -227,40 +229,72 @@ namespace RCParsing
 		/// </summary>
 		/// <typeparam name="T">The type of value to retrieve.</typeparam>
 		/// <returns>The intermediate value associated with this AST node.</returns>
-		public T ConvertIntermediateValue<T>() => (T)Convert.ChangeType(IntermediateValue, typeof(T));
+		public T ConvertIntermediateValue<T>()
+		{
+			try
+			{
+				return (T)Convert.ChangeType(IntermediateValue, typeof(T));
+			}
+			catch (Exception ex)
+			{
+				throw new SemanticException(this, $"Failed to convert intermediate value to {typeof(T).Name}: {ex.Message}", ex);
+			}
+		}
 
 		/// <summary>
 		/// Gets the intermediate value associated with child AST node at the specific index converted to type <typeparamref name="T"/>.
 		/// </summary>
 		/// <typeparam name="T">The type of value to retrieve.</typeparam>
 		/// <returns>The intermediate value associated with child AST node.</returns>
-		public T ConvertIntermediateValue<T>(int index) => (T)Convert.ChangeType(this[index].IntermediateValue, typeof(T));
+		public T ConvertIntermediateValue<T>(int index)
+		{
+			try
+			{
+				return (T)Convert.ChangeType(this[index].IntermediateValue, typeof(T));
+			}
+			catch (Exception ex)
+			{
+				throw new SemanticException(this[index], $"Failed to convert intermediate value to {typeof(T).Name}: {ex.Message}", ex);
+			}
+		}
 
 		/// <summary>
 		/// Gets the value associated with this AST node as not-null object. If the value is null, throws an exception.
 		/// </summary>
 		/// <returns>The value associated with this AST node.</returns>
-		public object GetValue() => Value ?? throw new InvalidOperationException("ParsedRuleResult.Value is null");
+		public object GetValue() => Value ?? throw new SemanticException(this, "ParsedRuleResult.Value is null");
 
 		/// <summary>
 		/// Gets the value associated with child AST node at the specific index as not-null object. If the value is null, throws an exception.
 		/// </summary>
 		/// <returns>The value associated with child AST node.</returns>
-		public object GetValue(int index) => this[index].Value ?? throw new InvalidOperationException("ParsedRuleResult.Value is null");
+		public object GetValue(int index) => this[index].Value ?? throw new SemanticException(this[index], "ParsedRuleResult[index].Value is null");
 
 		/// <summary>
 		/// Gets the value associated with this AST node as an instance of type <typeparamref name="T"/>.
 		/// </summary>
 		/// <typeparam name="T">The type of value to retrieve.</typeparam>
 		/// <returns>The value associated with this AST node.</returns>
-		public T GetValue<T>() => (T)Value;
+		public T GetValue<T>()
+		{
+			var value = Value;
+			return value is T res ? res :
+				throw new SemanticException(this,
+				$"Expected a value of type {typeof(T).Name} but got {value?.GetType().Name ?? "null"}.");
+		}
 
 		/// <summary>
 		/// Gets the value associated with child AST node at the specific index as an instance of type <typeparamref name="T"/>.
 		/// </summary>
 		/// <typeparam name="T">The type of value to retrieve.</typeparam>
 		/// <returns>The value associated with child AST node.</returns>
-		public T GetValue<T>(int index) => (T)this[index].Value;
+		public T GetValue<T>(int index)
+		{
+			var value = this[index].Value;
+			return value is T res ? res :
+				throw new SemanticException(this[index],
+				$"Expected a value of type {typeof(T).Name} but got {value?.GetType().Name ?? "null"}.");
+		}
 
 		/// <summary>
 		/// Tries to get the value associated with this AST node as an instance of type <typeparamref name="T"/> or <see langword="default"/> value.
@@ -302,7 +336,17 @@ namespace RCParsing
 		/// </remarks>
 		/// <typeparam name="T">The type of value to retrieve.</typeparam>
 		/// <returns>The value associated with this AST node.</returns>
-		public T ConvertValue<T>() => (T)Convert.ChangeType(Value, typeof(T));
+		public T ConvertValue<T>()
+		{
+			try
+			{
+				return (T)Convert.ChangeType(Value, typeof(T));
+			}
+			catch (Exception ex)
+			{
+				throw new SemanticException(this, $"Failed to convert value to {typeof(T).Name}: {ex.Message}", ex);
+			}
+		}
 
 		/// <summary>
 		/// Gets the value associated with child AST node at the specific index converted to type <typeparamref name="T"/>.
@@ -312,14 +356,25 @@ namespace RCParsing
 		/// </remarks>
 		/// <typeparam name="T">The type of value to retrieve.</typeparam>
 		/// <returns>The value associated with child AST node.</returns>
-		public T ConvertValue<T>(int index) => (T)Convert.ChangeType(this[index].Value, typeof(T));
+		public T ConvertValue<T>(int index)
+		{
+			try
+			{
+				return (T)Convert.ChangeType(this[index].Value, typeof(T));
+			}
+			catch (Exception ex)
+			{
+				throw new SemanticException(this[index], $"Failed to convert value to {typeof(T).Name}: {ex.Message}", ex);
+			}
+		}
 
 		/// <summary>
 		/// Gets the parsing parameter associated with parser context as an instance of type <typeparamref name="T"/>.
 		/// </summary>
 		/// <typeparam name="T">The type of parsing parameter to retrieve.</typeparam>
 		/// <returns>The parsing parameter associated with the parser context.</returns>
-		public T GetParsingParameter<T>() => (T)ParsingParameter;
+		public T GetParsingParameter<T>() => ParsingParameter is T res ? res :
+			throw new SemanticException(this, $"Expected a parsing parameter of type {typeof(T).Name} but got {ParsingParameter?.GetType().Name ?? "null"}.");
 
 		/// <summary>
 		/// Tries to get the parsing parameter associated with parser context as an instance of type <typeparamref name="T"/> or <see langword="default"/> value.

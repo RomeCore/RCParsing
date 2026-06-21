@@ -65,23 +65,19 @@ namespace RCParsing.TokenPatterns.Combinators
 			if (!child.success)
 				return ParsedElement.Fail;
 
-			var initialPosition = position;
-			position = child.startIndex + child.length;
-
-			object? value = null;
 			int trimStart = Math.Min(TrimStart, child.length);
 			int trimEnd = Math.Min(TrimEnd, child.length - trimStart);
 
 			if (child.length - trimStart - trimEnd > 0)
 			{
-				value = input.Substring(child.startIndex + trimStart, child.length - trimStart - trimEnd);
+				child.intermediateValue = input.Substring(child.startIndex + trimStart, child.length - trimStart - trimEnd);
 			}
 			else
 			{
-				value = string.Empty;
+				child.intermediateValue = string.Empty;
 			}
 
-			return new ParsedElement(initialPosition, position - initialPosition, value);
+			return child;
 		}
 
 

@@ -85,7 +85,7 @@ namespace RCParsing.Tests.Tokens
 			Assert.True(result.Success);
 			Assert.Equal((double)999, result.IntermediateValue);
 
-			Assert.True(parser.MatchesToken("value", " \"hello\" ", out var matchedLength));
+			Assert.True(parser.MatchesToken("value", " \"hello\" ", out int matchedLength));
 			Assert.Equal(8, matchedLength);
 
 			Assert.True(parser.MatchesToken("value", " 999 ", out matchedLength));
