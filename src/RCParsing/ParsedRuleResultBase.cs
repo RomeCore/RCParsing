@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Xml.Linq;
 using System.Xml.Schema;
@@ -168,7 +169,15 @@ namespace RCParsing
 		/// </summary>
 		/// <param name="index">The zero-based index of the child AST node to get.</param>
 		/// <returns>The child AST node at the specified index.</returns>
-		public virtual ParsedRuleResultBase this[int index] => Children[index];
+		public ParsedRuleResultBase this[int index] => GetChild(index);
+
+		/// <summary>
+		/// Gets the child AST node with the specified label inside the sequence rule.
+		/// Throws an exception if no such child exists or this AST node is not belongs to sequence rule.
+		/// </summary>
+		/// <param name="label">The label of the child AST node to get.</param>
+		/// <returns>The child AST node with the specified label.</returns>
+		public ParsedRuleResultBase this[string label] => GetChild(label);
 
 		public virtual IEnumerator<ParsedRuleResultBase> GetEnumerator()
 		{
@@ -188,10 +197,77 @@ namespace RCParsing
 		public abstract ParsedRuleResultBase Updated(ParserContext newContext, ParsedRule newParsedRule);
 
 		/// <summary>
+		/// Gets the child AST node at the specified index. Throws an exception if the index is out of range.
+		/// </summary>
+		/// <param name="index">The zero-based index of the child AST node to get.</param>
+		/// <returns>The child AST node at the specified index.</returns>
+		public virtual ParsedRuleResultBase GetChild(int index)
+		{
+			return Children[index];
+		}
+
+		/// <summary>
+		/// Gets the child AST node at the specified index. Returns null if the index is out of range.
+		/// </summary>
+		/// <param name="index">The zero-based index of the child AST node to get.</param>
+		/// <returns>The child AST node at the specified index.</returns>
+		public virtual ParsedRuleResultBase? TryGetChild(int index)
+		{
+			if (index >= 0 && index < Children.Count)
+				return Children[index];
+			return null;
+		}
+
+		/// <summary>
+		/// Gets the child AST node with the specified label inside the sequence rule.
+		/// Throws an exception if no such child exists or this AST node is not belongs to sequence rule.
+		/// </summary>
+		/// <param name="label">The label of the child AST node to get.</param>
+		/// <returns>The child AST node with the specified label.</returns>
+		public ParsedRuleResultBase GetChild(string label)
+		{
+			if (Rule is SequenceParserRule sequence)
+			{
+				if (sequence.RuleLabels.TryGetValue(label, out var index))
+				{
+					return GetChild(index);
+				}
+				throw new SemanticException(this, $"Cannot find child with label '{label}' in sequence rule '{Rule.ToString(0)}'.");
+			}
+			throw new SemanticException(this, $"Cannot get child with label '{label}' from non-sequence rule '{Rule.ToString(0)}'.");
+		}
+
+		/// <summary>
+		/// Gets the child AST node with the specified label inside the sequence rule.
+		/// Returns null if no such child exists or this AST node is not belongs to sequence rule.
+		/// </summary>
+		/// <param name="label">The label of the child AST node to get.</param>
+		/// <returns>The child AST node with the specified label.</returns>
+		public ParsedRuleResultBase? TryGetChild(string label)
+		{
+			if (Rule is SequenceParserRule sequence)
+			{
+				if (sequence.RuleLabels.TryGetValue(label, out var index))
+				{
+					return TryGetChild(index);
+				}
+			}
+			return null;
+		}
+
+		/// <summary>
 		/// Gets the text captured by child AST node at the specific index.
 		/// </summary>
 		/// <returns>The text captured by child AST node.</returns>
-		public string GetText(int index) => this[index].Text;
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public string GetText(int index) => GetChild(index).Text;
+
+		/// <summary>
+		/// Gets the text captured by child AST node marked by specific label in sequence rule.
+		/// </summary>
+		/// <returns>The text captured by child AST node.</returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public string GetText(string label) => GetChild(label).Text;
 
 		/// <summary>
 		/// Gets the intermediate value associated with this AST node as an instance of type <typeparamref name="T"/>.
@@ -206,8 +282,26 @@ namespace RCParsing
 		/// </summary>
 		/// <typeparam name="T">The type of value to retrieve.</typeparam>
 		/// <returns>The intermediate value associated with child AST node.</returns>
-		public T GetIntermediateValue<T>(int index) => this[index].IntermediateValue is T res ? res :
-			throw new SemanticException(this[index], $"Expected an intermediate value of type {typeof(T).Name} but got {IntermediateValue?.GetType().Name ?? "null"}.");
+		public T GetIntermediateValue<T>(int index)
+		{
+			var child = GetChild(index);
+			return child.IntermediateValue is T res ? res :
+				throw new SemanticException(child,
+				$"Expected an intermediate value of type {typeof(T).Name} but got {IntermediateValue?.GetType().Name ?? "null"}.");
+		}
+
+		/// <summary>
+		/// Gets the intermediate value associated with child AST node marked with specified label as an instance of type <typeparamref name="T"/>.
+		/// </summary>
+		/// <typeparam name="T">The type of value to retrieve.</typeparam>
+		/// <returns>The intermediate value associated with child AST node.</returns>
+		public T GetIntermediateValue<T>(string label)
+		{
+			var child = GetChild(label);
+			return child.IntermediateValue is T res ? res :
+				throw new SemanticException(child,
+				$"Expected an intermediate value of type {typeof(T).Name} but got {IntermediateValue?.GetType().Name ?? "null"}.");
+		}
 
 		/// <summary>
 		/// Tries to get the intermediate value associated with this AST node as an instance of type <typeparamref name="T"/>.
@@ -222,7 +316,15 @@ namespace RCParsing
 		/// <typeparam name="T">The type of value to retrieve.</typeparam>
 		/// <returns>The intermediate value associated with child AST node.</returns>
 		public T? TryGetIntermediateValue<T>(int index)
-			=> Count > index ? this[index].IntermediateValue is T result ? result : default : default;
+			=> TryGetChild(index).IntermediateValue is T result ? result : default;
+
+		/// <summary>
+		/// Tries to get the intermediate value associated with child AST node at the specific index as an instance of type <typeparamref name="T"/>.
+		/// </summary>
+		/// <typeparam name="T">The type of value to retrieve.</typeparam>
+		/// <returns>The intermediate value associated with child AST node.</returns>
+		public T? TryGetIntermediateValue<T>(string label)
+			=> TryGetChild(label).IntermediateValue is T result ? result : default;
 
 		/// <summary>
 		/// Gets the intermediate value associated with this AST node converted to type <typeparamref name="T"/>.
@@ -248,13 +350,32 @@ namespace RCParsing
 		/// <returns>The intermediate value associated with child AST node.</returns>
 		public T ConvertIntermediateValue<T>(int index)
 		{
+			var child = GetChild(index);
 			try
 			{
-				return (T)Convert.ChangeType(this[index].IntermediateValue, typeof(T));
+				return (T)Convert.ChangeType(child.IntermediateValue, typeof(T));
 			}
 			catch (Exception ex)
 			{
-				throw new SemanticException(this[index], $"Failed to convert intermediate value to {typeof(T).Name}: {ex.Message}", ex);
+				throw new SemanticException(child, $"Failed to convert intermediate value to {typeof(T).Name}: {ex.Message}", ex);
+			}
+		}
+
+		/// <summary>
+		/// Gets the intermediate value associated with child AST node marked with specified label converted to type <typeparamref name="T"/>.
+		/// </summary>
+		/// <typeparam name="T">The type of value to retrieve.</typeparam>
+		/// <returns>The intermediate value associated with child AST node.</returns>
+		public T ConvertIntermediateValue<T>(string label)
+		{
+			var child = GetChild(label);
+			try
+			{
+				return (T)Convert.ChangeType(child.IntermediateValue, typeof(T));
+			}
+			catch (Exception ex)
+			{
+				throw new SemanticException(child, $"Failed to convert intermediate value to {typeof(T).Name}: {ex.Message}", ex);
 			}
 		}
 
@@ -268,7 +389,21 @@ namespace RCParsing
 		/// Gets the value associated with child AST node at the specific index as not-null object. If the value is null, throws an exception.
 		/// </summary>
 		/// <returns>The value associated with child AST node.</returns>
-		public object GetValue(int index) => this[index].Value ?? throw new SemanticException(this[index], "ParsedRuleResult[index].Value is null");
+		public object GetValue(int index)
+		{
+			var child = GetChild(index);
+			return child.Value ?? throw new SemanticException(child, "ParsedRuleResult[index].Value is null");
+		}
+
+		/// <summary>
+		/// Gets the value associated with child AST node at the specific index as not-null object. If the value is null, throws an exception.
+		/// </summary>
+		/// <returns>The value associated with child AST node.</returns>
+		public object GetValue(string label)
+		{
+			var child = GetChild(label);
+			return child.Value ?? throw new SemanticException(child, "ParsedRuleResult[label].Value is null");
+		}
 
 		/// <summary>
 		/// Gets the value associated with this AST node as an instance of type <typeparamref name="T"/>.
@@ -290,9 +425,24 @@ namespace RCParsing
 		/// <returns>The value associated with child AST node.</returns>
 		public T GetValue<T>(int index)
 		{
-			var value = this[index].Value;
+			var child = GetChild(index);
+			var value = child.Value;
 			return value is T res ? res :
-				throw new SemanticException(this[index],
+				throw new SemanticException(child,
+				$"Expected a value of type {typeof(T).Name} but got {value?.GetType().Name ?? "null"}.");
+		}
+
+		/// <summary>
+		/// Gets the value associated with child AST node marked with specified label as an instance of type <typeparamref name="T"/>.
+		/// </summary>
+		/// <typeparam name="T">The type of value to retrieve.</typeparam>
+		/// <returns>The value associated with child AST node.</returns>
+		public T GetValue<T>(string label)
+		{
+			var child = GetChild(label);
+			var value = child.Value;
+			return value is T res ? res :
+				throw new SemanticException(child,
 				$"Expected a value of type {typeof(T).Name} but got {value?.GetType().Name ?? "null"}.");
 		}
 
@@ -310,7 +460,15 @@ namespace RCParsing
 		/// <typeparam name="T">The type of value to retrieve.</typeparam>
 		/// <returns>The value associated with child AST node.</returns>
 		public T? TryGetValue<T>(int index)
-			=> Count > index ? this[index].Value is T result ? result : default : default;
+			=> TryGetChild(index).Value is T result ? result : default;
+
+		/// <summary>
+		/// Tries to get the value associated with child AST node marked with specified label as an instance of type <typeparamref name="T"/> or <see langword="default"/> value.
+		/// </summary>
+		/// <typeparam name="T">The type of value to retrieve.</typeparam>
+		/// <returns>The value associated with child AST node.</returns>
+		public T? TryGetValue<T>(string label)
+			=> TryGetChild(label).Value is T result ? result : default;
 
 		/// <summary>
 		/// Tries to get the value associated with this AST node as an instance of type <typeparamref name="T"/> or <see langword="default"/> value.
@@ -326,7 +484,15 @@ namespace RCParsing
 		/// <typeparam name="T">The type of value to retrieve.</typeparam>
 		/// <returns>The value associated with child AST node.</returns>
 		public T? TryGetNullableValue<T>(int index) where T : struct
-			=> Count > index ? this[index].Value is T result ? result : null : null;
+			=> TryGetChild(index).Value is T result ? result : null;
+
+		/// <summary>
+		/// Tries to get the value associated with child AST node marked with specified label as an instance of type <typeparamref name="T"/> or <see langword="default"/> value.
+		/// </summary>
+		/// <typeparam name="T">The type of value to retrieve.</typeparam>
+		/// <returns>The value associated with child AST node.</returns>
+		public T? TryGetNullableValue<T>(string label) where T : struct
+			=> TryGetChild(label).Value is T result ? result : null;
 
 		/// <summary>
 		/// Gets the value associated with this AST node converted to type <typeparamref name="T"/>.
@@ -358,13 +524,35 @@ namespace RCParsing
 		/// <returns>The value associated with child AST node.</returns>
 		public T ConvertValue<T>(int index)
 		{
+			var child = GetChild(index);
 			try
 			{
-				return (T)Convert.ChangeType(this[index].Value, typeof(T));
+				return (T)Convert.ChangeType(child.Value, typeof(T));
 			}
 			catch (Exception ex)
 			{
-				throw new SemanticException(this[index], $"Failed to convert value to {typeof(T).Name}: {ex.Message}", ex);
+				throw new SemanticException(child, $"Failed to convert value to {typeof(T).Name}: {ex.Message}", ex);
+			}
+		}
+
+		/// <summary>
+		/// Gets the value associated with child AST node marked with specified label converted to type <typeparamref name="T"/>.
+		/// </summary>
+		/// <remarks>
+		/// Value is converted via <see cref="Convert"/>.
+		/// </remarks>
+		/// <typeparam name="T">The type of value to retrieve.</typeparam>
+		/// <returns>The value associated with child AST node.</returns>
+		public T ConvertValue<T>(string label)
+		{
+			var child = GetChild(label);
+			try
+			{
+				return (T)Convert.ChangeType(child.Value, typeof(T));
+			}
+			catch (Exception ex)
+			{
+				throw new SemanticException(child, $"Failed to convert value to {typeof(T).Name}: {ex.Message}", ex);
 			}
 		}
 
@@ -405,7 +593,16 @@ namespace RCParsing
 		/// <returns>The values from the children.</returns>
 		public object?[] SelectArray(int index)
 		{
-			return this[index].SelectArray();
+			return GetChild(index).SelectArray();
+		}
+
+		/// <summary>
+		/// Selects the children values array of child AST node marked with specified label.
+		/// </summary>
+		/// <returns>The values from the children.</returns>
+		public object?[] SelectArray(string label)
+		{
+			return GetChild(label).SelectArray();
 		}
 
 		/// <summary>
@@ -423,7 +620,16 @@ namespace RCParsing
 		/// <returns>The values from the children.</returns>
 		public IEnumerable<object> SelectValues(int index)
 		{
-			return this[index].SelectValues();
+			return GetChild(index).SelectValues();
+		}
+
+		/// <summary>
+		/// Selects the children values of child AST node marked with specified label.
+		/// </summary>
+		/// <returns>The values from the children.</returns>
+		public IEnumerable<object> SelectValues(string label)
+		{
+			return GetChild(label).SelectValues();
 		}
 
 		/// <summary>
@@ -450,7 +656,17 @@ namespace RCParsing
 		/// <returns>The casted values from the children.</returns>
 		public T[] SelectArray<T>(int index)
 		{
-			return this[index].SelectArray<T>();
+			return GetChild(index).SelectArray<T>();
+		}
+
+		/// <summary>
+		/// Selects the casted children values array of child AST node marked with specified label.
+		/// </summary>
+		/// <typeparam name="T">The type of value to retrieve from the children.</typeparam>
+		/// <returns>The casted values from the children.</returns>
+		public T[] SelectArray<T>(string label)
+		{
+			return GetChild(label).SelectArray<T>();
 		}
 
 		/// <summary>
@@ -470,7 +686,17 @@ namespace RCParsing
 		/// <returns>The casted values from the children.</returns>
 		public IEnumerable<T> SelectValues<T>(int index)
 		{
-			return this[index].SelectValues<T>();
+			return GetChild(index).SelectValues<T>();
+		}
+
+		/// <summary>
+		/// Selects the casted children values of child AST node marked with specified label.
+		/// </summary>
+		/// <typeparam name="T">The type of value to retrieve from the children.</typeparam>
+		/// <returns>The casted values from the children.</returns>
+		public IEnumerable<T> SelectValues<T>(string label)
+		{
+			return GetChild(label).SelectValues<T>();
 		}
 
 		/// <summary>
@@ -498,7 +724,17 @@ namespace RCParsing
 		/// <returns>The selected values from the children.</returns>
 		public T[] SelectArray<T>(int index, Func<ParsedRuleResultBase, T> selector)
 		{
-			return this[index].SelectArray(selector);
+			return GetChild(index).SelectArray(selector);
+		}
+
+		/// <summary>
+		/// Selects the children of child AST node marked with specified label using a selector function.
+		/// </summary>
+		/// <typeparam name="T">The type of value to retrieve from the children.</typeparam>
+		/// <returns>The selected values from the children.</returns>
+		public T[] SelectArray<T>(string label, Func<ParsedRuleResultBase, T> selector)
+		{
+			return GetChild(label).SelectArray(selector);
 		}
 
 		/// <summary>

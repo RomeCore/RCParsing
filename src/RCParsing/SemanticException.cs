@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -103,10 +103,10 @@ namespace RCParsing
 					out int lineStart2, out int lineLength2, out int lineNumber2, out int columnNumber2, out int visualColumnNumber2,
 					result.Context.parser.MainSettings.tabSize);
 
-				sb.AppendLine("Location:");
-
 				if (lineNumber1 == lineNumber2)
 				{
+					sb.AppendLine("Location:");
+
 					// At the same line
 					string lineAndColumn = $"line {lineNumber1}, column {columnNumber1}, length {result.Length}";
 					string pointerLine;
@@ -120,17 +120,23 @@ namespace RCParsing
 				}
 				else
 				{
+					sb.AppendLine($"Location (from line {lineNumber1}, column {columnNumber1} to line {lineNumber2}, column {columnNumber2}; length {result.Length} characters):");
+
+					int maxLineNumberLength = Math.Max(lineNumber1.ToString().Length, lineNumber2.ToString().Length);
+
 					// At different lines
-					sb.Append(lineNumber1.ToString().PadLeft(6) + ": ");
+					sb.Append(lineNumber1.ToString().PadLeft(maxLineNumberLength) + ": ");
 					sb.AppendLine(input.Substring(lineStart1, lineLength1));
-					sb.AppendLine(new string('^', lineLength1 - visualColumnNumber1 - 2).PadLeft(lineLength1));
+					sb.Append(new string(' ', maxLineNumberLength + 2)); // + 2 from ": "
+					sb.AppendLine(new string('^', lineLength1 - visualColumnNumber1 + 1).PadLeft(lineLength1));
 
 					if (lineNumber1 + 1 != lineNumber2)
 						sb.AppendLine("...");
 
-					sb.Append(lineNumber2.ToString().PadLeft(6) + ": ");
+					sb.Append(lineNumber2.ToString().PadLeft(maxLineNumberLength) + ": ");
 					sb.AppendLine(input.Substring(lineStart2, lineLength2));
-					sb.AppendLine(new string('^', lineLength2 - visualColumnNumber2 - 2).PadRight(lineLength2));
+					sb.Append(new string(' ', maxLineNumberLength + 2));
+					sb.AppendLine(new string('^', visualColumnNumber2));
 				}
 			}
 
