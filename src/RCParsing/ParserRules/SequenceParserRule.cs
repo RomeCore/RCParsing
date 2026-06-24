@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using RCParsing.Utils;
 
@@ -11,22 +12,32 @@ namespace RCParsing.ParserRules
 	public class SequenceParserRule : ParserRule
 	{
 		private readonly int[] _rules;
-		
+		private readonly Dictionary<string?, int> _labels;
+
 		/// <summary>
 		/// The rules ids that make up the sequence.
 		/// </summary>
 		public IReadOnlyList<int> Rules { get; }
 
 		/// <summary>
+		/// The labels for each rule in the sequence. These are used for easier navigation in transformation functions.
+		/// The key is label, the value is the index of the rule in the sequence.
+		/// </summary>
+		public IReadOnlyDictionary<string, int> RuleLabels { get; }
+
+		/// <summary>
 		/// Initializes a new instance of the <see cref="SequenceParserRule"/> class.
 		/// </summary>
 		/// <param name="parserRules">The rules ids that make up the sequence.</param>
-		public SequenceParserRule(IEnumerable<int> parserRules)
+		/// <param name="labels">The labels for each rule in the sequence.</param>
+		public SequenceParserRule(IEnumerable<int> parserRules, IDictionary<string, int> labels)
 		{
 			_rules = parserRules?.ToArray() ?? throw new ArgumentNullException(nameof(parserRules));
-			Rules = _rules.AsReadOnlyList();
+			_labels = labels?.ToDictionary(k => k.Key, v => v.Value) ?? throw new ArgumentNullException(nameof(labels));
 			if (_rules.Length == 0)
 				throw new ArgumentException("Sequence must have at least one rule");
+			Rules = _rules.AsReadOnlyList();
+			RuleLabels = new ReadOnlyDictionary<string, int>(_labels);
 		}
 
 		protected override HashSet<char> FirstCharsCore

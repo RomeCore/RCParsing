@@ -101,6 +101,37 @@ namespace RCParsing.Building
 		}
 
 		/// <summary>
+		/// Sets a label for last rule in the sequence. Converts current rule to sequence if it is not already one.
+		/// </summary>
+		/// <param name="label">Label to assign to the last rule in the sequence.</param>
+		/// <returns>Current instance for method chaining.</returns>
+		public RuleBuilder Label(string label)
+		{
+			if (!BuildingRule.HasValue)
+			{
+				throw new ParserBuildingException("Cannot label an empty sequence.");
+			}
+			else if (BuildingRule.Value.VariantIndex == 1 &&
+					BuildingRule.Value.AsT2() is BuildableSequenceParserRule sequenceRule)
+			{
+				int lastIndex = sequenceRule.Elements.Count - 1;
+				if (sequenceRule.Labels.ContainsValue(lastIndex))
+					sequenceRule.Labels.Remove(sequenceRule.Labels.First(v => v.Value == lastIndex).Key);
+				if (sequenceRule.Labels.ContainsKey(label))
+					throw new ParserBuildingException("Label already exists in this sequence element.");
+				sequenceRule.Labels[label] = lastIndex;
+			}
+			else
+			{
+				var newSequence = new BuildableSequenceParserRule();
+				newSequence.Elements.Add(BuildingRule.Value);
+				newSequence.Labels[label] = 0;
+				BuildingRule = newSequence;
+			}
+			return this;
+		}
+
+		/// <summary>
 		/// Adds a rule to the current sequence.
 		/// </summary>
 		/// <param name="childRule">The rule to add. Can be a name or a child pattern.</param>

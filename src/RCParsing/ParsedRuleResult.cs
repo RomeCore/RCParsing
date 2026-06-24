@@ -11,7 +11,7 @@ namespace RCParsing
 	/// </summary>
 	public sealed class ParsedRuleResult : ParsedRuleResultBase
 	{
-		public override ParsedRuleResultBase this[int index] =>
+		public override ParsedRuleResultBase GetChild(int index) =>
 			new ParsedRuleResult(this, ContextReference, Result.children[index]);
 		public override int Count => Result.children?.Count ?? 0;
 		public override IEnumerator<ParsedRuleResultBase> GetEnumerator()
@@ -77,8 +77,8 @@ namespace RCParsing
 	{
 		public ParseTreeOptimization Optimization { get; }
 
-		public override ParsedRuleResultBase this[int index] =>
-			new ParsedRuleResultOptimized(Optimization, this, ContextReference, Result.children[index]);
+		public override ParsedRuleResultBase GetChild(int index)
+			=> new ParsedRuleResultOptimized(Optimization, this, ContextReference, Result.children[index]);
 		public override int Count => Result.children?.Count ?? 0;
 		public override IEnumerator<ParsedRuleResultBase> GetEnumerator()
 		{
