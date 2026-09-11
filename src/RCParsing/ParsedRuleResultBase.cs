@@ -316,7 +316,7 @@ namespace RCParsing
 		/// <typeparam name="T">The type of value to retrieve.</typeparam>
 		/// <returns>The intermediate value associated with child AST node.</returns>
 		public T? TryGetIntermediateValue<T>(int index)
-			=> TryGetChild(index).IntermediateValue is T result ? result : default;
+			=> TryGetChild(index)?.IntermediateValue is T result ? result : default;
 
 		/// <summary>
 		/// Tries to get the intermediate value associated with child AST node at the specific index as an instance of type <typeparamref name="T"/>.
@@ -324,7 +324,7 @@ namespace RCParsing
 		/// <typeparam name="T">The type of value to retrieve.</typeparam>
 		/// <returns>The intermediate value associated with child AST node.</returns>
 		public T? TryGetIntermediateValue<T>(string label)
-			=> TryGetChild(label).IntermediateValue is T result ? result : default;
+			=> TryGetChild(label)?.IntermediateValue is T result ? result : default;
 
 		/// <summary>
 		/// Gets the intermediate value associated with this AST node converted to type <typeparamref name="T"/>.
@@ -460,7 +460,7 @@ namespace RCParsing
 		/// <typeparam name="T">The type of value to retrieve.</typeparam>
 		/// <returns>The value associated with child AST node.</returns>
 		public T? TryGetValue<T>(int index)
-			=> TryGetChild(index).Value is T result ? result : default;
+			=> TryGetChild(index)?.Value is T result ? result : default;
 
 		/// <summary>
 		/// Tries to get the value associated with child AST node marked with specified label as an instance of type <typeparamref name="T"/> or <see langword="default"/> value.
@@ -468,7 +468,7 @@ namespace RCParsing
 		/// <typeparam name="T">The type of value to retrieve.</typeparam>
 		/// <returns>The value associated with child AST node.</returns>
 		public T? TryGetValue<T>(string label)
-			=> TryGetChild(label).Value is T result ? result : default;
+			=> TryGetChild(label)?.Value is T result ? result : default;
 
 		/// <summary>
 		/// Tries to get the value associated with this AST node as an instance of type <typeparamref name="T"/> or <see langword="default"/> value.
@@ -484,7 +484,7 @@ namespace RCParsing
 		/// <typeparam name="T">The type of value to retrieve.</typeparam>
 		/// <returns>The value associated with child AST node.</returns>
 		public T? TryGetNullableValue<T>(int index) where T : struct
-			=> TryGetChild(index).Value is T result ? result : null;
+			=> TryGetChild(index)?.Value is T result ? result : null;
 
 		/// <summary>
 		/// Tries to get the value associated with child AST node marked with specified label as an instance of type <typeparamref name="T"/> or <see langword="default"/> value.
@@ -492,7 +492,7 @@ namespace RCParsing
 		/// <typeparam name="T">The type of value to retrieve.</typeparam>
 		/// <returns>The value associated with child AST node.</returns>
 		public T? TryGetNullableValue<T>(string label) where T : struct
-			=> TryGetChild(label).Value is T result ? result : null;
+			=> TryGetChild(label)?.Value is T result ? result : null;
 
 		/// <summary>
 		/// Gets the value associated with this AST node converted to type <typeparamref name="T"/>.
