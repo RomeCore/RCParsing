@@ -52,16 +52,13 @@ namespace RCParsing
 		private string? _formattedLineText = null;
 		private int? _passedBarriers = null;
 
-		private int _lineStart = -1;
-		private int _lineLength = -1;
-		private int _line = -1;
-		private int _column = -1;
-		private int _visualColumn = -1;
+		private bool _calculated;
+		private PositionFormatInfo _positionInfo;
 
 		private void Calculate()
 		{
-			PositionalFormatter.Decompose(Input, Position, out _lineStart, out _lineLength,
-				out _line, out _column, out _visualColumn, Context.parser.MainSettings.tabSize);
+			_positionInfo = PositionalFormatter.Decompose(Input, Position, Context.parser.MainSettings.tabSize);
+			_calculated = true;
 		}
 
 		/// <summary>
@@ -73,10 +70,10 @@ namespace RCParsing
 			{
 				if (_lineText != null)
 					return _lineText;
-				if (_lineStart == -1)
+				if (!_calculated)
 					Calculate();
 
-				return _lineText = Input.Substring(_lineStart, _lineLength);
+				return _lineText = Input.Substring(_positionInfo.LineStart, _positionInfo.LineLength);
 			}
 		}
 
@@ -89,18 +86,12 @@ namespace RCParsing
 			{
 				if (_formattedLineText != null)
 					return _formattedLineText;
-				if (_lineStart == -1)
+				if (!_calculated)
 					Calculate();
 
-				string lineAndColumn = $"line {_line}, column {_column}";
-
-				string pointerLine;
-				if (_visualColumn <= lineAndColumn.Length + 2)
-					pointerLine = new string(' ', _visualColumn - 1) + '^' + ' ' + lineAndColumn;
-				else
-					pointerLine = new string(' ', _visualColumn - 2 - lineAndColumn.Length) + lineAndColumn + ' ' + '^';
-
-				return _formattedLineText = $"{LineText}\n{pointerLine}";
+				string annotation = $"line {_positionInfo.LineNumber}, column {_positionInfo.ColumnNumber}";
+				return _formattedLineText = PositionalFormatter.Format(Input, _positionInfo,
+					cursorAnnotation: annotation);
 			}
 		}
 
@@ -116,9 +107,9 @@ namespace RCParsing
 		{
 			get
 			{
-				if (_lineStart == -1)
+				if (!_calculated)
 					Calculate();
-				return _lineStart;
+				return _positionInfo.LineStart;
 			}
 		}
 
@@ -129,9 +120,9 @@ namespace RCParsing
 		{
 			get
 			{
-				if (_lineStart == -1)
+				if (!_calculated)
 					Calculate();
-				return _lineLength;
+				return _positionInfo.LineLength;
 			}
 		}
 
@@ -142,9 +133,9 @@ namespace RCParsing
 		{
 			get
 			{
-				if (_lineStart == -1)
+				if (!_calculated)
 					Calculate();
-				return _line;
+				return _positionInfo.LineNumber;
 			}
 		}
 
@@ -155,22 +146,35 @@ namespace RCParsing
 		{
 			get
 			{
-				if (_lineStart == -1)
+				if (!_calculated)
 					Calculate();
-				return _column;
+				return _positionInfo.ColumnNumber;
 			}
 		}
 
 		/// <summary>
-		/// Gets the 1-based visual column index (counts tabs as 4 spaces instead of 1 space) of the error position in the input text.
+		/// Gets the 1-based visual column index (counts tabs) of the error position in the input text.
 		/// </summary>
 		public int VisualColumn
 		{
 			get
 			{
-				if (_lineStart == -1)
+				if (!_calculated)
 					Calculate();
-				return _visualColumn;
+				return _positionInfo.VisualColumnNumber;
+			}
+		}
+
+		/// <summary>
+		/// Gets the line length (counts tabs) at the error position in the input text.
+		/// </summary>
+		public int VisualLineLength
+		{
+			get
+			{
+				if (!_calculated)
+					Calculate();
+				return _positionInfo.VisualLineLength;
 			}
 		}
 
