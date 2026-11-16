@@ -14,91 +14,90 @@ namespace RCParsing.Tests
 		{
 			var inputStr = "line1\nline2 abc\nline3";
 
-			PositionalFormatter.Decompose(inputStr, 9,
-				out var lineStart, out var lineLength, out var lineNumber, out var column, out _);
+			var info = PositionalFormatter.Decompose(inputStr, 9);
 
-			Assert.Equal(6, lineStart);    // start of "line2 abc\n"
-			Assert.Equal(9, lineLength);   // "line2 abc"
-			Assert.Equal(2, lineNumber);   // second line
-			Assert.Equal(4, column);       // index 9 points to 'e' in "line2"
+			Assert.Equal(6, info.LineStart);    // start of "line2 abc\n"
+			Assert.Equal(9, info.LineLength);   // "line2 abc"
+			Assert.Equal(2, info.LineNumber);   // second line
+			Assert.Equal(4, info.ColumnNumber); // index 9 points to 'e' in "line2"
 		}
 
 		[Fact]
 		public void StartOfFirstLine()
 		{
 			var inputStr = "abc\ndef";
-			PositionalFormatter.Decompose(inputStr, 0,
-				out var lineStart, out var lineLength, out var lineNumber, out var column, out _);
 
-			Assert.Equal(0, lineStart);
-			Assert.Equal(3, lineLength);
-			Assert.Equal(1, lineNumber);
-			Assert.Equal(1, column);
+			var info = PositionalFormatter.Decompose(inputStr, 0);
+
+			Assert.Equal(0, info.LineStart);
+			Assert.Equal(3, info.LineLength);
+			Assert.Equal(1, info.LineNumber);
+			Assert.Equal(1, info.ColumnNumber);
 		}
 
 		[Fact]
 		public void EndOfLine()
 		{
 			var inputStr = "abc\ndef";
-			PositionalFormatter.Decompose(inputStr, 3,
-				out var lineStart, out var lineLength, out var lineNumber, out var column, out _);
 
-			Assert.Equal(0, lineStart);   // still on line 1
-			Assert.Equal(3, lineLength);  // "abc"
-			Assert.Equal(1, lineNumber);
-			Assert.Equal(4, column);      // column starts at 1
+			var info = PositionalFormatter.Decompose(inputStr, 3);
+
+			Assert.Equal(0, info.LineStart);    // still on line 1
+			Assert.Equal(3, info.LineLength);   // "abc"
+			Assert.Equal(1, info.LineNumber);
+			Assert.Equal(4, info.ColumnNumber); // column starts at 1
 		}
 
 		[Fact]
 		public void PositionInCarriageReturnNewline()
 		{
 			var inputStr = "abc\r\ndef";
-			PositionalFormatter.Decompose(inputStr, 5,
-				out var lineStart, out var lineLength, out var lineNumber, out var column, out _);
 
-			Assert.Equal(5, lineStart);   // "def" starts at 5
-			Assert.Equal(3, lineLength);  // "def"
-			Assert.Equal(2, lineNumber);
-			Assert.Equal(1, column);      // start of second line
+			var info = PositionalFormatter.Decompose(inputStr, 5);
+
+			Assert.Equal(5, info.LineStart);    // "def" starts at 5
+			Assert.Equal(3, info.LineLength);   // "def"
+			Assert.Equal(2, info.LineNumber);
+			Assert.Equal(1, info.ColumnNumber); // start of second line
 		}
 
 		[Fact]
 		public void PositionAtLastCharacter()
 		{
 			var inputStr = "abc\ndef";
-			PositionalFormatter.Decompose(inputStr, 6,
-				out var lineStart, out var lineLength, out var lineNumber, out var column, out _);
 
-			Assert.Equal(4, lineStart);   // "def" starts at index 4
-			Assert.Equal(3, lineLength);
-			Assert.Equal(2, lineNumber);
-			Assert.Equal(3, column);      // points to 'f'
+			var info = PositionalFormatter.Decompose(inputStr, 6);
+
+			Assert.Equal(4, info.LineStart);    // "def" starts at index 4
+			Assert.Equal(3, info.LineLength);
+			Assert.Equal(2, info.LineNumber);
+			Assert.Equal(3, info.ColumnNumber); // points to 'f'
 		}
 
 		[Fact]
 		public void SingleLineInput()
 		{
 			var inputStr = "just one line";
-			PositionalFormatter.Decompose(inputStr, 5,
-				out var lineStart, out var lineLength, out var lineNumber, out var column, out _);
 
-			Assert.Equal(0, lineStart);
-			Assert.Equal(13, lineLength);
-			Assert.Equal(1, lineNumber);
-			Assert.Equal(6, column);
+			var info = PositionalFormatter.Decompose(inputStr, 5);
+
+			Assert.Equal(0, info.LineStart);
+			Assert.Equal(13, info.LineLength);
+			Assert.Equal(1, info.LineNumber);
+			Assert.Equal(6, info.ColumnNumber);
 		}
 
 		[Fact]
 		public void NewlineOnlyInput()
 		{
 			var inputStr = "\n";
-			PositionalFormatter.Decompose(inputStr, 0,
-				out var lineStart, out var lineLength, out var lineNumber, out var column, out _);
 
-			Assert.Equal(0, lineStart);
-			Assert.Equal(0, lineLength);
-			Assert.Equal(1, lineNumber);
-			Assert.Equal(1, column);
+			var info = PositionalFormatter.Decompose(inputStr, 0);
+
+			Assert.Equal(0, info.LineStart);
+			Assert.Equal(0, info.LineLength);
+			Assert.Equal(1, info.LineNumber);
+			Assert.Equal(1, info.ColumnNumber);
 		}
 
 		[Fact]
@@ -106,8 +105,7 @@ namespace RCParsing.Tests
 		{
 			var inputStr = "abc";
 			Assert.Throws<ArgumentOutOfRangeException>(() =>
-				PositionalFormatter.Decompose(inputStr, 5,
-					out _, out _, out _, out _, out _));
+				PositionalFormatter.Decompose(inputStr, 5));
 		}
 	}
 

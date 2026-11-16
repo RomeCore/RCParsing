@@ -77,66 +77,31 @@ namespace RCParsing
 			var input = result.Context.input;
 			if (result.Length is 0 or 1)
 			{
-				PositionalFormatter.Decompose(input, result.StartIndex,
-					out int lineStart, out int lineLength, out int lineNumber, out int columnNumber, out int visualColumnNumber,
-					result.Context.parser.MainSettings.tabSize);
-
+				var info = PositionalFormatter.Decompose(input, result.StartIndex, result.Context.parser.MainSettings.tabSize);
 				sb.AppendLine("Location:");
-
-				string lineAndColumn = $"line {lineNumber}, column {columnNumber}";
-				string pointerLine;
-				if (visualColumnNumber <= lineAndColumn.Length + 2)
-					pointerLine = new string(' ', visualColumnNumber - 1) + '^' + ' ' + lineAndColumn;
-				else
-					pointerLine = new string(' ', visualColumnNumber - 2 - lineAndColumn.Length) + lineAndColumn + ' ' + '^';
-
-				sb.AppendLine(input.Substring(lineStart, lineLength));
-				sb.AppendLine(pointerLine);
+				string annotation = $"line {info.LineNumber}, column {info.ColumnNumber}";
+				sb.AppendLine(PositionalFormatter.Format(input, info, cursorAnnotation: annotation));
 			}
 			else
 			{
-				PositionalFormatter.Decompose(input, result.StartIndex,
-					out int lineStart1, out int lineLength1, out int lineNumber1, out int columnNumber1, out int visualColumnNumber1,
-					result.Context.parser.MainSettings.tabSize);
+				var startInfo = PositionalFormatter.Decompose(input, result.StartIndex, result.Context.parser.MainSettings.tabSize);
+				var endInfo = PositionalFormatter.Decompose(input, result.EndIndex - 1, result.Context.parser.MainSettings.tabSize);
 
-				PositionalFormatter.Decompose(input, result.EndIndex - 1,
-					out int lineStart2, out int lineLength2, out int lineNumber2, out int columnNumber2, out int visualColumnNumber2,
-					result.Context.parser.MainSettings.tabSize);
-
-				if (lineNumber1 == lineNumber2)
+				if (startInfo.LineNumber == endInfo.LineNumber)
 				{
-					sb.AppendLine("Location:");
-
 					// At the same line
-					string lineAndColumn = $"line {lineNumber1}, column {columnNumber1}, length {result.Length}";
-					string pointerLine;
-					if (visualColumnNumber1 <= lineAndColumn.Length + 2)
-						pointerLine = new string(' ', visualColumnNumber1 - 1) + new string('^', result.Length) + ' ' + lineAndColumn;
-					else
-						pointerLine = new string(' ', visualColumnNumber1 - 2 - lineAndColumn.Length) + lineAndColumn + ' ' + new string('^', result.Length);
 
-					sb.AppendLine(input.Substring(lineStart1, lineLength1));
-					sb.AppendLine(pointerLine);
+					sb.AppendLine("Location:");
+					string annotation = $"line {startInfo.LineNumber}, column {startInfo.ColumnNumber}, length {result.Length}";
+					sb.AppendLine(PositionalFormatter.Format(input, startInfo, endInfo, cursorAnnotation: annotation));
 				}
 				else
 				{
-					sb.AppendLine($"Location (from line {lineNumber1}, column {columnNumber1} to line {lineNumber2}, column {columnNumber2}; length {result.Length} characters):");
-
-					int maxLineNumberLength = Math.Max(lineNumber1.ToString().Length, lineNumber2.ToString().Length);
-
 					// At different lines
-					sb.Append(lineNumber1.ToString().PadLeft(maxLineNumberLength) + ": ");
-					sb.AppendLine(input.Substring(lineStart1, lineLength1));
-					sb.Append(new string(' ', maxLineNumberLength + 2)); // + 2 from ": "
-					sb.AppendLine(new string('^', lineLength1 - visualColumnNumber1 + 1).PadLeft(lineLength1));
 
-					if (lineNumber1 + 1 != lineNumber2)
-						sb.AppendLine("...");
-
-					sb.Append(lineNumber2.ToString().PadLeft(maxLineNumberLength) + ": ");
-					sb.AppendLine(input.Substring(lineStart2, lineLength2));
-					sb.Append(new string(' ', maxLineNumberLength + 2));
-					sb.AppendLine(new string('^', visualColumnNumber2));
+					sb.AppendLine($"Location (from line {startInfo.LineNumber}, column {startInfo.ColumnNumber} to line {endInfo.LineNumber}, " +
+						$"column {endInfo.ColumnNumber}; length {result.Length} characters):");
+					sb.AppendLine(PositionalFormatter.Format(input, startInfo, endInfo, addMultilineNumber: true));
 				}
 			}
 

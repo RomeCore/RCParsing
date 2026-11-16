@@ -12,51 +12,71 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.get_version.outputs.version }}
-    
+
     steps:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
-    
+
     - name: Get version
       id: get_version
       run: |
         echo "Fetching version from .csproj"
-        CSPROJ_FILE=$(find . -name "RCParsing.csproj" | head -n 1)
+        CSPROJ_FILE=$(find . -name "RCParsing.csproj" -not -path "*/tests/*" -not -path "*/benchmarks/*" | head -n 1)
         VERSION=$(grep -oP '<Version>\K[^<]+' $CSPROJ_FILE || grep -oP '<VersionPrefix>\K[^<]+' $CSPROJ_FILE)
-        
         echo "VERSION=$VERSION" >> $GITHUB_ENV
         echo "version=$VERSION" >> $GITHUB_OUTPUT
 
   release:
     needs: check-release
     runs-on: ubuntu-latest
-    
+    # id-token: write lets this job request the GitHub OIDC token that NuGet/login
+    # exchanges for a temporary nuget.org API key (Trusted Publishing).
+    permissions:
+      contents: write
+      id-token: write
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Setup .NET
-      uses: actions/setup-dotnet@v3
-    
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+
+    - name: Restore dependencies
+      run: dotnet restore
+
     - name: Build project
-      run: dotnet build --configuration Release
+      run: dotnet build --configuration Release --no-restore
 
     - name: Run tests
-      run: dotnet test --configuration Release --no-build
+      run: dotnet test --configuration Release --no-build --verbosity normal
 
     - name: Create NuGet package
       run: dotnet pack --configuration Release --no-build --output nupkg
 
-    - name: Create release
-      uses: softprops/action-gh-release@v1
+    - name: Create GitHub release
+      uses: softprops/action-gh-release@v2
       with:
         tag_name: v${{ needs.check-release.outputs.version }}
-        name: v${{ needs.check-release.outputs.version }}
+        name: RCParsing v${{ needs.check-release.outputs.version }}
+        generate_release_notes: true
         files: "**/RCParsing.${{ needs.check-release.outputs.version }}.nupkg"
         draft: false
         prerelease: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        
+
+    # Trusted Publishing policy required on nuget.org (https://www.nuget.org/account/trustedpublishing):
+    #   Repository Owner: RomeCore | Repository: RCParsing | Workflow File: auto-release.yml
+    # `user` is the nuget.org profile name, not the email. The returned key lives 1 hour,
+    # so the login has to stay right next to the push.
+    - name: NuGet login (OIDC -> temporary API key)
+      id: nuget-login
+      uses: NuGet/login@v1
+      with:
+        user: ${{ secrets.NUGET_USER || 'RomeCore' }}
+
     - name: Publish to NuGet
-      run: dotnet nuget push "**/RCParsing.${{ needs.check-release.outputs.version }}.nupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
+      run: dotnet nuget push "**/RCParsing.${{ needs.check-release.outputs.version }}.nupkg" --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json
